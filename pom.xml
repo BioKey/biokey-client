@@ -28,7 +28,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
-                    <reportOutputDirectory>myoutput</reportOutputDirectory>
+                    <reportOutputDirectory>${project.reporting.outputDirectory}/myoutput</reportOutputDirectory>
                     <destDir>myapidocs</destDir>
                 </configuration>
             </plugin>

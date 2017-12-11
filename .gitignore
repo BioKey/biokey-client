@@ -31,9 +31,6 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 
-# Allow site to sync
-!target/site/*
-
 # Avoid ignoring Maven wrapper jar file (.jar files are usually ignored)
 !/.mvn/wrapper/maven-wrapper.jar
 
