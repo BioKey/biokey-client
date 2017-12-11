@@ -6,3 +6,7 @@ Requires you to install [maven](https://maven.apache.org/install.html) as your b
 
 ## Testing
 `mvn test`
+
+## Documentation
+To generate documentation, execute:
+`./document.sh`
