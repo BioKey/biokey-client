@@ -91,6 +91,6 @@ dist/
 nbdist/
 .nb-gradle/
 
-.idea
-.classpath
-.project
+*.idea
+*.classpath
+*.project

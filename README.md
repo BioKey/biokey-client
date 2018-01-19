@@ -5,8 +5,8 @@
 ## Installation
 Requires you to install [maven](https://maven.apache.org/install.html) as your build tool.
 
-## Testing
-`mvn test`
+## Build and Test
+`mvn clean package`
 
 ## Documentation
 To generate documentation, execute:

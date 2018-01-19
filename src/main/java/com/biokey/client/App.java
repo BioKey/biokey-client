@@ -1,23 +1,20 @@
 package com.biokey.client;
 
+import com.biokey.client.providers.AppProvider;
+import com.biokey.client.services.ClientInitService;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
 /**
- * Hello world!
- *
+ * Entry point into the BioKey client.
  */
-public class App 
+public class App
 {
     public static void main( String[] args )
     {
-        System.out.println( "Hello BioKey!" );
-        test("Hello World");
-    }
+        ApplicationContext springContext = new AnnotationConfigApplicationContext(AppProvider.class);
 
-    /**
-     * Prints out the passed file
-     * @param text Text to be printed
-     */
-    public static void test(String text)
-    {
-        System.out.println(text);
+        ClientInitService clientInitService = springContext.getBean(ClientInitService.class);
+        clientInitService.retrieveClientState();
     }
 }
