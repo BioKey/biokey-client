@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Import;
  * Configuration class that provides the singleton instances of the services that are BioKey client's backbone.
  */
 @Configuration
-@Import({ClientStateProvider.class, ChallengeProvider.class})
 public class ServiceProvider {
 
     @Bean
