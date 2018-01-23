@@ -11,7 +11,7 @@ import lombok.NonNull;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * Model serves as the single source of truth for all client state information.
@@ -20,9 +20,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Getter
 public class ClientStateModel {
 
-    private Queue<ClientStatusPojo> unsyncedStatuses = new LinkedBlockingQueue<>();
-    private Queue<KeyStrokePojo> keyStrokes = new LinkedBlockingQueue<>();
-    private Queue<AnalysisResultPojo> analysisResults = new LinkedBlockingQueue<>();
+    private Queue<ClientStatusPojo> unsyncedStatuses = new ArrayBlockingQueue<>();
+    private Queue<KeyStrokePojo> keyStrokes = new ArrayBlockingQueue<>();
+    private Queue<AnalysisResultPojo> analysisResults = new ArrayBlockingQueue<>();
     private Set<IClientStateListener> stateListeners = new HashSet<>();
 
     /**
