@@ -20,9 +20,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 @Getter
 public class ClientStateModel {
 
-    private Queue<ClientStatusPojo> unsyncedStatuses = new ArrayBlockingQueue<>();
-    private Queue<KeyStrokePojo> keyStrokes = new ArrayBlockingQueue<>();
-    private Queue<AnalysisResultPojo> analysisResults = new ArrayBlockingQueue<>();
+    private Queue<ClientStatusPojo> unsyncedStatuses = new ArrayBlockingQueue<>(10);
+    private Queue<KeyStrokePojo> keyStrokes = new ArrayBlockingQueue<>(1000);
+    private Queue<AnalysisResultPojo> analysisResults = new ArrayBlockingQueue<>(100);
     private Set<IClientStateListener> stateListeners = new HashSet<>();
 
     /**
