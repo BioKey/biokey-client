@@ -16,5 +16,7 @@ public class App
 
         ClientInitService clientInitService = springContext.getBean(ClientInitService.class);
         clientInitService.retrieveClientState();
+
+
     }
 }
