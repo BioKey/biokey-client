@@ -164,5 +164,8 @@ public class ClientStateModelTest {
         underTest.dequeueStatus();
         assertTrue("Should have cleared oldest status from queue",
                 underTest.getOldestStatus() == OTHER_CLIENT_STATUS_POJO);
+        underTest.dequeueStatus();
+        assertTrue("Current status should remain defined",
+                underTest.getCurrentStatus() == OTHER_CLIENT_STATUS_POJO);
     }
 }

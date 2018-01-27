@@ -4,6 +4,7 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import org.apache.log4j.Logger;
@@ -26,7 +27,6 @@ public class ClientStateModel {
     /**
      * Interface describing the contract for listeners to the client data.
      * Listeners will be notified when a new status has been added.
-     * Listeners must not make changes to ClientStateModel in the same thread.
      */
     public interface IClientStateListener {
         void stateChanged();
@@ -39,7 +39,7 @@ public class ClientStateModel {
         ClientStatusPojo newStatus(ClientStatusPojo currentStatus);
     }
 
-    private ClientStatusPojo currentStatus;
+    @Getter private ClientStatusPojo currentStatus;
     private Semaphore statusLock = new Semaphore(1, true);
     private Queue<ClientStatusPojo> unsyncedStatuses = new LinkedBlockingQueue<>();
     private Queue<AnalysisResultPojo> unsyncedAnalysisResults = new LinkedBlockingQueue<>();
@@ -188,7 +188,7 @@ public class ClientStateModel {
      * Notifies all the listeners of a status change.
      */
     private void notifyChange() {
-        for (IClientStateListener listener : stateListeners) {
+         for (IClientStateListener listener : stateListeners) {
             listener.stateChanged();
         }
     }
