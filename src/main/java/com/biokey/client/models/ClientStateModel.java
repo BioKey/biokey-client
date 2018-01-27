@@ -1,117 +1,195 @@
 package com.biokey.client.models;
 
-import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
-import com.biokey.client.services.IClientStateListener;
-import lombok.Getter;
+import com.biokey.client.models.pojo.KeyStrokesPojo;
 import lombok.NonNull;
+import lombok.Setter;
+import org.apache.log4j.Logger;
 
-import java.util.HashSet;
+import java.util.Deque;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 
 /**
  * Model serves as the single source of truth for all client state information.
  * State can be observed by any service who registers a listener.
  */
-@Getter
 public class ClientStateModel {
 
-    private Queue<ClientStatusPojo> unsyncedStatuses = new ArrayBlockingQueue<>(10);
-    private Queue<KeyStrokePojo> keyStrokes = new ArrayBlockingQueue<>(1000);
-    private Queue<AnalysisResultPojo> analysisResults = new ArrayBlockingQueue<>(100);
-    private Set<IClientStateListener> stateListeners = new HashSet<>();
+    static Logger log = Logger.getLogger(ClientStateModel.class);
 
     /**
-     * Add a new status to the queue of unsynced statuses.
-     *
-     * @param status new (immutable) status of the client that will be enqueued
+     * Interface describing the contract for listeners to the client data.
+     * Listeners will be notified when a new status has been added.
+     * Listeners must not make changes to ClientStateModel in the same thread.
      */
-    public void enqueueStatus(@NonNull ClientStatusPojo status) {
-        unsyncedStatuses.add(status);
-        notifyChange(status);
+    public interface IClientStateListener {
+        void stateChanged();
     }
 
     /**
-     * Dequeue the oldest status if it has been synced since being enqueued.
+     * Interface describing the contract for controllers to change client status.
+     */
+    public interface IStatusChangeController {
+        ClientStatusPojo newStatus(ClientStatusPojo currentStatus);
+    }
+
+    private ClientStatusPojo currentStatus;
+    private Semaphore statusLock = new Semaphore(1, true);
+    private Queue<ClientStatusPojo> unsyncedStatuses = new LinkedBlockingQueue<>();
+    private Queue<AnalysisResultPojo> unsyncedAnalysisResults = new LinkedBlockingQueue<>();
+    private Deque<KeyStrokesPojo> unsyncedKeyStrokes = new LinkedBlockingDeque<>();
+    private Queue<KeyStrokePojo> allKeyStrokes = new LinkedBlockingQueue<>(); // need a record of all keyStrokes for the analysis engine
+
+    @Setter @NonNull
+    private Set<IClientStateListener> stateListeners;
+
+    /**
+     * Add a new (immutable) status to unsynced queue.
+     *
+     * @param newStatusController controller that takes current status and returns new status
+     * @return true if the thread acquired the lock and the status was enqueued
+     */
+    public boolean enqueueStatus(@NonNull IStatusChangeController newStatusController) {
+        try {
+            // Acquire the lock so no threads can also enqueue.
+            statusLock.acquire();
+
+            // Run the controller code and add the new status to member variables.
+            ClientStatusPojo newStatus = newStatusController.newStatus(currentStatus);
+            unsyncedStatuses.add(newStatus);
+            currentStatus = newStatus;
+
+            // Notify listeners of the change.
+            notifyChange();
+            return true;
+        } catch (InterruptedException e) {
+            log.debug("Another thread interrupted " + Thread.currentThread().getName() + " from getCurrentStatus()");
+            return false;
+        } finally {
+            if (statusLock.availablePermits() == 0) statusLock.release();
+        }
+    }
+
+    /**
+     * Dequeue the oldest status from the unsynced queue.
      *
      * @return true if the oldest status in the queue has been removed
      */
     public boolean dequeueStatus() {
-        if (unsyncedStatuses.isEmpty() || !unsyncedStatuses.peek().getSyncedWithServer().equals(SyncStatusConstants.INSYNC))
-            return false;
+        if (unsyncedStatuses.isEmpty()) return false;
         unsyncedStatuses.remove();
         return true;
     }
 
     /**
-     * Add a keystroke to the list of unsynced keystrokes.
+     * Peek at the oldest status from the unsynced queue.
      *
-     * @param keyStroke new (immutable) keystroke that will be enqueued
+     * @return the oldest status
      */
-    public void addKeyStroke(@NonNull KeyStrokePojo keyStroke) {
-        keyStrokes.add(keyStroke);
+    public ClientStatusPojo getOldestStatus() {
+        return unsyncedStatuses.peek();
     }
 
     /**
-     * Clears all the synced keystrokes starting from the first enqueued.
-     * Assumes that the keystrokes are synced in order; will stop removing keystrokes once an unsynced one is found.
-     */
-    public void clearKeyStrokes() {
-        while (!keyStrokes.isEmpty() && keyStrokes.peek().getSyncedWithServer().equals(SyncStatusConstants.INSYNC)) {
-            keyStrokes.poll();
-        }
-    }
-
-    /**
-     * Add an analysis result to the list of unsynced results.
+     * Add a new (immutable) analysis result to unsynced queue.
      *
-     * @param analysisResult new (immutable) analysis result that will be enqueued
+     * @param result new (immutable) analysis result that will be enqueued
      */
-    public void addAnalysisResult(@NonNull AnalysisResultPojo analysisResult) {
-        analysisResults.add(analysisResult);
+    public void enqueueAnalysisResult(@NonNull AnalysisResultPojo result) {
+        unsyncedAnalysisResults.add(result);
     }
 
     /**
-     * Clears all the synced analysis results starting from the first enqueued.
-     * Assumes that the results are synced in order and will stop removing results once an unsynced one is found.
+     * Dequeue the oldest analysis result from the unsynced queue.
+     *
+     * @return true if the oldest analysis result in the queue has been removed
      */
-    public void clearAnalysisResults() {
-        while (!analysisResults.isEmpty() && analysisResults.peek().getSyncedWithServer().equals(SyncStatusConstants.INSYNC)) {
-            analysisResults.poll();
-        }
+    public boolean dequeueAnalysisResult() {
+        if (unsyncedAnalysisResults.isEmpty()) return false;
+        unsyncedAnalysisResults.remove();
+        return true;
+    }
+
+    /**
+     * Peek at the oldest analysis result from the unsynced queue.
+     *
+     * @return the oldest analysis result
+     */
+    public AnalysisResultPojo getOldestAnalysisResult() {
+        return unsyncedAnalysisResults.peek();
+    }
+
+    /**
+     * Add a new (immutable) key stroke to unsynced and all key strokes queues.
+     *
+     * @param keyStroke new key stroke that will be enqueued
+     */
+    public void enqueueKeyStroke(@NonNull KeyStrokePojo keyStroke) {
+        if (unsyncedKeyStrokes.isEmpty()) unsyncedKeyStrokes.add(new KeyStrokesPojo());
+        unsyncedKeyStrokes.getLast().getKeyStrokes().add(keyStroke);
+        allKeyStrokes.add(keyStroke);
+    }
+
+    /**
+     * Divides the unsynced key strokes queue and bundles all the key strokes since last division together.
+     * dequeueSyncedKeyStrokes() will dequeue the last bundle.
+     */
+    public void divideKeyStrokes() {
+        unsyncedKeyStrokes.add(new KeyStrokesPojo());
+    }
+
+    /**
+     * Dequeue the oldest bundle of key strokes from the unsynced queue.
+     *
+     * @return true if the oldest key strokes in the queue has been removed
+     */
+    public boolean dequeueSyncedKeyStrokes() {
+        if (unsyncedKeyStrokes.isEmpty()) return false;
+        unsyncedKeyStrokes.remove();
+        return true;
+    }
+
+    /**
+     * Dequeue the oldest key stroke from the all key strokes queue.
+     *
+     * @return true if the oldest key stroke in the queue has been removed
+     */
+    public boolean dequeueAllKeyStrokes() {
+        if (allKeyStrokes.isEmpty()) return false;
+        allKeyStrokes.remove();
+        return true;
+    }
+
+    /**
+     * Peek at the oldest bundle of key strokes from the unsynced queue.
+     *
+     * @return the oldest key strokes
+     */
+    public KeyStrokesPojo getOldestKeyStrokes() {
+        return unsyncedKeyStrokes.peek();
+    }
+
+    /**
+     * Get all the keystrokes in client memory.
+     *
+     * @return all the keystrokes in client memory
+     */
+    public Queue<KeyStrokePojo> getKeyStrokes() {
+        return allKeyStrokes;
     }
 
     /**
      * Notifies all the listeners of a status change.
-     *
-     * @param status the status object representing the new status
      */
-    private void notifyChange(@NonNull ClientStatusPojo status) {
+    private void notifyChange() {
         for (IClientStateListener listener : stateListeners) {
-            listener.stateChanged(status);
+            listener.stateChanged();
         }
-    }
-
-    /**
-     * Register a new listener that will be notified once the status changes.
-     *
-     * @param listener listener instance to be added to list
-     */
-    public void addListener(@NonNull IClientStateListener listener) {
-        stateListeners.add(listener);
-    }
-
-    /**
-     * Deregister a listener so the service will no longer be notified once the status changes.
-     *
-     * @param listener listener instance to be deregistered
-     * @return true if the listener instance was found
-     */
-    public boolean removeListener(@NonNull IClientStateListener listener) {
-        return stateListeners.remove(listener);
     }
 }

@@ -5,12 +5,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NonNull;
 
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 @Data
 @JsonIgnoreProperties(value = { "syncedWithServer" })
-public class AnalysisResultPojo {
+public class KeyStrokesPojo {
 
-    private final long timeStamp;
-    private final float probability;
+    @NonNull private Queue<KeyStrokePojo> keyStrokes = new LinkedBlockingQueue<>();
     @NonNull private SyncStatusConstants syncedWithServer = SyncStatusConstants.UNSYNCED;
-
 }
