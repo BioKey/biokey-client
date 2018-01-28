@@ -189,7 +189,7 @@ public class ClientStateModel {
      */
     private void notifyChange() {
          for (IClientStateListener listener : stateListeners) {
-            listener.stateChanged();
+             ((Runnable) listener::stateChanged).run();
         }
     }
 }

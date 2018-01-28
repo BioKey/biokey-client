@@ -21,6 +21,7 @@ public class ServerListenerService {
      */
     @Getter
     private ClientStateModel.IClientStateListener listener = () -> {
+        start();
         return;
     };
 

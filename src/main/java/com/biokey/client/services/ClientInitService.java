@@ -35,6 +35,7 @@ public class ClientInitService {
         KeyStrokePojo test = new KeyStrokePojo('t', true, 1);
         state.enqueueKeyStroke(test);
         System.out.println(state.getKeyStrokes().peek() == test);
+        //TODO: Start the ClientStateController
         return;
     }
 
