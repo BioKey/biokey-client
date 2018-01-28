@@ -7,6 +7,7 @@ import lombok.NonNull;
 @Data
 public class TypingProfilePojo {
 
+    @NonNull private final String id;
     @NonNull private final String machineId;
     @NonNull private final String userId;
     @NonNull private final String model;

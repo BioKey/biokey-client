@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Service that retrieves the client state from the disk and OS and ensures that it has not been corrupted.
  * If the local data does not exist, then the service prompts the user to login and download the client state.
  */
-public class ClientInitService {
+public class ClientInitService implements ClientStateModel.IClientStateListener {
 
     @Autowired
     private ClientStateController controller;
@@ -20,10 +20,9 @@ public class ClientInitService {
     /**
      * Implementation of listener to the ClientStateModel. The service will save the client state periodically.
      */
-    @Getter
-    private ClientStateModel.IClientStateListener listener = () -> {
-        return;
-    };
+    public void stateChanged() {
+
+    }
 
     /**
      * Entry point into this service. Tries to retrieve the client state and in the process

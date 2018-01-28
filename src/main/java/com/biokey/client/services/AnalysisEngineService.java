@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Service that runs the analysis model and reports analysis results that represent the likelihood that the user's
  * typing matches their current profile.
  */
-public class AnalysisEngineService {
+public class AnalysisEngineService implements ClientStateModel.IClientStateListener {
 
     @Autowired
     private ClientStateController controller;
@@ -20,10 +20,9 @@ public class AnalysisEngineService {
      * Implementation of listener to the ClientStateModel. The status will contain the details
      * on the analysis model to run through the typing profile and a flag for whether the engine should be running.
      */
-    @Getter
-    private ClientStateModel.IClientStateListener listener = () -> {
-        return;
-    };
+    public void stateChanged() {
+
+    }
 
     /**
      * Start running the analysis engine.

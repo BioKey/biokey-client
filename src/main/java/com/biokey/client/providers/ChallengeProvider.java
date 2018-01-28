@@ -15,6 +15,7 @@ public class ChallengeProvider {
     public GoogleAuthStrategy googleAuthStrategy() {
         return new GoogleAuthStrategy();
     }
+
     @Bean
     public TextMessageStrategy textMessageStrategy() {
         return new TextMessageStrategy();

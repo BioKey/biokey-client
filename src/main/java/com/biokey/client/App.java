@@ -29,7 +29,5 @@ public class App {
         // Retrieve client state and load into program to get all services running.
         ClientInitService clientInitService = springContext.getBean(ClientInitService.class);
         clientInitService.retrieveClientState();
-
-
     }
 }

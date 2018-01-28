@@ -6,6 +6,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -42,15 +43,19 @@ public class ServerRequestExecutorHelper {
      * @param <T> the type of the responseTemplate
      */
     public <T> void submitGetRequest(@NonNull String url,
+                                     @NonNull MultiValueMap<String, String> headers,
                                      @NonNull Class<T> responseTemplate,
                                      @NonNull ServerResponseHandler<T> handler) {
         executor.execute(() -> {
+            // Add body and header to an Http Entity.
+            HttpEntity<HashMap<String, String>> requestEntity = new HttpEntity<>(headers);
+
             // Pre-suppose that the response fails for whatever reason.
             ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
-                response = (new RestTemplate()).getForEntity(url, responseTemplate);
+                response = (new RestTemplate()).exchange(url, HttpMethod.GET, requestEntity, responseTemplate);
             } catch (RestClientException e) {
                 log.error("Exception when trying HTTP GET Request for: " + url, e);
             } finally {
@@ -71,12 +76,13 @@ public class ServerRequestExecutorHelper {
      * @param <T> the type of the responseTemplate
      */
     public <T> void submitPostRequest(@NonNull String url,
+                                      @NonNull MultiValueMap<String, String> headers,
                                       @NonNull HashMap<String, String> requestBody,
                                       @NonNull Class<T> responseTemplate,
                                       @NonNull ServerResponseHandler<T> handler) {
         executor.execute(() -> {
-            // Add requestBody to an Http Entity.
-            HttpEntity<HashMap<String, String>> requestEntity = new HttpEntity<>(requestBody);
+            // Add body and header to an Http Entity.
+            HttpEntity<HashMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 
             // Pre-suppose that the response fails for whatever reason.
             ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -104,12 +110,13 @@ public class ServerRequestExecutorHelper {
      * @param <T> the type of the responseTemplate
      */
     public <T> void submitPutRequest(@NonNull String url,
+                                     @NonNull MultiValueMap<String, String> headers,
                                      @NonNull HashMap<String, String> requestBody,
                                      @NonNull Class<T> responseTemplate,
                                      @NonNull ServerResponseHandler<T> handler) {
         executor.execute(() -> {
-            // Add requestBody to an Http Entity.
-            HttpEntity<HashMap<String, String>> requestEntity = new HttpEntity<>(requestBody);
+            // Add body and header to an Http Entity.
+            HttpEntity<HashMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 
             // Pre-suppose that the response fails for whatever reason.
             ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);

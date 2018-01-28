@@ -42,11 +42,11 @@ public class ServiceProvider {
     @Bean
     public Set<ClientStateModel.IClientStateListener> serviceListeners() {
         Set<ClientStateModel.IClientStateListener> serviceListeners = new HashSet<>();
-        serviceListeners.add(clientInitService().getListener());
-        serviceListeners.add(analysisEngineService().getListener());
-        serviceListeners.add(keyloggerDaemonService().getListener());
-        serviceListeners.add(lockerService().getListener());
-        serviceListeners.add(serverListenerService().getListener());
+        serviceListeners.add(clientInitService());
+        serviceListeners.add(analysisEngineService());
+        serviceListeners.add(keyloggerDaemonService());
+        serviceListeners.add(lockerService());
+        serviceListeners.add(serverListenerService());
 
         return serviceListeners;
     }
