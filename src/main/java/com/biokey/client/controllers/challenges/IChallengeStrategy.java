@@ -10,5 +10,5 @@ public interface IChallengeStrategy {
      *
      * @return whether the challenge was successfully completed by the user
      */
-    boolean performChallenges();
+    boolean performChallenges(String challenge);
 }

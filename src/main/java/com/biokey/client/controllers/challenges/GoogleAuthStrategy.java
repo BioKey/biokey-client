@@ -10,15 +10,13 @@ import javax.swing.*;
 import java.awt.font.NumericShaper;
 
 public class GoogleAuthStrategy implements IChallengeStrategy{
-    @Setter
-    private String code;
 
     @Override
-    public boolean performChallenges() {
+    public boolean performChallenges(String challenge) {
         int password;
         boolean isValid;
         try {
-            password = Integer.parseInt(code);
+            password = Integer.parseInt(challenge);
             GoogleAuthenticator gAuth = new GoogleAuthenticator();
             isValid = gAuth.authorize("633X7JWPCWSTJC53", password);
         } catch (NumberFormatException nfe) {

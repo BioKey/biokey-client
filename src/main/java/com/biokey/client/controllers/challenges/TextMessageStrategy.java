@@ -11,12 +11,10 @@ public class TextMessageStrategy implements IChallengeStrategy {
     private static final String ACCOUNT_SID = "AC6135115ec55c24ab759c1ae658b2fdfb";
     private static final String AUTH_TOKEN = "79f75626c0f84962e3dcf81b85caba52";
 
-    @Setter
-    private String userGuess;
     private String password;
     @Override
-    public boolean performChallenges() {
-        return userGuess.equals(password);
+    public boolean performChallenges(String challenge) {
+        return challenge.equals(password);
     }
 
     public void sendMessage ()

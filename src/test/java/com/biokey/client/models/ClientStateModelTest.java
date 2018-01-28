@@ -26,13 +26,13 @@ public class ClientStateModelTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("","","",new float[] {}, () -> false),
+                    new TypingProfilePojo("","","",new float[] {}, (String challenge) -> false),
                     StatusConstants.UNLOCKED,
                     "",
                     SyncStatusConstants.UNSYNCED);
     private final ClientStatusPojo SYNCED_CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("","","",new float[] {}, () -> false),
+                    new TypingProfilePojo("","","",new float[] {}, (String challenge) -> false),
                     StatusConstants.UNLOCKED,
                     "",
                     SyncStatusConstants.INSYNC);

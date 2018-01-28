@@ -25,8 +25,7 @@ public class TextMessageChallengeView {
         submitCodeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                textMessageStrategy.setUserGuess(code.getText());
-                System.out.println(textMessageStrategy.performChallenges());
+                System.out.println(textMessageStrategy.performChallenges(code.getText()));
             }
         });
     }

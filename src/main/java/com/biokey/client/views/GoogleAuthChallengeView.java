@@ -27,8 +27,7 @@ public class GoogleAuthChallengeView extends JFrame{
         submitButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                strategy.setCode(authPassword.getText());
-                boolean valid = strategy.performChallenges();
+                boolean valid = strategy.performChallenges(authPassword.getText());
                 System.out.println(valid);
             }
         });
