@@ -94,3 +94,5 @@ nbdist/
 *.idea
 *.classpath
 *.project
+
+logs/

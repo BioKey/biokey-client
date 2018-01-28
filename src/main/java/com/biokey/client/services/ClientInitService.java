@@ -2,7 +2,6 @@ package com.biokey.client.services;
 
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
-import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,13 +15,13 @@ public class ClientInitService {
     @Autowired
     private ClientStateController controller;
     @Autowired
-    ClientStateModel state;
+    private ClientStateModel state;
 
     /**
      * Implementation of listener to the ClientStateModel. The service will save the client state periodically.
      */
     @Getter
-    private IClientStateListener listener = (ClientStatusPojo status) -> {
+    private ClientStateModel.IClientStateListener listener = () -> {
         return;
     };
 
@@ -34,7 +33,7 @@ public class ClientInitService {
         //TODO: delete the below, used to make sure autowiring is working!!!! :)
 
         KeyStrokePojo test = new KeyStrokePojo('t', true, 1);
-        state.addKeyStroke(test);
+        state.enqueueKeyStroke(test);
         System.out.println(state.getKeyStrokes().peek() == test);
         return;
     }

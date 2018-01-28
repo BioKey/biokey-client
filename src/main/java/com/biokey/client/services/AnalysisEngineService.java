@@ -2,7 +2,6 @@ package com.biokey.client.services;
 
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
-import com.biokey.client.models.pojo.ClientStatusPojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -15,14 +14,14 @@ public class AnalysisEngineService {
     @Autowired
     private ClientStateController controller;
     @Autowired
-    ClientStateModel state;
+    private ClientStateModel state;
 
     /**
      * Implementation of listener to the ClientStateModel. The status will contain the details
      * on the analysis model to run through the typing profile and a flag for whether the engine should be running.
      */
     @Getter
-    private IClientStateListener listener = (ClientStatusPojo status) -> {
+    private ClientStateModel.IClientStateListener listener = () -> {
         return;
     };
 

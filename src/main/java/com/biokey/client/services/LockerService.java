@@ -2,7 +2,6 @@ package com.biokey.client.services;
 
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
-import com.biokey.client.models.pojo.ClientStatusPojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -14,14 +13,14 @@ public class LockerService {
     @Autowired
     private ClientStateController controller;
     @Autowired
-    ClientStateModel state;
+    private ClientStateModel state;
 
     /**
      * Implementation of listener to the ClientStateModel. The status will contain the accepted strategies to challenge
      * the user and a flag for whether the locker should lock or unlock.
      */
     @Getter
-    private IClientStateListener listener = (ClientStatusPojo status) -> {
+    private ClientStateModel.IClientStateListener listener = () -> {
         return;
     };
 

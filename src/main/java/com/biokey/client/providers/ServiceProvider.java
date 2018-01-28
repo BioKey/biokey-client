@@ -1,15 +1,17 @@
 package com.biokey.client.providers;
 
+import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.services.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Configuration class that provides the singleton instances of the services that are BioKey client's backbone.
  */
 @Configuration
-@Import({ClientStateProvider.class, ChallengeProvider.class})
 public class ServiceProvider {
 
     @Bean
@@ -35,5 +37,17 @@ public class ServiceProvider {
     @Bean
     public ServerListenerService serverListenerService() {
         return new ServerListenerService();
+    }
+
+    @Bean
+    public Set<ClientStateModel.IClientStateListener> serviceListeners() {
+        Set<ClientStateModel.IClientStateListener> serviceListeners = new HashSet<>();
+        serviceListeners.add(clientInitService().getListener());
+        serviceListeners.add(analysisEngineService().getListener());
+        serviceListeners.add(keyloggerDaemonService().getListener());
+        serviceListeners.add(lockerService().getListener());
+        serviceListeners.add(serverListenerService().getListener());
+
+        return serviceListeners;
     }
 }
