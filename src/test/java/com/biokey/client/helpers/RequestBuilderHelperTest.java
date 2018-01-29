@@ -1,13 +1,15 @@
 package com.biokey.client.helpers;
 
 import com.biokey.client.constants.AppConstants;
-import com.biokey.client.constants.StatusConstants;
+import com.biokey.client.constants.SecurityConstants;
+import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.fasterxml.jackson.core.JsonProcessingException;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,7 +34,7 @@ public class RequestBuilderHelperTest {
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
                     new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false),
-                    StatusConstants.UNLOCKED,
+                    AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     ACCESS_TOKEN,
                     0);
 

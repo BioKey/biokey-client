@@ -63,6 +63,7 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
      * @return true if the save was successful
      */
     private boolean saveClientState() {
+
         return false;
     }
 
