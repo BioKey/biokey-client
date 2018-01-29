@@ -2,7 +2,6 @@ package com.biokey.client.helpers;
 
 import com.biokey.client.constants.AppConstants;
 import com.biokey.client.models.ClientStateModel;
-import com.biokey.client.models.pojo.KeyStrokesPojo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -12,8 +11,9 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 
-public class RequestBodyBuilderHelper {
+public class RequestBuilderHelper {
 
     @Autowired
     private ClientStateModel state;
@@ -37,10 +37,9 @@ public class RequestBodyBuilderHelper {
      */
     public Map<String, String> requestBodyToPostKeystrokes() throws JsonProcessingException {
         Map<String, String> map = new HashMap<>();
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectWriter writer = mapper.writerFor(KeyStrokesPojo.class)
+        ObjectWriter writer = (new ObjectMapper()).writerFor(Queue.class)
                 .withAttribute("typingProfile", state.getCurrentStatus().getProfile().getId());
-        map.put("keystrokes", writer.writeValueAsString(state.getOldestKeyStrokes()));
+        map.put("keystrokes", writer.writeValueAsString(state.getOldestKeyStrokes().getKeyStrokes()));
         return map;
     }
 }
