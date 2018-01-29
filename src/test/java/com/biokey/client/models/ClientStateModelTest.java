@@ -249,7 +249,7 @@ public class ClientStateModelTest {
             underTestPartialMock.enqueueStatus(CLIENT_STATUS_POJO);
             assertTrue("Should have found added analysis result",
                     underTestPartialMock.getOldestStatus() == CLIENT_STATUS_POJO);
-            verifyPrivate(underTestPartialMock).invoke("notifyChange", any(), any());
+            verifyPrivate(underTestPartialMock).invoke("notifyStatusChange", any(), any());
         } finally {
             underTest.releaseAccessToStatus();
         }

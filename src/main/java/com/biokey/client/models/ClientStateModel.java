@@ -8,6 +8,7 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.apache.log4j.Logger;
 
+import java.io.Serializable;
 import java.security.AccessControlException;
 import java.util.Deque;
 import java.util.Queue;
@@ -20,16 +21,40 @@ import java.util.concurrent.locks.ReentrantLock;
  * Model serves as the single source of truth for all client state information.
  * State can be observed by any service who registers a listener.
  */
-public class ClientStateModel {
+public class ClientStateModel implements Serializable {
 
     static Logger log = Logger.getLogger(ClientStateModel.class);
 
     /**
-     * Interface describing the contract for listeners to the client data.
+     * Interface describing the contract for listeners to the client state.
      * Listeners will be notified when a new status has been added.
      */
     public interface IClientStateListener {
         void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus);
+    }
+
+    /**
+     * Interface describing the contract for listeners to the unsynced status queue.
+     * Listeners will be notified when the queue is modified.
+     */
+    public interface IClientStatusQueueListener {
+        void statusQueueChanged();
+    }
+
+    /**
+     * Interface describing the contract for listeners to the keystroke queues.
+     * Listeners will be notified when the queues are modified.
+     */
+    public interface IClientKeyListener {
+        void keystrokeQueueChanged();
+    }
+
+    /**
+     * Interface describing the contract for listeners to the analysis result queue.
+     * Listeners will be notified when the queue is modified.
+     */
+    public interface IClientAnalysisListener {
+        void analysisResultQueueChanged();
     }
 
     private ClientStatusPojo currentStatus;
@@ -44,6 +69,15 @@ public class ClientStateModel {
 
     @Setter @NonNull
     private Set<IClientStateListener> stateListeners;
+
+    @Setter @NonNull
+    private Set<IClientStatusQueueListener> statusQueueListeners;
+
+    @Setter @NonNull
+    private Set<IClientKeyListener> keyQueueListeners;
+
+    @Setter @NonNull
+    private Set<IClientAnalysisListener> analysisResultQueueListeners;
 
     /**
      * Obtain access to status. If a thread is not holding this lock, it can not get or modify the status.
@@ -101,19 +135,22 @@ public class ClientStateModel {
     }
 
     /**
+     * Setter method for the status.
+     */
+    public void setStatus(ClientStatusPojo status) {
+        if (!statusLock.isHeldByCurrentThread()) throw new AccessControlException("statusLock needs to be acquired by the thread");
+        currentStatus = status;
+        return;
+    }
+
+    /**
      * Add a new (immutable) status to unsynced queue.
      *
      * @param status new status to add to queue
      */
     public void enqueueStatus(@NonNull ClientStatusPojo status) {
         if (!statusLock.isHeldByCurrentThread()) throw new AccessControlException("statusLock needs to be acquired by the thread");
-
-        ClientStatusPojo oldStatus = currentStatus;
         unsyncedStatuses.add(status);
-        currentStatus = status;
-
-        // Notify listeners of the change.
-        notifyChange(oldStatus, currentStatus);
     }
 
     /**
@@ -240,10 +277,41 @@ public class ClientStateModel {
     /**
      * Notifies all the listeners of a status change.
      */
-    private void notifyChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-         for (IClientStateListener listener : stateListeners) {
+    public void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+
+        for (IClientStateListener listener : stateListeners) {
              Runnable r = () -> listener.stateChanged(oldStatus, newStatus);
              r.run();
+        }
+    }
+
+    /**
+     * Notifies all the listeners of a status queue change.
+     */
+    public void notifyStatusQueueChange() {
+        for (IClientStatusQueueListener listener : statusQueueListeners) {
+            Runnable r = () -> listener.statusQueueChanged();
+            r.run();
+        }
+    }
+
+    /**
+     * Notifies all the listeners of a key queue change.
+     */
+    public void notifyKeyQueueChange() {
+        for (IClientKeyListener listener : keyQueueListeners) {
+            Runnable r = () -> listener.keystrokeQueueChanged();
+            r.run();
+        }
+    }
+
+    /**
+     * Notifies all the listeners of an analysis result queue change.
+     */
+    public void notifyAnalysisResultQueueChange() {
+        for (IClientAnalysisListener listener : analysisResultQueueListeners) {
+            Runnable r = () -> listener.analysisResultQueueChanged();
+            r.run();
         }
     }
 }

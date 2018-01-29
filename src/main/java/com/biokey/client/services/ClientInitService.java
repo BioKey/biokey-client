@@ -8,6 +8,9 @@ import com.biokey.client.models.pojo.KeyStrokePojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.FileOutputStream;
+import java.io.ObjectOutputStream;
+
 /**
  * Service that retrieves the client state from the disk and OS and ensures that it has not been corrupted.
  * If the local data does not exist, then the service prompts the user to login and download the client state.
@@ -48,11 +51,7 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
      * calls the {@link #checkCorrupt()} and at least one of the {@link #login()} functions.
      */
     public void retrieveClientState() {
-        //TODO: delete the below, used to make sure autowiring is working!!!! :)
 
-        KeyStrokePojo test = new KeyStrokePojo('t', true, 1);
-        state.enqueueKeyStroke(test);
-        System.out.println(state.getKeyStrokes().peek() == test);
 
         return;
     }
@@ -63,6 +62,17 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
      * @return true if the save was successful
      */
     private boolean saveClientState() {
+
+        try {
+            FileOutputStream fos = new FileOutputStream("/tmp/ClientState.ser");
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(state);
+            oos.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
 
         return false;
     }
