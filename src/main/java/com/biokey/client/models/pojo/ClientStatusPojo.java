@@ -1,6 +1,7 @@
 package com.biokey.client.models.pojo;
 
-import com.biokey.client.constants.StatusConstants;
+import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
@@ -11,7 +12,8 @@ import lombok.NonNull;
 public class ClientStatusPojo {
 
     @NonNull private final TypingProfilePojo profile;
-    @NonNull private final StatusConstants topLevelStatus;
+    @NonNull private final AuthConstants authStatus;
+    @NonNull private final SecurityConstants securityStatus;
     @NonNull private final String accessToken;
     private final long timeStamp;
     @NonNull private SyncStatusConstants syncedWithServer = SyncStatusConstants.UNSYNCED;

@@ -14,7 +14,7 @@ public class ClientStateController {
     /**
      * Sends the server a message at fixed time intervals to let it know when the client is alive.
      */
-    private void heartbeat() {
+    public void sendHeartbeat() {
         return; //TODO: Implement heartbeat().
     }
 

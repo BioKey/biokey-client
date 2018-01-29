@@ -29,7 +29,7 @@ public class ClientStateModel {
      * Listeners will be notified when a new status has been added.
      */
     public interface IClientStateListener {
-        void stateChanged();
+        void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus);
     }
 
     private ClientStatusPojo currentStatus;
@@ -108,11 +108,12 @@ public class ClientStateModel {
     public void enqueueStatus(@NonNull ClientStatusPojo status) {
         if (!statusLock.isHeldByCurrentThread()) throw new AccessControlException("statusLock needs to be acquired by the thread");
 
+        ClientStatusPojo oldStatus = currentStatus;
         unsyncedStatuses.add(status);
         currentStatus = status;
 
         // Notify listeners of the change.
-        notifyChange();
+        notifyChange(oldStatus, currentStatus);
     }
 
     /**
@@ -239,9 +240,10 @@ public class ClientStateModel {
     /**
      * Notifies all the listeners of a status change.
      */
-    private void notifyChange() {
+    private void notifyChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
          for (IClientStateListener listener : stateListeners) {
-             ((Runnable) listener::stateChanged).run();
+             Runnable r = () -> listener.stateChanged(oldStatus, newStatus);
+             r.run();
         }
     }
 }

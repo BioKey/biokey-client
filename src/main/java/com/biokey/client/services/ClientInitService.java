@@ -1,7 +1,9 @@
 package com.biokey.client.services;
 
+import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +22,25 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
     /**
      * Implementation of listener to the ClientStateModel. The service will save the client state periodically.
      */
-    public void stateChanged() {
+    public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
 
+        saveClientState();
+
+        /**
+         * If the typing profile is loaded, start the heartbeat.
+         * If the typing profile becomes null, stop the heartbeat
+         */
+        if(newStatus.getProfile() != null) startHeartbeat();
+        else stopHeartbeat();
+
+        /**
+         * If the client becomes authenticated, start the heartbeat.
+         * If the client becomes unauthenticated, stop the heartbeat.
+         */
+        if(oldStatus.getAuthStatus() != newStatus.getAuthStatus()){
+            if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) startHeartbeat();
+            else stopHeartbeat();
+        }
     }
 
     /**
@@ -34,7 +53,7 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
         KeyStrokePojo test = new KeyStrokePojo('t', true, 1);
         state.enqueueKeyStroke(test);
         System.out.println(state.getKeyStrokes().peek() == test);
-        //TODO: Start the ClientStateController
+
         return;
     }
 
@@ -53,6 +72,26 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
      * @return true if the user successfully logged in
      */
     private boolean login() {
+        return false;
+    }
+
+    /**
+     * Starts the controller's heartbeat function.
+     *
+     * @return true if the heartbeat was successfully started
+     */
+    private boolean startHeartbeat() {
+        //TODO: Implement startHeartbeat().
+        return false;
+    }
+
+    /**
+     * Stops the controller's heartbeat function.
+     *
+     * @return true if the heartbeat was successfully stopped
+     */
+    private boolean stopHeartbeat() {
+        //TODO: Implement stopHeartbeat().
         return false;
     }
 

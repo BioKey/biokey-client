@@ -1,7 +1,10 @@
 package com.biokey.client.services;
 
+import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.ClientStatusPojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,8 +22,46 @@ public class AnalysisEngineService implements ClientStateModel.IClientStateListe
     /**
      * Implementation of listener to the ClientStateModel. The status will contain the details
      * on the analysis model to run through the typing profile and a flag for whether the engine should be running.
+     *
      */
-    public void stateChanged() {
+    public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+
+        /**
+         * If the typing profile is loaded, start analyzing.
+         * If the typing profile becomes null, stop analyzing.
+         */
+        if(newStatus.getProfile() != null) {
+            start();
+        }
+        else {
+            stop();
+        }
+
+        /**
+         * If the client becomes authenticated, start analyzing.
+         * If the client becomes unauthenticated, stop analyzing.
+         */
+        if(oldStatus.getAuthStatus() != newStatus.getAuthStatus()) {
+            if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) {
+                start();
+            }
+            else {
+                stop();
+            }
+        }
+
+        /**
+         * If the client is newly challenged, stop logging keystrokes.
+         * If the client is newly 'unlocked', start logging keystrokes
+         */
+        if(oldStatus.getSecurityStatus() != newStatus.getSecurityStatus()) {
+            if(oldStatus.getSecurityStatus() == SecurityConstants.UNLOCKED) {
+                stop();
+            }
+            else if(newStatus.getSecurityStatus() == SecurityConstants.UNLOCKED ) {
+                start();
+            }
+        }
 
     }
 

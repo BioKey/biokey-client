@@ -2,6 +2,7 @@ package com.biokey.client.services;
 
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.ClientStatusPojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,8 +20,8 @@ public class ServerListenerService implements ClientStateModel.IClientStateListe
      * Implementation of listener to the ClientStateModel.
      * The status will contain a flag for whether the service should be running.
      */
-    public void stateChanged() {
-
+    public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+        start();
     }
 
     /**

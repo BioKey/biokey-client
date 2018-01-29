@@ -1,7 +1,9 @@
 package com.biokey.client.services;
 
+import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.ClientStatusPojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,8 +21,23 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStateList
      * Implementation of listener to the ClientStateModel.
      * The status will contain a flag for whether the daemon should be running.
      */
-    public void stateChanged() {
+    public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
 
+        /**
+         * If the typing profile is loaded, start logging keystrokes.
+         * If the typing profile becomes null, stop logging keystrokes.
+         */
+        if(newStatus.getProfile() != null) start();
+        else stop();
+
+        /**
+         * If the client becomes authenticated, start logging keystrokes.
+         * If the client becomes unauthenticated, stop logging keystrokes.
+         */
+        if(oldStatus.getAuthStatus() != newStatus.getAuthStatus()){
+            if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
+            else stop();
+        }
     }
 
     /**

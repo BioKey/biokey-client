@@ -1,6 +1,7 @@
 package com.biokey.client.models;
 
-import com.biokey.client.constants.StatusConstants;
+import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
@@ -27,19 +28,21 @@ import static org.powermock.api.mockito.PowerMockito.verifyPrivate;
 @PrepareForTest(ClientStateModel.class)
 public class ClientStateModelTest {
 
-    private ClientStateModel.IClientStateListener LISTENER = () -> {};
+    private ClientStateModel.IClientStateListener LISTENER = (ClientStatusPojo oldStatus, ClientStatusPojo newStatus) -> {};
     private Set<ClientStateModel.IClientStateListener> LISTENER_SET = new HashSet<>();
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
                     new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false),
-                    StatusConstants.UNLOCKED,
+                    AuthConstants.AUTHENTICATED,
+                    SecurityConstants.UNLOCKED,
                     "",
                     0);
     private final ClientStatusPojo OTHER_CLIENT_STATUS_POJO =
             new ClientStatusPojo(
                     new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false),
-                    StatusConstants.UNLOCKED,
+                    AuthConstants.AUTHENTICATED,
+                    SecurityConstants.UNLOCKED,
                     "",
                     0);
 
@@ -58,9 +61,13 @@ public class ClientStateModelTest {
         underTest.setStateListeners(LISTENER_SET);
     }
 
+    public interface ITestRunner {
+        void run();
+    }
+
     @Test
     public void GIVEN_noAccess_WHEN_anyFunction_THEN_throwsException() {
-        ArrayList<ClientStateModel.IClientStateListener> badListeners = new ArrayList<>();
+        ArrayList<ITestRunner> badListeners = new ArrayList<>();
         badListeners.add(underTest::getCurrentStatus);
         badListeners.add(underTest::dequeueStatus);
         badListeners.add(underTest::getOldestStatus);
@@ -73,9 +80,9 @@ public class ClientStateModelTest {
         badListeners.add(underTest::getKeyStrokes);
 
         // All the functions with no parameters
-        for (ClientStateModel.IClientStateListener badListener : badListeners) {
+        for (ITestRunner badListener : badListeners) {
             try {
-                badListener.stateChanged();
+                badListener.run();
                 fail("AccessControlException not thrown.");
             } catch (Exception e) {
                 assertTrue(e instanceof AccessControlException);
@@ -242,7 +249,7 @@ public class ClientStateModelTest {
             underTestPartialMock.enqueueStatus(CLIENT_STATUS_POJO);
             assertTrue("Should have found added analysis result",
                     underTestPartialMock.getOldestStatus() == CLIENT_STATUS_POJO);
-            verifyPrivate(underTestPartialMock).invoke("notifyChange");
+            verifyPrivate(underTestPartialMock).invoke("notifyChange", any(), any());
         } finally {
             underTest.releaseAccessToStatus();
         }
