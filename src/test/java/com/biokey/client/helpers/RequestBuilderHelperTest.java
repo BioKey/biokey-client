@@ -60,8 +60,7 @@ public class RequestBuilderHelperTest {
     @Test
     public void GIVEN_keyStrokesAndTypingProfile_WHEN_headerMapWithToken_THEN_expectedResult() throws JsonProcessingException {
         Mockito.when(state.getCurrentStatus()).thenReturn(CLIENT_STATUS_POJO);
-        Mockito.when(state.getOldestKeyStrokes()).thenReturn(KEY_STROKES_POJO);
         assertTrue("header map has expected value for access token",
-                underTest.requestBodyToPostKeystrokes().get("keystrokes").equals(EXPECTED_KEY_STROKE_JSON));
+                underTest.requestBodyToPostKeystrokes(KEY_STROKES_POJO).get("keystrokes").equals(EXPECTED_KEY_STROKE_JSON));
     }
 }

@@ -58,6 +58,7 @@ public class ServerRequestExecutorHelper {
                 response = (new RestTemplate()).exchange(url, HttpMethod.GET, requestEntity, responseTemplate);
             } catch (RestClientException e) {
                 log.error("Exception when trying HTTP GET Request for: " + url, e);
+                response = null;
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);
@@ -92,6 +93,7 @@ public class ServerRequestExecutorHelper {
                 response = (new RestTemplate()).postForEntity(url, requestEntity, responseTemplate);
             } catch (RestClientException e) {
                 log.error("Exception when trying HTTP POST Request for: " + url, e);
+                response = null;
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);
@@ -126,6 +128,7 @@ public class ServerRequestExecutorHelper {
                 response = (new RestTemplate()).exchange(url, HttpMethod.PUT, requestEntity, responseTemplate);
             } catch (RestClientException e) {
                 log.error("Exception when trying HTTP PUT Request for: " + url, e);
+                response = null;
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);
