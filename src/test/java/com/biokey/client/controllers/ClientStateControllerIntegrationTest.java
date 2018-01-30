@@ -37,16 +37,17 @@ public class ClientStateControllerIntegrationTest {
     private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
     private static final Set<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
 
-    private final ClientStatusPojo CLIENT_STATUS_POJO =
+    private static final String ACCESS_TOKEN = "5a6fea7607ca3c3f74773f2b";
+    private static final String TYPING_PROFILE_ID = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTZmZWE3NTA3Y2EzYzNmNzQ3NzNmMjciLCJpYXQiOjE1MTcyODU1NTM5MzR9.83hxRNx3vz-PrdUm0fHDGExTXBwNzytpWH9iSKasa9k";
+    private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("5a6fea7607ca3c3f74773f2b", "","","",new float[] {}, (String challenge) -> false),
-                    AuthConstants.AUTHENTICATED,
-                    SecurityConstants.UNLOCKED,
-                    "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTZmZWE3NTA3Y2EzYzNmNzQ3NzNmMjciLCJpYXQiOjE1MTcyODU1NTM5MzR9.83hxRNx3vz-PrdUm0fHDGExTXBwNzytpWH9iSKasa9k",
+                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false),
+                    AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
+                    ACCESS_TOKEN,
                     0);
 
     @Spy
-    private ClientStateModel state = new ClientStateModel();
+    private static final ClientStateModel state = new ClientStateModel();
 
     @Spy @InjectMocks
     private RequestBuilderHelper requestBuilderHelper = new RequestBuilderHelper();
@@ -62,10 +63,6 @@ public class ClientStateControllerIntegrationTest {
         STATUS_LISTENER_SET.add(STATUS_LISTENER);
         KEY_LISTENER_SET.add(KEY_LISTENER);
         ANALYSIS_LISTENER_SET.add(ANALYSIS_LISTENER);
-    }
-
-    @Before
-    public void initState() {
         state.setStatusListeners(STATUS_LISTENER_SET);
         state.setKeyQueueListeners(KEY_LISTENER_SET);
         state.setAnalysisResultQueueListeners(ANALYSIS_LISTENER_SET);

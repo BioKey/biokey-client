@@ -7,6 +7,7 @@ import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.FileInputStream;
@@ -22,6 +23,8 @@ public class ClientInitService implements
         ClientStateModel.IClientStatusListener,
         ClientStateModel.IClientKeyListener,
         ClientStateModel.IClientAnalysisListener {
+
+    private static Logger log = Logger.getLogger(ClientInitService.class);
 
     @Autowired
     private ClientStateController controller;
@@ -75,18 +78,17 @@ public class ClientInitService implements
      * calls the {@link #checkCorrupt()} and at least one of the {@link #login()} functions.
      */
     public void retrieveClientState() {
-        // TODO: call checkCorrupt() and login()
-        try{
-            state.obtainAccessToModel();
+        // TODO: call checkCorrupt() and login() -> which login() based on if retrieve was successful
+        state.obtainAccessToModel();
+        try {
             FileInputStream fis = new FileInputStream(AppConstants.LOCAL_STATE_PATH);
             ObjectInputStream ois = new ObjectInputStream(fis);
             ClientStateModel fromMemory = (ClientStateModel) ois.readObject();
             controller.passStateToModel(fromMemory);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        finally {
+            log.debug("Retrieved client state from file");
+        } catch (Exception e) {
+            log.error("Could not retrieve initial client state from file", e);
+        } finally {
             state.releaseAccessToModel();
         }
     }
@@ -97,19 +99,22 @@ public class ClientInitService implements
      * @return true if the save was successful
      */
     public void saveClientState() {
-
+        // TODO: make sure that when you are writing to file, you are deleting the old data and overwriting, not appending!
         Runnable r = () -> {
+            state.obtainAccessToModel();
             try {
                 FileOutputStream fos = new FileOutputStream(AppConstants.LOCAL_STATE_PATH);
                 ObjectOutputStream oos = new ObjectOutputStream(fos);
                 oos.writeObject(state);
                 oos.close();
+                log.debug("Saved client state to file");
             }
             catch (Exception e){
-                e.printStackTrace();
+                log.debug("Could not save client state to file", e);
+            } finally {
+                state.releaseAccessToModel();
             }
         };
-
         r.run();
     }
 

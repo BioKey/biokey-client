@@ -3,40 +3,69 @@ package com.biokey.client.services;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
 
+import com.biokey.client.providers.AppProvider;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.internal.util.reflection.Whitebox;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-@RunWith(PowerMockRunner.class)
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.junit.Assert.assertTrue;
+
 public class ClientInitServiceIntegrationTest {
 
-    private static final String ACCESS_TOKEN = "ACCESS_TOKEN";
-    private static final String TYPING_PROFILE_ID = "TYPING_PROFILE_ID";
+    private static final ClientStateModel.IClientStatusListener STATUS_LISTENER = (ClientStatusPojo oldStatus, ClientStatusPojo newStatus) -> {};
+    private static final Set<ClientStateModel.IClientStatusListener> STATUS_LISTENER_SET = new HashSet<>();
+    private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
+    private static final Set<ClientStateModel.IClientKeyListener> KEY_LISTENER_SET = new HashSet<>();
+    private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
+    private static final Set<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false),
+                    new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    ACCESS_TOKEN,
-                    0
+                    "",
+                    777
             );
 
-    private static ClientStateModel state = new ClientStateModel();
-    private final ClientInitService underTest = new ClientInitService();
+    private static ClientStateModel state;
+
+    private static ClientInitService underTest;
+
+    @BeforeClass
+    public static void initSpring() {
+        ApplicationContext springContext = new AnnotationConfigApplicationContext(AppProvider.class);
+
+        state = springContext.getBean(ClientStateModel.class);
+        STATUS_LISTENER_SET.add(STATUS_LISTENER);
+        KEY_LISTENER_SET.add(KEY_LISTENER);
+        ANALYSIS_LISTENER_SET.add(ANALYSIS_LISTENER);
+        state.setStatusListeners(STATUS_LISTENER_SET);
+        state.setKeyQueueListeners(KEY_LISTENER_SET);
+        state.setAnalysisResultQueueListeners(ANALYSIS_LISTENER_SET);
+        state.obtainAccessToModel();
+        state.enqueueStatus(CLIENT_STATUS_POJO);
+        state.releaseAccessToModel();
+
+        underTest = springContext.getBean(ClientInitService.class);
+    }
 
     @Test
-    public void ClientInitService_should_save_and_read_ClientStateModel(){
-
-        Whitebox.setInternalState(state, "currentStatus", CLIENT_STATUS_POJO);
-        Whitebox.setInternalState(underTest, "state", state);
+    public void GIVEN_validState_WHEN_saveClientState_retrieveClientState_THEN_success() throws Exception {
         underTest.saveClientState();
-        //underTest.retrieveClientState();
-        //state.obtainAccessToModel();
-        //assertTrue("Model can be saved and retrieved", state.getCurrentStatus().getAccessToken()==CLIENT_STATUS_POJO.getAccessToken());
-        //state.releaseAccessToModel();
+        underTest.saveClientState();
+        underTest.retrieveClientState();
 
+        state.obtainAccessToModel();
+        assertTrue("Retrieved state should be equivalent to saved state",
+                state.getCurrentStatus().getTimeStamp() == CLIENT_STATUS_POJO.getTimeStamp());
+        state.releaseAccessToModel();
     }
 }

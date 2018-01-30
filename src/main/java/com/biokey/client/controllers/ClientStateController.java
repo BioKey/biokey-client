@@ -94,15 +94,6 @@ public class ClientStateController implements
     }
 
     /**
-     * Passes the client state read from memory to the model.
-     *
-     * @param fromMemory client status loaded from memory, to be passed to the model
-     */
-    public void passStateToModel(@NonNull ClientStateModel fromMemory) {
-        state.loadStatusFromMemory(fromMemory);
-    }
-
-    /**
      * Modify the model to include the new keystroke.
      *
      * @param keyStroke
@@ -120,6 +111,15 @@ public class ClientStateController implements
         } finally {
             state.releaseAccessToKeyStrokes();
         }
+    }
+
+    /**
+     * Passes the client state read from memory to the model.
+     *
+     * @param fromMemory client status loaded from memory, to be passed to the model
+     */
+    public void passStateToModel(@NonNull ClientStateModel fromMemory) {
+        state.loadStateFromMemory(fromMemory);
     }
 
     /**
