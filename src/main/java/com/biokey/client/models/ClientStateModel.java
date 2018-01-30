@@ -131,7 +131,7 @@ public class ClientStateModel implements Serializable {
         statusLock.unlock();
         analysisResultLock.unlock();
         keyStrokesLock.unlock();
-        retrievedStatusBeforeEnqueue = true;
+        retrievedStatusBeforeEnqueue = false;
     }
 
     /**
@@ -242,7 +242,7 @@ public class ClientStateModel implements Serializable {
     }
 
     /**
-     * Dequeue the oldest bundle of key strokes from the unsynced queue.
+     * Dequeue the oldest window of key strokes from the unsynced queue.
      *
      * @return true if the oldest key strokes in the queue has been removed
      */
@@ -266,7 +266,7 @@ public class ClientStateModel implements Serializable {
     }
 
     /**
-     * Peek at the oldest bundle of key strokes from the unsynced queue.
+     * Peek at the oldest window of key strokes from the unsynced queue.
      *
      * @return the oldest key strokes
      */

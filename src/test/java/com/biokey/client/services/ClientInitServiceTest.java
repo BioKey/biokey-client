@@ -1,6 +1,5 @@
 package com.biokey.client.services;
 
-import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.models.ClientStateModel;
@@ -12,10 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.powermock.modules.junit4.PowerMockRunner;
-
-import static org.junit.Assert.assertTrue;
 
 @RunWith(PowerMockRunner.class)
 public class ClientInitServiceTest {

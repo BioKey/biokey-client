@@ -1,6 +1,5 @@
 package com.biokey.client.controllers;
 
-import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
@@ -9,15 +8,13 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
-import com.biokey.client.models.response.KeyStrokesPostResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.NonNull;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
-import java.nio.file.Path;
-
+import static com.biokey.client.constants.AppConstants.KEYSTROKE_WINDOW_SIZE_PER_REQUEST;
 import static com.biokey.client.constants.UrlConstants.KEYSTROKE_POST_API_ENDPOINT;
 import static com.biokey.client.constants.UrlConstants.SERVER_NAME;
 
@@ -51,9 +48,9 @@ public class ClientStateController implements
      *
      * @return true if the oldest keys were unsynced and an attempt to sync them was made
      */
-    private boolean sendKeyStrokes() throws JsonProcessingException {
+    public boolean sendKeyStrokes() throws JsonProcessingException {
         // First, make sure to get the lock.
-        state.obtainAccessToKeyStrokes();
+        state.obtainAccessToModel();
 
         try {
             // Change the state of keystrokes to SYNCING.
@@ -66,22 +63,24 @@ public class ClientStateController implements
                     SERVER_NAME + KEYSTROKE_POST_API_ENDPOINT,
                     requestBuilderHelper.headerMapWithToken(),
                     requestBuilderHelper.requestBodyToPostKeystrokes(keysToSend),
-                    KeyStrokesPostResponse.class,
-                    (ResponseEntity<KeyStrokesPostResponse> response) -> {
+                    String.class,
+                    (ResponseEntity<String> response) -> {
                         // First, make sure to get the lock.
-                        state.obtainAccessToKeyStrokes();
+                        state.obtainAccessToModel();
 
                         try {
                             // Check if the response was good.
                             if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                                log.debug("KeyStrokes failed to sync with server and received response: " + response);
                                 keysToSend.setSyncedWithServer(SyncStatusConstants.UNSYNCED);
                                 return;
                             }
 
                             // If it was good then update the model.
                             state.dequeueSyncedKeyStrokes();
+                            log.debug("KeyStrokes successfully synced with server and received response: " + response);
                         } finally {
-                            state.releaseAccessToKeyStrokes();
+                            state.releaseAccessToModel();
                         }
                     });
 
@@ -90,16 +89,28 @@ public class ClientStateController implements
             log.error("Exception when trying to serialize keystrokes to JSON", e);
             throw e;
         } finally {
-            state.releaseAccessToKeyStrokes();
+            state.releaseAccessToModel();
         }
     }
 
     /**
+     * Modify the model to include the new keystroke.
      *
      * @param keyStroke
      */
     public void enqueueKeyStroke(@NonNull KeyStrokePojo keyStroke) {
+        // First, make sure to get the lock.
+        state.obtainAccessToKeyStrokes();
 
+        try {
+            // Enqueue key stroke and if the oldest window of keystrokes is too long then create a new window.
+            state.enqueueKeyStroke(keyStroke);
+            if (state.getOldestKeyStrokes().getKeyStrokes().size() >= KEYSTROKE_WINDOW_SIZE_PER_REQUEST) {
+                state.divideKeyStrokes();
+            }
+        } finally {
+            state.releaseAccessToKeyStrokes();
+        }
     }
 
     /**

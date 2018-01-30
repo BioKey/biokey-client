@@ -7,8 +7,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.util.HashMap;
 import java.util.Queue;
@@ -23,10 +23,11 @@ public class RequestBuilderHelper {
      *
      * @return header map with the current status' access token as the only element
      */
-    public MultiValueMap<String, String> headerMapWithToken() {
-        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add(AppConstants.SERVER_TOKEN_HEADER, state.getCurrentStatus().getAccessToken());
-        return map;
+    public HttpHeaders headerMapWithToken() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(AppConstants.SERVER_TOKEN_HEADER, state.getCurrentStatus().getAccessToken());
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
     }
 
     /**
@@ -35,11 +36,9 @@ public class RequestBuilderHelper {
      * @return map representing the request body for POST keystrokes
      * @throws JsonProcessingException if serialization of keystrokes to JSON has failed
      */
-    public HashMap<String, String> requestBodyToPostKeystrokes(KeyStrokesPojo keysToSend) throws JsonProcessingException {
-        HashMap<String, String> map = new HashMap<>();
+    public String requestBodyToPostKeystrokes(KeyStrokesPojo keysToSend) throws JsonProcessingException {
         ObjectWriter writer = (new ObjectMapper()).writerFor(Queue.class)
                 .withAttribute("typingProfile", state.getCurrentStatus().getProfile().getId());
-        map.put("keystrokes", writer.writeValueAsString(keysToSend.getKeyStrokes()));
-        return map;
+        return "{\"keystrokes\": " + writer.writeValueAsString(keysToSend.getKeyStrokes()) + "}";
     }
 }

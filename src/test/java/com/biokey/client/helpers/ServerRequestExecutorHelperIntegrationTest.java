@@ -2,6 +2,7 @@ package com.biokey.client.helpers;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 
@@ -40,7 +41,7 @@ public class ServerRequestExecutorHelperIntegrationTest {
 
     @Test
     public void GIVEN_realUrl_WHEN_submitGetRequest_THEN_success() {
-        underTest.submitGetRequest(GET_REQUEST_URL, new LinkedMultiValueMap<>(), String.class,
+        underTest.submitGetRequest(GET_REQUEST_URL, new HttpHeaders(), String.class,
                 (ResponseEntity<String> response) -> {
                     assertTrue("Response should be 200 OK", response.getStatusCodeValue() == 200);
                     assertTrue("Response body should not be null", response.getBody() != null);
@@ -52,7 +53,7 @@ public class ServerRequestExecutorHelperIntegrationTest {
 
     @Test
     public void GIVEN_badUrl_WHEN_submitGetRequest_THEN_success() {
-        underTest.submitGetRequest(BAD_GET_REQUEST_URL, new LinkedMultiValueMap<>(), String.class,
+        underTest.submitGetRequest(BAD_GET_REQUEST_URL, new HttpHeaders(), String.class,
                 (ResponseEntity<String> response) -> {
                     assertTrue("Response should be 400 BAD REQUEST", response.getStatusCodeValue() == 400);
                     assertTrue("Response body should be null", response.getBody() == null);

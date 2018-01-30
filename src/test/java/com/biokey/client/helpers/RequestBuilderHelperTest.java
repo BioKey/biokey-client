@@ -42,7 +42,7 @@ public class RequestBuilderHelperTest {
     private static final KeyStrokePojo OTHER_KEY_STROKE_POJO = new KeyStrokePojo('b', false, 2);
     private static final KeyStrokesPojo KEY_STROKES_POJO = new KeyStrokesPojo();
 
-    private static final String EXPECTED_KEY_STROKE_JSON = "[{\"character\":\"t\",\"keyDown\":true,\"timestamp\":1,\"typingProfile\":\"TYPING_PROFILE_ID\"},{\"character\":\"b\",\"keyDown\":false,\"timestamp\":2,\"typingProfile\":\"TYPING_PROFILE_ID\"}]";
+    private static final String EXPECTED_KEY_STROKE_JSON = "{\"keystrokes\": [{\"character\":\"t\",\"keyDown\":true,\"timestamp\":1,\"typingProfile\":\"TYPING_PROFILE_ID\"},{\"character\":\"b\",\"keyDown\":false,\"timestamp\":2,\"typingProfile\":\"TYPING_PROFILE_ID\"}]}";
 
     @BeforeClass
     public static void loadData() {
@@ -61,6 +61,6 @@ public class RequestBuilderHelperTest {
     public void GIVEN_keyStrokesAndTypingProfile_WHEN_headerMapWithToken_THEN_expectedResult() throws JsonProcessingException {
         Mockito.when(state.getCurrentStatus()).thenReturn(CLIENT_STATUS_POJO);
         assertTrue("header map has expected value for access token",
-                underTest.requestBodyToPostKeystrokes(KEY_STROKES_POJO).get("keystrokes").equals(EXPECTED_KEY_STROKE_JSON));
+                underTest.requestBodyToPostKeystrokes(KEY_STROKES_POJO).equals(EXPECTED_KEY_STROKE_JSON));
     }
 }

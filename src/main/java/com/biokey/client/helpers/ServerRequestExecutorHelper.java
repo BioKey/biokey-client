@@ -2,10 +2,8 @@ package com.biokey.client.helpers;
 
 import lombok.NonNull;
 import org.apache.log4j.Logger;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -24,6 +22,8 @@ public class ServerRequestExecutorHelper {
         void handleResponse(ResponseEntity<T> response);
     }
 
+    private RestTemplate rt = new RestTemplate();
+
     /**
      * Executor that will use a worker or pool of worker threads to make HTTP requests asynchronously.
      */
@@ -31,6 +31,7 @@ public class ServerRequestExecutorHelper {
 
     public ServerRequestExecutorHelper(ExecutorService executor) {
         this.executor = executor;
+        this.rt.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
     }
 
     /**
@@ -43,7 +44,7 @@ public class ServerRequestExecutorHelper {
      * @param <T> the type of the responseTemplate
      */
     public <T> void submitGetRequest(@NonNull String url,
-                                     @NonNull MultiValueMap<String, String> headers,
+                                     @NonNull HttpHeaders headers,
                                      @NonNull Class<T> responseTemplate,
                                      @NonNull ServerResponseHandler<T> handler) {
         executor.execute(() -> {
@@ -55,10 +56,9 @@ public class ServerRequestExecutorHelper {
 
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
-                response = (new RestTemplate()).exchange(url, HttpMethod.GET, requestEntity, responseTemplate);
+                response = rt.exchange(url, HttpMethod.GET, requestEntity, responseTemplate);
             } catch (RestClientException e) {
                 log.error("Exception when trying HTTP GET Request for: " + url, e);
-                response = null;
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);
@@ -77,23 +77,22 @@ public class ServerRequestExecutorHelper {
      * @param <T> the type of the responseTemplate
      */
     public <T> void submitPostRequest(@NonNull String url,
-                                      @NonNull MultiValueMap<String, String> headers,
-                                      @NonNull HashMap<String, String> requestBody,
+                                      @NonNull HttpHeaders headers,
+                                      @NonNull String requestBody,
                                       @NonNull Class<T> responseTemplate,
                                       @NonNull ServerResponseHandler<T> handler) {
         executor.execute(() -> {
             // Add body and header to an Http Entity.
-            HttpEntity<HashMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
+            HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
 
             // Pre-suppose that the response fails for whatever reason.
             ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
-                response = (new RestTemplate()).postForEntity(url, requestEntity, responseTemplate);
+                response = rt.postForEntity(url, requestEntity, responseTemplate);
             } catch (RestClientException e) {
                 log.error("Exception when trying HTTP POST Request for: " + url, e);
-                response = null;
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);
@@ -112,23 +111,22 @@ public class ServerRequestExecutorHelper {
      * @param <T> the type of the responseTemplate
      */
     public <T> void submitPutRequest(@NonNull String url,
-                                     @NonNull MultiValueMap<String, String> headers,
-                                     @NonNull HashMap<String, String> requestBody,
+                                     @NonNull HttpHeaders headers,
+                                     @NonNull String requestBody,
                                      @NonNull Class<T> responseTemplate,
                                      @NonNull ServerResponseHandler<T> handler) {
         executor.execute(() -> {
             // Add body and header to an Http Entity.
-            HttpEntity<HashMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
+            HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
 
             // Pre-suppose that the response fails for whatever reason.
             ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
-                response = (new RestTemplate()).exchange(url, HttpMethod.PUT, requestEntity, responseTemplate);
+                response = rt.exchange(url, HttpMethod.PUT, requestEntity, responseTemplate);
             } catch (RestClientException e) {
                 log.error("Exception when trying HTTP PUT Request for: " + url, e);
-                response = null;
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);
