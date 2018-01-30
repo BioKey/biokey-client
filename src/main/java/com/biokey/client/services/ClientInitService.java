@@ -27,6 +27,11 @@ public class ClientInitService implements
     private ClientStateModel state;
 
     /**
+     * Path to the serialized state object.
+     */
+    private static final String localStatePath = "";
+
+    /**
      * Implementation of listener to the ClientStateModel's status. The service will save the client state periodically.
      */
     public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
@@ -73,7 +78,16 @@ public class ClientInitService implements
      * calls the {@link #checkCorrupt()} and at least one of the {@link #login()} functions.
      */
     public void retrieveClientState() {
-        //Obtain all three locks via's Tony new function
+        try{
+            state.obtainAccessToModel();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally {
+            state.releaseAccessToModel();
+        }
+
         //Find local file
         //Casts to a ClientStateModel
         //Call controller.passToModel(), which passes it to the model
