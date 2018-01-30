@@ -1,15 +1,17 @@
 package com.biokey.client.services;
 
 import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.AppConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
-import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 /**
@@ -73,9 +75,20 @@ public class ClientInitService implements
      * calls the {@link #checkCorrupt()} and at least one of the {@link #login()} functions.
      */
     public void retrieveClientState() {
-
-
-        return;
+        // TODO: call checkCorrupt() and login()
+        try{
+            state.obtainAccessToModel();
+            FileInputStream fis = new FileInputStream(AppConstants.LOCAL_STATE_PATH);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            ClientStateModel fromMemory = (ClientStateModel) ois.readObject();
+            controller.passStateToModel(fromMemory);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally {
+            state.releaseAccessToModel();
+        }
     }
 
     /**
@@ -83,20 +96,21 @@ public class ClientInitService implements
      *
      * @return true if the save was successful
      */
-    private boolean saveClientState() {
+    public void saveClientState() {
 
-        try {
-            FileOutputStream fos = new FileOutputStream("/tmp/ClientState.ser");
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(state);
-            oos.close();
-        }
-        catch (Exception e){
-            e.printStackTrace();
-            return false;
-        }
+        Runnable r = () -> {
+            try {
+                FileOutputStream fos = new FileOutputStream(AppConstants.LOCAL_STATE_PATH);
+                ObjectOutputStream oos = new ObjectOutputStream(fos);
+                oos.writeObject(state);
+                oos.close();
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+        };
 
-        return false;
+        r.run();
     }
 
     /**

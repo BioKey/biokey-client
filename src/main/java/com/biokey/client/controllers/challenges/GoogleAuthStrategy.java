@@ -8,8 +8,11 @@ import lombok.Setter;
 
 import javax.swing.*;
 import java.awt.font.NumericShaper;
+import java.io.Serializable;
 
-public class GoogleAuthStrategy implements IChallengeStrategy{
+public class GoogleAuthStrategy implements IChallengeStrategy, Serializable {
+
+    private static final long serialVersionUID = 1000;
 
     @Override
     public boolean performChallenges(String challenge) {

@@ -11,7 +11,7 @@ import java.io.Serializable;
 import java.security.AccessControlException;
 import java.util.Deque;
 import java.util.Queue;
-import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
@@ -46,6 +46,8 @@ public class ClientStateModel implements Serializable {
         void analysisResultQueueChanged(AnalysisResultPojo newResult);
     }
 
+    private static final long serialVersionUID = 100;
+
     private ClientStatusPojo currentStatus;
     private final Queue<ClientStatusPojo> unsyncedStatuses = new LinkedBlockingQueue<>();
     private final Queue<AnalysisResultPojo> unsyncedAnalysisResults = new LinkedBlockingQueue<>();
@@ -58,13 +60,13 @@ public class ClientStateModel implements Serializable {
     private final ReentrantLock keyStrokesLock = new ReentrantLock(true);
 
     @Setter @NonNull
-    private Set<IClientStatusListener> statusListeners;
+    private transient HashSet<IClientStatusListener> statusListeners;
 
     @Setter @NonNull
-    private Set<IClientKeyListener> keyQueueListeners;
+    private transient HashSet<IClientKeyListener> keyQueueListeners;
 
     @Setter @NonNull
-    private Set<IClientAnalysisListener> analysisResultQueueListeners;
+    private transient HashSet<IClientAnalysisListener> analysisResultQueueListeners;
 
     /**
      * Obtain access to status. If a thread is not holding this lock, it can not get or modify the status.
@@ -135,6 +137,20 @@ public class ClientStateModel implements Serializable {
     }
 
     /**
+     * Setter method for the current status.
+     *
+     * @param fromMemory client status loaded from memory
+     */
+    public void loadStatusFromMemory(ClientStateModel fromMemory) {
+        ClientStatusPojo oldStatus = currentStatus;
+        //Add to unsyncedStatuses??
+        currentStatus = fromMemory.currentStatus;
+        //Copy other things over?
+        //notifyStatusChange(oldStatus, currentStatus);
+    }
+
+
+    /**
      * Getter method for the current status.
      *
      * @return current status
@@ -155,11 +171,11 @@ public class ClientStateModel implements Serializable {
             throw new AccessControlException("statusLock needs to be acquired by the thread");
 
         ClientStatusPojo oldStatus = currentStatus;
-        unsyncedStatuses.add(status);
+        //unsyncedStatuses.add(status);
         currentStatus = status;
 
         // Notify listeners of the change.
-        notifyStatusChange(oldStatus, currentStatus);
+        //notifyStatusChange(oldStatus, currentStatus);
     }
 
     /**
@@ -293,7 +309,7 @@ public class ClientStateModel implements Serializable {
      */
     private void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
         for (IClientStatusListener listener : statusListeners) {
-             Runnable r = () -> listener.statusChanged(oldStatus, newStatus);
+             Runnable r = (Runnable & Serializable) () -> listener.statusChanged(oldStatus, newStatus);
              r.run();
         }
     }
@@ -305,7 +321,7 @@ public class ClientStateModel implements Serializable {
      */
     private void notifyKeyQueueChange(KeyStrokePojo newKey) {
         for (IClientKeyListener listener : keyQueueListeners) {
-            Runnable r = () -> listener.keystrokeQueueChanged(newKey);
+            Runnable r = (Runnable & Serializable) () -> listener.keystrokeQueueChanged(newKey);
             r.run();
         }
     }
@@ -317,8 +333,9 @@ public class ClientStateModel implements Serializable {
      */
     private void notifyAnalysisResultQueueChange(AnalysisResultPojo newResult) {
         for (IClientAnalysisListener listener : analysisResultQueueListeners) {
-            Runnable r = () -> listener.analysisResultQueueChanged(newResult);
+            Runnable r = (Runnable & Serializable) () -> listener.analysisResultQueueChanged(newResult);
             r.run();
         }
     }
+    
 }
