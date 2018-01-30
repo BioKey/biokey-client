@@ -9,22 +9,23 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
-@RunWith(PowerMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class ClientStateControllerIntegrationTest {
 
     // Tests require an internet connection and assumes the server is up and running.
@@ -37,8 +38,8 @@ public class ClientStateControllerIntegrationTest {
     private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
     private static final Set<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
 
-    private static final String ACCESS_TOKEN = "5a6fea7607ca3c3f74773f2b";
-    private static final String TYPING_PROFILE_ID = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTZmZWE3NTA3Y2EzYzNmNzQ3NzNmMjciLCJpYXQiOjE1MTcyODU1NTM5MzR9.83hxRNx3vz-PrdUm0fHDGExTXBwNzytpWH9iSKasa9k";
+    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTZmZWE3NTA3Y2EzYzNmNzQ3NzNmMjciLCJpYXQiOjE1MTcyOTkxNDMwODJ9.58EymCmHmHYRKDtb0sokO_OL4OaZfJVfwaETjiP7JgA";
+    private static final String TYPING_PROFILE_ID = "5a6fea7607ca3c3f74773f2b";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
                     new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false),
@@ -47,7 +48,7 @@ public class ClientStateControllerIntegrationTest {
                     0);
 
     @Spy
-    private static final ClientStateModel state = new ClientStateModel();
+    private static ClientStateModel state = new ClientStateModel();
 
     @Spy @InjectMocks
     private RequestBuilderHelper requestBuilderHelper = new RequestBuilderHelper();
@@ -77,5 +78,12 @@ public class ClientStateControllerIntegrationTest {
         underTest.sendKeyStrokes();
         verify(state, timeout(500).times(2)).releaseAccessToModel();
         verify(state, timeout(500).times(1)).dequeueSyncedKeyStrokes();
+    }
+
+    @Test
+    public void GIVEN_realAccessToken_WHEN_confirmAccessToken_THEN_success() {
+        underTest.confirmAccessToken();
+        verify(state, timeout(500).times(2)).releaseAccessToStatus();
+        verify(state, never()).enqueueStatus(any());
     }
 }

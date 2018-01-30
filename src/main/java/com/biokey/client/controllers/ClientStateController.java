@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
 import static com.biokey.client.constants.AppConstants.KEYSTROKE_WINDOW_SIZE_PER_REQUEST;
+import static com.biokey.client.constants.UrlConstants.AUTH_GET_API_ENDPOINT;
 import static com.biokey.client.constants.UrlConstants.KEYSTROKE_POST_API_ENDPOINT;
 import static com.biokey.client.constants.UrlConstants.SERVER_NAME;
 
@@ -110,6 +111,41 @@ public class ClientStateController implements
             }
         } finally {
             state.releaseAccessToKeyStrokes();
+        }
+    }
+
+    /**
+     * Sends the server a request with the access token to confirm the client is still authenticated.
+     */
+    public void confirmAccessToken() {
+        // First, make sure to get the lock.
+        state.obtainAccessToStatus();
+
+        try {
+            // Make the request
+            serverRequestExecutorHelper.submitGetRequest(
+                    SERVER_NAME + AUTH_GET_API_ENDPOINT,
+                    requestBuilderHelper.headerMapWithToken(),
+                    String.class,
+                    (ResponseEntity<String> response) -> {
+                        state.obtainAccessToStatus();
+
+                        try {
+                            // Check if the response was good.
+                            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                                log.debug("Access token did not authenticate and received response: " + response);
+                                state.enqueueStatus(null); // TODO: Placeholder, Josh should write the logic
+                                return;
+                            }
+
+                            // If it was good then do nothing.
+                            log.debug("User successfully authenticated and received response: " + response);
+                        } finally {
+                            state.releaseAccessToStatus();
+                        }
+                    });
+        } finally {
+            state.releaseAccessToStatus();
         }
     }
 
