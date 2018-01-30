@@ -24,7 +24,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      * Implementation of listener to the ClientStateModel's status. The status will contain the details
      * on the analysis model to run through the typing profile.
      */
-    public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
         /*
          * If the typing profile is loaded, start analyzing.
          * If the typing profile becomes null, stop analyzing.

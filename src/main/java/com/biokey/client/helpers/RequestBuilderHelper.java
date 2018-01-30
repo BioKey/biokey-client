@@ -2,6 +2,7 @@ package com.biokey.client.helpers;
 
 import com.biokey.client.constants.AppConstants;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.KeyStrokesPojo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -34,11 +35,11 @@ public class RequestBuilderHelper {
      * @return map representing the request body for POST keystrokes
      * @throws JsonProcessingException if serialization of keystrokes to JSON has failed
      */
-    public HashMap<String, String> requestBodyToPostKeystrokes() throws JsonProcessingException {
+    public HashMap<String, String> requestBodyToPostKeystrokes(KeyStrokesPojo keysToSend) throws JsonProcessingException {
         HashMap<String, String> map = new HashMap<>();
         ObjectWriter writer = (new ObjectMapper()).writerFor(Queue.class)
                 .withAttribute("typingProfile", state.getCurrentStatus().getProfile().getId());
-        map.put("keystrokes", writer.writeValueAsString(state.getOldestKeyStrokes().getKeyStrokes()));
+        map.put("keystrokes", writer.writeValueAsString(keysToSend.getKeyStrokes()));
         return map;
     }
 }

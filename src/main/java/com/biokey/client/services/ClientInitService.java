@@ -29,7 +29,7 @@ public class ClientInitService implements
     /**
      * Implementation of listener to the ClientStateModel's status. The service will save the client state periodically.
      */
-    public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
 
         saveClientState();
 

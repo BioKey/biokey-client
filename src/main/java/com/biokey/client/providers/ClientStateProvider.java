@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Import;
  * Configuration class that provides the singleton instances relating to the client state.
  */
 @Configuration
-@Import(ServiceProvider.class)
 public class ClientStateProvider {
 
     @Bean

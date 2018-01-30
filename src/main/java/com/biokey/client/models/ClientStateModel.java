@@ -27,7 +27,7 @@ public class ClientStateModel implements Serializable {
      * Listeners will be notified when a new status has been added.
      */
     public interface IClientStatusListener {
-        void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus);
+        void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus);
     }
 
     /**
@@ -293,7 +293,7 @@ public class ClientStateModel implements Serializable {
      */
     private void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
         for (IClientStatusListener listener : statusListeners) {
-             Runnable r = () -> listener.stateChanged(oldStatus, newStatus);
+             Runnable r = () -> listener.statusChanged(oldStatus, newStatus);
              r.run();
         }
     }
