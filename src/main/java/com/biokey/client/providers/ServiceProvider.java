@@ -40,8 +40,8 @@ public class ServiceProvider {
     }
 
     @Bean
-    public Set<ClientStateModel.IClientStateListener> serviceStatusListeners() {
-        Set<ClientStateModel.IClientStateListener> serviceStatusListeners = new HashSet<>();
+    public Set<ClientStateModel.IClientStatusListener> statusListeners() {
+        Set<ClientStateModel.IClientStatusListener> serviceStatusListeners = new HashSet<>();
         serviceStatusListeners.add(clientInitService());
         serviceStatusListeners.add(analysisEngineService());
         serviceStatusListeners.add(keyloggerDaemonService());
@@ -52,22 +52,10 @@ public class ServiceProvider {
     }
 
     @Bean
-    public Set<ClientStateModel.IClientStatusQueueListener> serviceStatusQueueListeners() {
-        Set<ClientStateModel.IClientStatusQueueListener> serviceStatusQueueListeners = new HashSet<>();
-
-        //Assumption: the controller will listen for pending changes in the status?
-        //TODO: a 'save' service will listen for pending changes in the status
-
-        return serviceStatusQueueListeners;
-    }
-
-    @Bean
     public Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners() {
         Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners = new HashSet<>();
         analysisQueueListeners.add(lockerService());
-
-        //Assumption: LockerService will listen for pending analysis results
-        //TODO: a 'save' service will listen for pending analysis results
+        analysisQueueListeners.add(clientInitService());
 
         return analysisQueueListeners;
     }
@@ -76,9 +64,7 @@ public class ServiceProvider {
     public Set<ClientStateModel.IClientKeyListener> keyQueueListeners() {
         Set<ClientStateModel.IClientKeyListener> keyQueueListeners = new HashSet<>();
         keyQueueListeners.add(analysisEngineService());
-
-        //Assumption: AnalysisEngineService will listen for pending/added keys
-        //TODO: a 'save' service will listen for pending/added keys
+        keyQueueListeners.add(clientInitService());
 
         return keyQueueListeners;
     }

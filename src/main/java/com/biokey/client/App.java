@@ -6,8 +6,6 @@ import com.biokey.client.services.ClientInitService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 
 /**
@@ -20,29 +18,25 @@ public class App {
         // Load Spring context.
         ApplicationContext springContext = new AnnotationConfigApplicationContext(AppProvider.class);
 
+        ClientStateModel model = springContext.getBean(ClientStateModel.class);
+
         // Add service 'status' listeners to model
         @SuppressWarnings("unchecked")
-        Set<ClientStateModel.IClientStateListener> serviceStatusListeners =
-                (Set<ClientStateModel.IClientStateListener>) springContext.getBean("serviceStatusListeners");
-        springContext.getBean(ClientStateModel.class).setStateListeners(serviceStatusListeners);
-
-        // Add service 'status queue' listeners to model
-        @SuppressWarnings("unchecked")
-        Set<ClientStateModel.IClientStatusQueueListener> serviceStatusQueueListeners =
-                (Set<ClientStateModel.IClientStatusQueueListener>) springContext.getBean("serviceStatusQueueListeners");
-        springContext.getBean(ClientStateModel.class).setStatusQueueListeners(serviceStatusQueueListeners);
+        Set<ClientStateModel.IClientStatusListener> serviceStatusListeners =
+                (Set<ClientStateModel.IClientStatusListener>) springContext.getBean("statusListeners");
+        model.setStatusListeners(serviceStatusListeners);
 
         // Add service 'key queue' listeners to model
         @SuppressWarnings("unchecked")
         Set<ClientStateModel.IClientKeyListener> keyQueueListeners =
                 (Set<ClientStateModel.IClientKeyListener>) springContext.getBean("keyQueueListeners");
-        springContext.getBean(ClientStateModel.class).setKeyQueueListeners(keyQueueListeners);
+        model.setKeyQueueListeners(keyQueueListeners);
 
         // Add service 'analysis results queue' listeners to model
         @SuppressWarnings("unchecked")
         Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners =
                 (Set<ClientStateModel.IClientAnalysisListener>) springContext.getBean("analysisQueueListeners");
-        springContext.getBean(ClientStateModel.class).setAnalysisResultQueueListeners(analysisQueueListeners);
+        model.setAnalysisResultQueueListeners(analysisQueueListeners);
 
         // Retrieve client state and load into program to get all services running.
         ClientInitService clientInitService = springContext.getBean(ClientInitService.class);

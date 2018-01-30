@@ -6,7 +6,6 @@ import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
 import lombok.NonNull;
 import lombok.Setter;
-import org.apache.log4j.Logger;
 
 import java.io.Serializable;
 import java.security.AccessControlException;
@@ -23,22 +22,12 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class ClientStateModel implements Serializable {
 
-    static Logger log = Logger.getLogger(ClientStateModel.class);
-
     /**
-     * Interface describing the contract for listeners to the client state.
+     * Interface describing the contract for listeners to the client status.
      * Listeners will be notified when a new status has been added.
      */
-    public interface IClientStateListener {
+    public interface IClientStatusListener {
         void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus);
-    }
-
-    /**
-     * Interface describing the contract for listeners to the unsynced status queue.
-     * Listeners will be notified when the queue is modified.
-     */
-    public interface IClientStatusQueueListener {
-        void statusQueueChanged();
     }
 
     /**
@@ -46,7 +35,7 @@ public class ClientStateModel implements Serializable {
      * Listeners will be notified when the queues are modified.
      */
     public interface IClientKeyListener {
-        void keystrokeQueueChanged();
+        void keystrokeQueueChanged(KeyStrokePojo newKey);
     }
 
     /**
@@ -54,7 +43,7 @@ public class ClientStateModel implements Serializable {
      * Listeners will be notified when the queue is modified.
      */
     public interface IClientAnalysisListener {
-        void analysisResultQueueChanged();
+        void analysisResultQueueChanged(AnalysisResultPojo newResult);
     }
 
     private ClientStatusPojo currentStatus;
@@ -64,14 +53,12 @@ public class ClientStateModel implements Serializable {
     private final Queue<KeyStrokePojo> allKeyStrokes = new LinkedBlockingQueue<>(); // need a record of all keyStrokes for the analysis engine
 
     private final ReentrantLock statusLock = new ReentrantLock(true);
+    private boolean retrievedStatusBeforeEnqueue = false;
     private final ReentrantLock analysisResultLock = new ReentrantLock(true);
     private final ReentrantLock keyStrokesLock = new ReentrantLock(true);
 
     @Setter @NonNull
-    private Set<IClientStateListener> stateListeners;
-
-    @Setter @NonNull
-    private Set<IClientStatusQueueListener> statusQueueListeners;
+    private Set<IClientStatusListener> statusListeners;
 
     @Setter @NonNull
     private Set<IClientKeyListener> keyQueueListeners;
@@ -85,6 +72,7 @@ public class ClientStateModel implements Serializable {
      */
     public void obtainAccessToStatus() {
         statusLock.lock();
+        retrievedStatusBeforeEnqueue = false;
     }
 
     /**
@@ -92,6 +80,7 @@ public class ClientStateModel implements Serializable {
      */
     public void releaseAccessToStatus() {
         statusLock.unlock();
+        retrievedStatusBeforeEnqueue = false;
     }
 
     /**
@@ -125,22 +114,35 @@ public class ClientStateModel implements Serializable {
     }
 
     /**
+     * Obtain access to the entire model. If a thread is not holding this lock, it can not get or modify the model.
+     * A thread that has called this method must make sure to release the lock through a finally block.
+     */
+    public void obtainAccessToModel() {
+        statusLock.lock();
+        analysisResultLock.lock();
+        keyStrokesLock.lock();
+        retrievedStatusBeforeEnqueue = true;
+    }
+
+    /**
+     * Release access to get and modify the entire model.
+     */
+    public void releaseAccessToModel() {
+        statusLock.unlock();
+        analysisResultLock.unlock();
+        keyStrokesLock.unlock();
+        retrievedStatusBeforeEnqueue = true;
+    }
+
+    /**
      * Getter method for the current status.
      *
      * @return current status
      */
     public ClientStatusPojo getCurrentStatus() {
         if (!statusLock.isHeldByCurrentThread()) throw new AccessControlException("statusLock needs to be acquired by the thread");
+        retrievedStatusBeforeEnqueue = true;
         return currentStatus;
-    }
-
-    /**
-     * Setter method for the status.
-     */
-    public void setStatus(ClientStatusPojo status) {
-        if (!statusLock.isHeldByCurrentThread()) throw new AccessControlException("statusLock needs to be acquired by the thread");
-        currentStatus = status;
-        return;
     }
 
     /**
@@ -149,8 +151,15 @@ public class ClientStateModel implements Serializable {
      * @param status new status to add to queue
      */
     public void enqueueStatus(@NonNull ClientStatusPojo status) {
-        if (!statusLock.isHeldByCurrentThread()) throw new AccessControlException("statusLock needs to be acquired by the thread");
+        if (!statusLock.isHeldByCurrentThread() || !retrievedStatusBeforeEnqueue)
+            throw new AccessControlException("statusLock needs to be acquired by the thread");
+
+        ClientStatusPojo oldStatus = currentStatus;
         unsyncedStatuses.add(status);
+        currentStatus = status;
+
+        // Notify listeners of the change.
+        notifyStatusChange(oldStatus, currentStatus);
     }
 
     /**
@@ -184,6 +193,7 @@ public class ClientStateModel implements Serializable {
     public void enqueueAnalysisResult(@NonNull AnalysisResultPojo result) {
         if (!analysisResultLock.isHeldByCurrentThread()) throw new AccessControlException("analysisResultLock needs to be acquired by the thread");
         unsyncedAnalysisResults.add(result);
+        notifyAnalysisResultQueueChange(result);
     }
 
     /**
@@ -219,6 +229,7 @@ public class ClientStateModel implements Serializable {
         if (unsyncedKeyStrokes.isEmpty()) unsyncedKeyStrokes.add(new KeyStrokesPojo());
         unsyncedKeyStrokes.getLast().getKeyStrokes().add(keyStroke);
         allKeyStrokes.add(keyStroke);
+        notifyKeyQueueChange(keyStroke);
     }
 
     /**
@@ -276,41 +287,37 @@ public class ClientStateModel implements Serializable {
 
     /**
      * Notifies all the listeners of a status change.
+     *
+     * @param oldStatus the status that was replaced
+     * @param newStatus the new current status
      */
-    public void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-
-        for (IClientStateListener listener : stateListeners) {
+    private void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+        for (IClientStatusListener listener : statusListeners) {
              Runnable r = () -> listener.stateChanged(oldStatus, newStatus);
              r.run();
         }
     }
 
     /**
-     * Notifies all the listeners of a status queue change.
-     */
-    public void notifyStatusQueueChange() {
-        for (IClientStatusQueueListener listener : statusQueueListeners) {
-            Runnable r = () -> listener.statusQueueChanged();
-            r.run();
-        }
-    }
-
-    /**
      * Notifies all the listeners of a key queue change.
+     *
+     * @param newKey the newest keystroke
      */
-    public void notifyKeyQueueChange() {
+    private void notifyKeyQueueChange(KeyStrokePojo newKey) {
         for (IClientKeyListener listener : keyQueueListeners) {
-            Runnable r = () -> listener.keystrokeQueueChanged();
+            Runnable r = () -> listener.keystrokeQueueChanged(newKey);
             r.run();
         }
     }
 
     /**
      * Notifies all the listeners of an analysis result queue change.
+     *
+     * @param newResult the newest analysis result
      */
-    public void notifyAnalysisResultQueueChange() {
+    private void notifyAnalysisResultQueueChange(AnalysisResultPojo newResult) {
         for (IClientAnalysisListener listener : analysisResultQueueListeners) {
-            Runnable r = () -> listener.analysisResultQueueChanged();
+            Runnable r = () -> listener.analysisResultQueueChanged(newResult);
             r.run();
         }
     }

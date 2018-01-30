@@ -5,6 +5,7 @@ import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.models.pojo.KeyStrokePojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -12,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Service that runs the analysis model and reports analysis results that represent the likelihood that the user's
  * typing matches their current profile.
  */
-public class AnalysisEngineService implements ClientStateModel.IClientStateListener, ClientStateModel.IClientKeyListener {
+public class AnalysisEngineService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientKeyListener {
 
     @Autowired
     private ClientStateController controller;
@@ -20,13 +21,11 @@ public class AnalysisEngineService implements ClientStateModel.IClientStateListe
     private ClientStateModel state;
 
     /**
-     * Implementation of listener to the ClientStateModel's state. The status will contain the details
-     * on the analysis model to run through the typing profile and a flag for whether the engine should be running.
-     *
+     * Implementation of listener to the ClientStateModel's status. The status will contain the details
+     * on the analysis model to run through the typing profile.
      */
     public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-
-        /**
+        /*
          * If the typing profile is loaded, start analyzing.
          * If the typing profile becomes null, stop analyzing.
          */
@@ -37,7 +36,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStateListe
             stop();
         }
 
-        /**
+        /*
          * If the client becomes authenticated, start analyzing.
          * If the client becomes unauthenticated, stop analyzing.
          */
@@ -50,7 +49,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStateListe
             }
         }
 
-        /**
+        /*
          * If the client is newly challenged, stop logging keystrokes.
          * If the client is newly 'unlocked', start logging keystrokes
          */
@@ -62,14 +61,12 @@ public class AnalysisEngineService implements ClientStateModel.IClientStateListe
                 start();
             }
         }
-
     }
 
     /**
-     * Implementation of listener to the ClientStateModel's keystroke queues. The status will contain the history of
-     * the user's keystrokes, which the analysis engine will use to train the local model.
+     * Implementation of listener to the ClientStateModel's keystroke queues. New keys need to be fed into the model.
      */
-    public void keystrokeQueueChanged() {
+    public void keystrokeQueueChanged(KeyStrokePojo newKey) {
         //TODO: Implement keystrokeQueueChanged()
         return;
     }
