@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Service that records user key strokes in the background and registers them to the client state.
  */
-public class KeyloggerDaemonService implements ClientStateModel.IClientStateListener {
+public class KeyloggerDaemonService implements ClientStateModel.IClientStatusListener {
 
     @Autowired
     private ClientStateController controller;
@@ -18,19 +18,19 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStateList
     private ClientStateModel state;
 
     /**
-     * Implementation of listener to the ClientStateModel.
+     * Implementation of listener to the ClientStateModel's status.
      * The status will contain a flag for whether the daemon should be running.
      */
     public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
 
-        /**
+        /*
          * If the typing profile is loaded, start logging keystrokes.
          * If the typing profile becomes null, stop logging keystrokes.
          */
         if(newStatus.getProfile() != null) start();
         else stop();
 
-        /**
+        /*
          * If the client becomes authenticated, start logging keystrokes.
          * If the client becomes unauthenticated, stop logging keystrokes.
          */

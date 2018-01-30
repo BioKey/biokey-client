@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Service that listens for messages enqueued by the server and responds by registering the changes to the client state.
  */
-public class ServerListenerService implements ClientStateModel.IClientStateListener {
+public class ServerListenerService implements ClientStateModel.IClientStatusListener {
 
     @Autowired
     private ClientStateController controller;
@@ -17,7 +17,7 @@ public class ServerListenerService implements ClientStateModel.IClientStateListe
     private ClientStateModel state;
 
     /**
-     * Implementation of listener to the ClientStateModel.
+     * Implementation of listener to the ClientStateModel's status.
      * The status will contain a flag for whether the service should be running.
      */
     public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {

@@ -3,6 +3,7 @@ package com.biokey.client.services;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Service that responds to changes in client status and locks or unlocks the OS accordingly.
  */
-public class LockerService implements ClientStateModel.IClientStateListener, ClientStateModel.IClientAnalysisListener {
+public class LockerService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientAnalysisListener {
 
     @Autowired
     private ClientStateController controller;
@@ -18,12 +19,11 @@ public class LockerService implements ClientStateModel.IClientStateListener, Cli
     private ClientStateModel state;
 
     /**
-     * Implementation of listener to the ClientStateModel's state. The status will contain the accepted strategies to challenge
-     * the user and a flag for whether the locker should lock or unlock.
+     * Implementation of listener to the ClientStateModel's status. The status will contain the accepted strategies
+     * to challenge the user and a flag for whether the locker should lock or unlock.
      */
     public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-
-        /**
+        /*
          * If the client has been newly challenged, issue a challenge.
          * If the client has failed the challenge, lock the OS.
          * If the client state is newly 'unlocked', unlock the OS.
@@ -45,7 +45,7 @@ public class LockerService implements ClientStateModel.IClientStateListener, Cli
      * Implementation of listener to the ClientStateModel's analysis results queue. The queue contains updates to the
      * client's authentication, and the locker will decide whether a state change is necessary.
      */
-    public void analysisResultQueueChanged() {
+    public void analysisResultQueueChanged(AnalysisResultPojo newResult) {
         //TODO: Implement analysisResultQueueChanged()
         return;
     }

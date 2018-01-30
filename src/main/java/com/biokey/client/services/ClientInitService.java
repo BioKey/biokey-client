@@ -3,6 +3,7 @@ package com.biokey.client.services;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import lombok.Getter;
@@ -15,7 +16,10 @@ import java.io.ObjectOutputStream;
  * Service that retrieves the client state from the disk and OS and ensures that it has not been corrupted.
  * If the local data does not exist, then the service prompts the user to login and download the client state.
  */
-public class ClientInitService implements ClientStateModel.IClientStateListener {
+public class ClientInitService implements
+        ClientStateModel.IClientStatusListener,
+        ClientStateModel.IClientKeyListener,
+        ClientStateModel.IClientAnalysisListener {
 
     @Autowired
     private ClientStateController controller;
@@ -23,20 +27,20 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
     private ClientStateModel state;
 
     /**
-     * Implementation of listener to the ClientStateModel. The service will save the client state periodically.
+     * Implementation of listener to the ClientStateModel's status. The service will save the client state periodically.
      */
     public void stateChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
 
         saveClientState();
 
-        /**
+        /*
          * If the typing profile is loaded, start the heartbeat.
          * If the typing profile becomes null, stop the heartbeat
          */
         if(newStatus.getProfile() != null) startHeartbeat();
         else stopHeartbeat();
 
-        /**
+        /*
          * If the client becomes authenticated, start the heartbeat.
          * If the client becomes unauthenticated, stop the heartbeat.
          */
@@ -44,6 +48,24 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
             if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) startHeartbeat();
             else stopHeartbeat();
         }
+    }
+
+    /**
+     * Implementation of listener to the ClientStateModel's keystroke queues.
+     * The service will save the client state periodically.
+     */
+    public void keystrokeQueueChanged(KeyStrokePojo newKey) {
+        //TODO: Implement keystrokeQueueChanged()
+        return;
+    }
+
+    /**
+     * Implementation of listener to the ClientStateModel's analysis results queue.
+     * The service will save the client state periodically.
+     */
+    public void analysisResultQueueChanged(AnalysisResultPojo newResult) {
+        //TODO: Implement analysisResultQueueChanged()
+        return;
     }
 
     /**
@@ -78,15 +100,6 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
     }
 
     /**
-     * Login without any local credentials. Will prompt the user for the credentials.
-     *
-     * @return true if the user successfully logged in
-     */
-    private boolean login() {
-        return false;
-    }
-
-    /**
      * Starts the controller's heartbeat function.
      *
      * @return true if the heartbeat was successfully started
@@ -107,9 +120,18 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
     }
 
     /**
+     * Login without any local credentials. Will prompt the user for the credentials.
+     *
+     * @return true if the user successfully logged in
+     */
+    private boolean login() {
+        return false;
+    }
+
+    /**
      * Login with local credentials. Will call the no parameter version if the credentials are not validated by server.
      *
-     * @param accessToken
+     * @param accessToken token created from prior login to keep client logged in
      * @return true if the user successfully logged in
      */
     private boolean login(String accessToken) {

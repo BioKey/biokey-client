@@ -10,7 +10,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Queue;
 
 public class RequestBuilderHelper {
@@ -35,8 +34,8 @@ public class RequestBuilderHelper {
      * @return map representing the request body for POST keystrokes
      * @throws JsonProcessingException if serialization of keystrokes to JSON has failed
      */
-    public Map<String, String> requestBodyToPostKeystrokes() throws JsonProcessingException {
-        Map<String, String> map = new HashMap<>();
+    public HashMap<String, String> requestBodyToPostKeystrokes() throws JsonProcessingException {
+        HashMap<String, String> map = new HashMap<>();
         ObjectWriter writer = (new ObjectMapper()).writerFor(Queue.class)
                 .withAttribute("typingProfile", state.getCurrentStatus().getProfile().getId());
         map.put("keystrokes", writer.writeValueAsString(state.getOldestKeyStrokes().getKeyStrokes()));

@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService;
  */
 public class ServerRequestExecutorHelper {
 
-    static Logger log = Logger.getLogger(ServerRequestExecutorHelper.class);
+    private static Logger log = Logger.getLogger(ServerRequestExecutorHelper.class);
 
     public interface ServerResponseHandler<T> {
         void handleResponse(ResponseEntity<T> response);
