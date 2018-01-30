@@ -4,8 +4,12 @@ import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import lombok.Data;
 import lombok.NonNull;
 
+import java.io.Serializable;
+
 @Data
-public class TypingProfilePojo {
+public class TypingProfilePojo implements Serializable {
+
+    private static final long serialVersionUID = 600;
 
     @NonNull private final String id;
     @NonNull private final String machineId;

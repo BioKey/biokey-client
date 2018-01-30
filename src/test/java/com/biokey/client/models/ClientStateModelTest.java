@@ -30,11 +30,11 @@ import static org.powermock.api.mockito.PowerMockito.verifyPrivate;
 public class ClientStateModelTest {
 
     private static final ClientStateModel.IClientStatusListener STATUS_LISTENER = (ClientStatusPojo oldStatus, ClientStatusPojo newStatus) -> {};
-    private static final Set<ClientStateModel.IClientStatusListener> STATUS_LISTENER_SET = new HashSet<>();
+    private static final HashSet<ClientStateModel.IClientStatusListener> STATUS_LISTENER_SET = new HashSet<>();
     private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
-    private static final Set<ClientStateModel.IClientKeyListener> KEY_LISTENER_SET = new HashSet<>();
+    private static final HashSet<ClientStateModel.IClientKeyListener> KEY_LISTENER_SET = new HashSet<>();
     private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
-    private static final Set<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
+    private static final HashSet<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(

@@ -95,6 +95,15 @@ public class ClientStateController implements
     }
 
     /**
+     * Allows passes the client state read from memory to the model
+     *
+     * @param fromMemory client status loaded from memory, to be passed to the model
+     */
+    public void passStateToModel(@NonNull ClientStateModel fromMemory) {
+        state.loadStatusFromMemory(fromMemory);
+    }
+
+    /**
      *
      * @param keyStroke
      */

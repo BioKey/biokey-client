@@ -1,12 +1,15 @@
 package com.biokey.client.controllers.challenges;
 
+import java.io.Serializable;
 import java.security.SecureRandom;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
 import lombok.Setter;
 
-public class TextMessageStrategy implements IChallengeStrategy {
+public class TextMessageStrategy implements IChallengeStrategy, Serializable {
+
+    private static final long serialVersionUID = 1001;
 
     private static final String ACCOUNT_SID = "AC6135115ec55c24ab759c1ae658b2fdfb";
     private static final String AUTH_TOKEN = "79f75626c0f84962e3dcf81b85caba52";
@@ -31,6 +34,5 @@ public class TextMessageStrategy implements IChallengeStrategy {
         return Integer.toString(random.nextInt(1000000));
 
     }
-
 
 }
