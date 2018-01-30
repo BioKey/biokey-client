@@ -51,7 +51,11 @@ public class ClientInitService implements ClientStateModel.IClientStateListener 
      * calls the {@link #checkCorrupt()} and at least one of the {@link #login()} functions.
      */
     public void retrieveClientState() {
-
+        //Obtain all three locks via's Tony new function
+        //Find local file
+        //Casts to a ClientStateModel
+        //Call controller.passToModel(), which passes it to the model
+        //Model takes it, copies everything in, call notifyStatus
 
         return;
     }
