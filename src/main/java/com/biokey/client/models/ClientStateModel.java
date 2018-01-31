@@ -301,6 +301,16 @@ public class ClientStateModel implements Serializable {
     }
 
     /**
+     * Peek at the newest window of key strokes from the unsynced queue.
+     *
+     * @return the oldest key strokes
+     */
+    public KeyStrokesPojo getNewestKeyStrokes() {
+        if (!keyStrokesLock.isHeldByCurrentThread()) throw new AccessControlException("keyStrokesLock needs to be acquired by the thread");
+        return unsyncedKeyStrokes.peekLast();
+    }
+
+    /**
      * Get all the keystrokes in client memory.
      *
      * @return all the keystrokes in client memory

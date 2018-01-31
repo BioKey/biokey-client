@@ -140,6 +140,22 @@ public class ClientStateModelTest {
         }
     }
 
+    @Test
+    public void GIVEN_dividedKeyStrokes_WHEN_enqueueKeyStroke_THEN_orderRetrievedCorrect() throws Exception {
+        try {
+            underTest.obtainAccessToKeyStrokes();
+            underTest.enqueueKeyStroke(KEY_STROKE_POJO);
+            underTest.divideKeyStrokes();
+            underTest.enqueueKeyStroke(OTHER_KEY_STROKE_POJO);
+            assertTrue("Should have found first key stroke in oldest keystrokes",
+                    underTest.getOldestKeyStrokes().getKeyStrokes().contains(KEY_STROKE_POJO));
+            assertTrue("Should have found second key stroke in newest keystrokes",
+                    underTest.getNewestKeyStrokes().getKeyStrokes().contains(OTHER_KEY_STROKE_POJO));
+        } finally {
+            underTest.releaseAccessToKeyStrokes();
+        }
+    }
+
     @Test(expected = NullPointerException.class)
     public void GIVEN_nullKeyStroke_WHEN_enqueueKeyStroke_THEN_throwException() {
         try {
