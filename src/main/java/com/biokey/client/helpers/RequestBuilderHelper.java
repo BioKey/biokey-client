@@ -6,6 +6,7 @@ import com.biokey.client.models.pojo.KeyStrokesPojo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -33,7 +34,7 @@ public class RequestBuilderHelper {
     /**
      * Create request body for POST keystrokes.
      *
-     * @return map representing the request body for POST keystrokes
+     * @return string representing the request body for POST keystrokes
      * @throws JsonProcessingException if serialization of keystrokes to JSON has failed
      */
     public String requestBodyToPostKeystrokes(KeyStrokesPojo keysToSend) throws JsonProcessingException {
@@ -41,4 +42,17 @@ public class RequestBuilderHelper {
                 .withAttribute("typingProfile", state.getCurrentStatus().getProfile().getId());
         return "{\"keystrokes\": " + writer.writeValueAsString(keysToSend.getKeyStrokes()) + "}";
     }
+
+    /**
+     * Create request body for POST login.
+     *
+     * @param email    the email of the user to be logged in
+     * @param password the password of the user to be logged in
+     * @return string representing the request body for POST keystrokes
+     * @throws JsonProcessingException if serialization of login body to JSON has failed
+     */
+    public String requestBodyToPostLogin(@NonNull String email, @NonNull String password) throws JsonProcessingException {
+        return "{\"email\":" + "\"" + email + "\"" + ",\"password\":" + "\"" + password + "\"}";
+    }
 }
+

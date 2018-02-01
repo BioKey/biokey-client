@@ -17,5 +17,6 @@ public class TypingProfilePojo implements Serializable {
     @NonNull private final String model;
     @NonNull private final float[] threshold;
     @NonNull private IChallengeStrategy acceptedChallengeStrategies;
+    @NonNull private final String sqsEndpoint;
 
 }

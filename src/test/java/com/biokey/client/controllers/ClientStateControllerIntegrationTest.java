@@ -42,10 +42,10 @@ public class ClientStateControllerIntegrationTest {
     private static final String TYPING_PROFILE_ID = "5a6fea7607ca3c3f74773f2b";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false,""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     ACCESS_TOKEN,
-                    0);
+                    0,"");
 
     @Spy
     private static ClientStateModel state = new ClientStateModel();

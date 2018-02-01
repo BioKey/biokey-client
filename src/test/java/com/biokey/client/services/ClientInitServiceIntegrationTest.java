@@ -29,10 +29,10 @@ public class ClientInitServiceIntegrationTest {
     private static final Set<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false),
+                    new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false,""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "",
-                    777
+                    777,""
             );
 
     private static ClientStateModel state;

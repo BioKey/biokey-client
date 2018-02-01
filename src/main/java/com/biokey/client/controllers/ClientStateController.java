@@ -8,16 +8,21 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
+import com.biokey.client.providers.AppProvider;
+import com.biokey.client.services.ClientInitService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.NonNull;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 
+import java.util.HashSet;
+
 import static com.biokey.client.constants.AppConstants.KEYSTROKE_WINDOW_SIZE_PER_REQUEST;
-import static com.biokey.client.constants.UrlConstants.AUTH_GET_API_ENDPOINT;
-import static com.biokey.client.constants.UrlConstants.KEYSTROKE_POST_API_ENDPOINT;
-import static com.biokey.client.constants.UrlConstants.SERVER_NAME;
+import static com.biokey.client.constants.UrlConstants.*;
 
 /**
  * Handles requests by services to make changes to the client data.
@@ -115,6 +120,54 @@ public class ClientStateController implements
     }
 
     /**
+     * Send a login request to the server.
+     *
+     * @param username the username of the user to be logged in
+     * @param password the password of the user to be logged in
+     * @throws JsonProcessingException if the cast to json fails
+     */
+    public void sendLoginRequest(@NonNull String username, @NonNull String password) throws JsonProcessingException {
+        //        // First, make sure to get the lock.
+        System.out.println("here");
+        state.obtainAccessToStatus();
+
+        try {
+            // Make the request
+            serverRequestExecutorHelper.submitPostRequest(
+                    SERVER_NAME + LOGIN_POST_API_ENDPOINT,
+                    new HttpHeaders(),
+                    requestBuilderHelper.requestBodyToPostLogin(username, password),
+                 //   LoginResponse.class, //TODO: define class LoginResponse in ./models/response
+                    String.class,
+                    (ResponseEntity<String> response) -> { //change back to LoginResponse
+                        // First, make sure to get the lock.
+                        state.obtainAccessToModel();
+                        System.out.println(response);
+                        try {
+                            // Check if the response was good.
+                            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                                log.debug("KeyStrokes failed to sync with server and received response: " + response); //TODO: update log statements
+                                response.getBody(); //TODO: write logic here
+                                return;
+                            }
+
+                            // If it was good then update the model.
+                            response.getBody(); //TODO: write logic here
+                            log.debug("KeyStrokes successfully synced with server and received response: " + response);
+                        } finally {
+                            state.releaseAccessToModel();
+                        }
+                    });
+
+        } catch (JsonProcessingException e) {
+            log.error("Exception when trying to serialize keystrokes to JSON", e);
+            throw e;
+        } finally {
+            state.releaseAccessToStatus();
+        }
+    }
+
+    /**
      * Sends the server a request with the access token to confirm the client is still authenticated.
      */
     public void confirmAccessToken() {
@@ -185,4 +238,43 @@ public class ClientStateController implements
         return;
     }
 
+    public static void main( String[] args )
+    {
+        // Load Spring context.
+        ApplicationContext springContext = new AnnotationConfigApplicationContext(AppProvider.class);
+
+        ClientStateModel model = springContext.getBean(ClientStateModel.class);
+
+        // Add service 'status' listeners to model
+        @SuppressWarnings("unchecked")
+        HashSet<ClientStateModel.IClientStatusListener> serviceStatusListeners =
+                (HashSet<ClientStateModel.IClientStatusListener>) springContext.getBean("statusListeners");
+        model.setStatusListeners(serviceStatusListeners);
+
+        // Add service 'key queue' listeners to model
+        @SuppressWarnings("unchecked")
+        HashSet<ClientStateModel.IClientKeyListener> keyQueueListeners =
+                (HashSet<ClientStateModel.IClientKeyListener>) springContext.getBean("keyQueueListeners");
+        model.setKeyQueueListeners(keyQueueListeners);
+
+        // Add service 'analysis results queue' listeners to model
+        @SuppressWarnings("unchecked")
+        HashSet<ClientStateModel.IClientAnalysisListener> analysisQueueListeners =
+                (HashSet<ClientStateModel.IClientAnalysisListener>) springContext.getBean("analysisQueueListeners");
+        model.setAnalysisResultQueueListeners(analysisQueueListeners);
+
+        // Retrieve client state and load into program to get all services running.
+       ClientInitService clientInitService = springContext.getBean(ClientInitService.class);
+       clientInitService.retrieveClientState();
+
+        ClientStateController c = new ClientStateController();
+        try {
+            c.sendLoginRequest("test1@example.com", "password");
+        }
+        catch (Exception e)
+        {
+            System.out.println(e.getStackTrace());
+        }
+
+    }
 }

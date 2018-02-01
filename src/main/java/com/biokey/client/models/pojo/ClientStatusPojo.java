@@ -18,8 +18,9 @@ public class ClientStatusPojo implements Serializable {
     @NonNull private final TypingProfilePojo profile;
     @NonNull private final AuthConstants authStatus;
     @NonNull private final SecurityConstants securityStatus;
-    @NonNull private final String accessToken;
-    private final long timeStamp;
+    private final String accessToken;
+    @NonNull private final long timeStamp;
     @NonNull private SyncStatusConstants syncedWithServer = SyncStatusConstants.UNSYNCED;
+    private final String phoneNumber;
 
 }

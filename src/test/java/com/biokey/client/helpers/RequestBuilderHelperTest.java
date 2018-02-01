@@ -33,10 +33,10 @@ public class RequestBuilderHelperTest {
     private static final String TYPING_PROFILE_ID = "TYPING_PROFILE_ID";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false,""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     ACCESS_TOKEN,
-                    0);
+                    0,"");
 
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, 1);
     private static final KeyStrokePojo OTHER_KEY_STROKE_POJO = new KeyStrokePojo('b', false, 2);

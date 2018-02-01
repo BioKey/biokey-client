@@ -38,18 +38,18 @@ public class ClientStateModelTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false),
+                    new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false,""),
                     AuthConstants.AUTHENTICATED,
                     SecurityConstants.UNLOCKED,
                     "",
-                    0);
+                    0,"");
     private final ClientStatusPojo OTHER_CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false),
+                    new TypingProfilePojo("", "","","",new float[] {}, (String challenge) -> false,""),
                     AuthConstants.AUTHENTICATED,
                     SecurityConstants.UNLOCKED,
                     "",
-                    0);
+                    0,"");
 
     private final AnalysisResultPojo ANALYSIS_RESULT_POJO = new AnalysisResultPojo(1, 0);
     private final AnalysisResultPojo OTHER_ANALYSIS_RESULT_POJO = new AnalysisResultPojo(1, 0);
