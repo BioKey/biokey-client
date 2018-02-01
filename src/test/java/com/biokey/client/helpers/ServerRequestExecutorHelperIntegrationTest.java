@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ServerRequestExecutorHelperIntegrationTest {
 
@@ -33,6 +34,7 @@ public class ServerRequestExecutorHelperIntegrationTest {
         try {
             if (!testCompleteFlag.await(TEST_TIMEOUT, TimeUnit.MILLISECONDS)) {
                 System.out.println("Test timed out.");
+                fail();
             }
         } catch (InterruptedException e) {
             System.out.println("Unexpected interruption.");
