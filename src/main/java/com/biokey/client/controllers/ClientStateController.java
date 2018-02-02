@@ -24,6 +24,8 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.HashSet;
 
+import static com.biokey.client.constants.AppConstants.KEYSTROKE_TIME_INTERVAL_PER_WINDOW;
+
 import static com.biokey.client.constants.AppConstants.KEYSTROKE_WINDOW_SIZE_PER_REQUEST;
 import static com.biokey.client.constants.UrlConstants.*;
 
@@ -108,13 +110,15 @@ public class ClientStateController implements
      * @param keyStroke
      */
     public void enqueueKeyStroke(@NonNull KeyStrokePojo keyStroke) {
+        // TODO: write tests
         // First, make sure to get the lock.
         state.obtainAccessToKeyStrokes();
 
         try {
-            // Enqueue key stroke and if the oldest window of keystrokes is too long then create a new window.
+            // Enqueue key stroke and if the oldest window of keystrokes is too long (by length of time) then create a new window.
             state.enqueueKeyStroke(keyStroke);
-            if (state.getOldestKeyStrokes().getKeyStrokes().size() >= KEYSTROKE_WINDOW_SIZE_PER_REQUEST) {
+            if (state.getNewestKeyStrokes().getKeyStrokes().size() >= KEYSTROKE_WINDOW_SIZE_PER_REQUEST ||
+                    keyStroke.getTimeStamp() - state.getNewestKeyStrokes().getKeyStrokes().peekLast().getTimeStamp() < KEYSTROKE_TIME_INTERVAL_PER_WINDOW) {
                 state.divideKeyStrokes();
             }
         } finally {

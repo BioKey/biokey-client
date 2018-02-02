@@ -53,10 +53,10 @@ public class ClientStateModel implements Serializable {
     private Deque<KeyStrokesPojo> unsyncedKeyStrokes = new LinkedBlockingDeque<>();
     private Deque<KeyStrokePojo> allKeyStrokes = new LinkedBlockingDeque<>(); // need a record of all keyStrokes for the analysis engine
 
-    private transient final ReentrantLock statusLock = new ReentrantLock(true);
-    private transient boolean retrievedStatusBeforeEnqueue = false;
-    private transient final ReentrantLock analysisResultLock = new ReentrantLock(true);
-    private transient final ReentrantLock keyStrokesLock = new ReentrantLock(true);
+    private final ReentrantLock statusLock = new ReentrantLock(true);
+    private boolean retrievedStatusBeforeEnqueue = false;
+    private final ReentrantLock analysisResultLock = new ReentrantLock(true);
+    private final ReentrantLock keyStrokesLock = new ReentrantLock(true);
 
     @Setter @NonNull
     private transient Set<IClientStatusListener> statusListeners;
@@ -194,7 +194,6 @@ public class ClientStateModel implements Serializable {
      */
     public boolean dequeueStatus() {
         if (!statusLock.isHeldByCurrentThread()) throw new AccessControlException("statusLock needs to be acquired by the thread");
-
         if (unsyncedStatuses.isEmpty()) return false;
         unsyncedStatuses.remove();
         return true;
@@ -298,6 +297,16 @@ public class ClientStateModel implements Serializable {
     public KeyStrokesPojo getOldestKeyStrokes() {
         if (!keyStrokesLock.isHeldByCurrentThread()) throw new AccessControlException("keyStrokesLock needs to be acquired by the thread");
         return unsyncedKeyStrokes.peek();
+    }
+
+    /**
+     * Peek at the newest window of key strokes from the unsynced queue.
+     *
+     * @return the oldest key strokes
+     */
+    public KeyStrokesPojo getNewestKeyStrokes() {
+        if (!keyStrokesLock.isHeldByCurrentThread()) throw new AccessControlException("keyStrokesLock needs to be acquired by the thread");
+        return unsyncedKeyStrokes.peekLast();
     }
 
     /**
