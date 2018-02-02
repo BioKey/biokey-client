@@ -8,6 +8,9 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
+import com.biokey.client.models.response.LoginResponse;
+import com.biokey.client.models.response.TypingProfileContainerResponse;
+import com.biokey.client.models.response.TypingProfileResponse;
 import com.biokey.client.providers.AppProvider;
 import com.biokey.client.services.ClientInitService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -122,42 +125,21 @@ public class ClientStateController implements
     /**
      * Send a login request to the server.
      *
-     * @param username the username of the user to be logged in
+     * @param email the email of the user to be logged in
      * @param password the password of the user to be logged in
      * @throws JsonProcessingException if the cast to json fails
      */
-    public void sendLoginRequest(@NonNull String username, @NonNull String password) throws JsonProcessingException {
+    public void sendLoginRequest(@NonNull String email, @NonNull String password,ServerRequestExecutorHelper.ServerResponseHandler<LoginResponse> handler) throws JsonProcessingException {
         //        // First, make sure to get the lock.
-        System.out.println("here");
         state.obtainAccessToStatus();
 
         try {
             // Make the request
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + LOGIN_POST_API_ENDPOINT,
-                    new HttpHeaders(),
-                    requestBuilderHelper.requestBodyToPostLogin(username, password),
-                 //   LoginResponse.class, //TODO: define class LoginResponse in ./models/response
-                    String.class,
-                    (ResponseEntity<String> response) -> { //change back to LoginResponse
-                        // First, make sure to get the lock.
-                        state.obtainAccessToModel();
-                        System.out.println(response);
-                        try {
-                            // Check if the response was good.
-                            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                                log.debug("KeyStrokes failed to sync with server and received response: " + response); //TODO: update log statements
-                                response.getBody(); //TODO: write logic here
-                                return;
-                            }
-
-                            // If it was good then update the model.
-                            response.getBody(); //TODO: write logic here
-                            log.debug("KeyStrokes successfully synced with server and received response: " + response);
-                        } finally {
-                            state.releaseAccessToModel();
-                        }
-                    });
+                    requestBuilderHelper.headerMapNoToken(),
+                    requestBuilderHelper.requestBodyToPostLogin(email, password),
+                    LoginResponse.class,handler);
 
         } catch (JsonProcessingException e) {
             log.error("Exception when trying to serialize keystrokes to JSON", e);
@@ -167,36 +149,43 @@ public class ClientStateController implements
         }
     }
 
+
     /**
-     * Sends the server a request with the access token to confirm the client is still authenticated.
+     * Send a get request to retreive a user's typing profile
+     *
+     * @param mac the mac address of the computer
+     * @throws JsonProcessingException if the cast to json fails
      */
-    public void confirmAccessToken() {
-        // First, make sure to get the lock.
+    public void retrieveTypingProfileGivenAuthandMAC(@NonNull String mac,String token,ServerRequestExecutorHelper.ServerResponseHandler<TypingProfileContainerResponse> handler) throws JsonProcessingException {
+        //        // First, make sure to get the lock.
         state.obtainAccessToStatus();
 
         try {
             // Make the request
             serverRequestExecutorHelper.submitGetRequest(
+                    SERVER_NAME + GET_TYPING_PROFILE_ENDPOINT + mac,
+                    requestBuilderHelper.headerMapWithCustomToken(token), //take a specific token not from model
+                    TypingProfileContainerResponse.class,
+                    handler);
+
+        }  finally {
+            state.releaseAccessToStatus();
+        }
+    }
+
+    /**
+     * Sends the server a request with the access token to confirm the client is still authenticated.
+     */
+    public void confirmAccessToken(ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
+        // First, make sure to get the lock.
+        state.obtainAccessToStatus();
+        try {
+            // Make the request
+            serverRequestExecutorHelper.submitGetRequest(
                     SERVER_NAME + AUTH_GET_API_ENDPOINT,
                     requestBuilderHelper.headerMapWithToken(),
-                    String.class,
-                    (ResponseEntity<String> response) -> {
-                        state.obtainAccessToStatus();
-
-                        try {
-                            // Check if the response was good.
-                            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                                log.debug("Access token did not authenticate and received response: " + response);
-                                state.enqueueStatus(null); // TODO: Placeholder, Josh should write the logic
-                                return;
-                            }
-
-                            // If it was good then do nothing.
-                            log.debug("User successfully authenticated and received response: " + response);
-                        } finally {
-                            state.releaseAccessToStatus();
-                        }
-                    });
+                    String.class, handler
+                    );
         } finally {
             state.releaseAccessToStatus();
         }
@@ -238,43 +227,4 @@ public class ClientStateController implements
         return;
     }
 
-    public static void main( String[] args )
-    {
-        // Load Spring context.
-        ApplicationContext springContext = new AnnotationConfigApplicationContext(AppProvider.class);
-
-        ClientStateModel model = springContext.getBean(ClientStateModel.class);
-
-        // Add service 'status' listeners to model
-        @SuppressWarnings("unchecked")
-        HashSet<ClientStateModel.IClientStatusListener> serviceStatusListeners =
-                (HashSet<ClientStateModel.IClientStatusListener>) springContext.getBean("statusListeners");
-        model.setStatusListeners(serviceStatusListeners);
-
-        // Add service 'key queue' listeners to model
-        @SuppressWarnings("unchecked")
-        HashSet<ClientStateModel.IClientKeyListener> keyQueueListeners =
-                (HashSet<ClientStateModel.IClientKeyListener>) springContext.getBean("keyQueueListeners");
-        model.setKeyQueueListeners(keyQueueListeners);
-
-        // Add service 'analysis results queue' listeners to model
-        @SuppressWarnings("unchecked")
-        HashSet<ClientStateModel.IClientAnalysisListener> analysisQueueListeners =
-                (HashSet<ClientStateModel.IClientAnalysisListener>) springContext.getBean("analysisQueueListeners");
-        model.setAnalysisResultQueueListeners(analysisQueueListeners);
-
-        // Retrieve client state and load into program to get all services running.
-       ClientInitService clientInitService = springContext.getBean(ClientInitService.class);
-       clientInitService.retrieveClientState();
-
-        ClientStateController c = new ClientStateController();
-        try {
-            c.sendLoginRequest("test1@example.com", "password");
-        }
-        catch (Exception e)
-        {
-            System.out.println(e.getStackTrace());
-        }
-
-    }
 }

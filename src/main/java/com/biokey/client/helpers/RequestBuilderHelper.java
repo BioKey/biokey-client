@@ -32,6 +32,31 @@ public class RequestBuilderHelper {
     }
 
     /**
+     * Create header map with the custom token
+     *
+     * @param token the custom token
+     * @return header map with the custom access token as the only element
+     */
+    public HttpHeaders headerMapWithCustomToken(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(AppConstants.SERVER_TOKEN_HEADER, token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
+    }
+
+
+    /**
+     * Create header map specifying application/json
+     *
+     * @return header map specifying application/json
+     */
+    public HttpHeaders headerMapNoToken (){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
+    }
+
+    /**
      * Create request body for POST keystrokes.
      *
      * @return string representing the request body for POST keystrokes

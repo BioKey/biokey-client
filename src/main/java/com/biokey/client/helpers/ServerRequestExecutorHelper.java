@@ -83,7 +83,12 @@ public class ServerRequestExecutorHelper {
                                       @NonNull ServerResponseHandler<T> handler) {
         executor.execute(() -> {
             // Add body and header to an Http Entity.
+
+            log.debug ("Request Header:" + headers);
+            log.debug ("Request Body: "+requestBody);
+
             HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
+
 
             // Pre-suppose that the response fails for whatever reason.
             ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
