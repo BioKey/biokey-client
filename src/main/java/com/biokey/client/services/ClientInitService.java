@@ -186,7 +186,7 @@ public class ClientInitService extends JFrame implements
             log.debug("Retrieved client state from file");
         } catch (Exception e) {
             log.error("Could not retrieve initial client state from file", e);
-            loginNoToken();
+            loginNoToken(); //JOSH added this. I hope this was ok and doesn't screw with BK's stuff...
         } finally {
             state.releaseAccessToModel();
         }
