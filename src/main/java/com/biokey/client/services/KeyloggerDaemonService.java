@@ -23,13 +23,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
 
-        /*
-         * If the typing profile is loaded, start logging keystrokes.
-         * If the typing profile becomes null, stop logging keystrokes.
-         */
-        if(newStatus.getProfile() != null) start();
-        else stop();
-
+        // TODO: needs more thought on different cases
         /*
          * If the client becomes authenticated, start logging keystrokes.
          * If the client becomes unauthenticated, stop logging keystrokes.

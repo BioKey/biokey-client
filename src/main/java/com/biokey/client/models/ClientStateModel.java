@@ -144,7 +144,7 @@ public class ClientStateModel implements Serializable {
         if (!statusLock.isHeldByCurrentThread() ||
                 !keyStrokesLock.isHeldByCurrentThread() ||
                 !analysisResultLock.isHeldByCurrentThread())
-            throw new AccessControlException("statusLock needs to be acquired by the thread");
+            throw new AccessControlException("Locks needs to be acquired by the thread");
 
         // Copy to the current ClientStateModel.
         this.currentStatus = fromMemory.currentStatus;
@@ -154,9 +154,23 @@ public class ClientStateModel implements Serializable {
         this.allKeyStrokes = fromMemory.allKeyStrokes;
 
         // Notify all the listeners.
-        notifyStatusChange(null, currentStatus);
-        notifyKeyQueueChange(allKeyStrokes.peekLast());
-        notifyAnalysisResultQueueChange(unsyncedAnalysisResults.peekLast());
+    }
+
+    /**
+     * Checks if the client state model read from memory is valid.
+     *
+     * @return true if the client state model read from memory is valid
+     */
+    public boolean checkStateModel(@NonNull ClientStateModel fromMemory) {
+        // Check if any of the members are null.
+        if (fromMemory.currentStatus == null || fromMemory.unsyncedStatuses == null ||
+                fromMemory.unsyncedKeyStrokes == null || fromMemory.unsyncedAnalysisResults == null ||
+                fromMemory.allKeyStrokes == null) return false;
+
+        // Check if current status' fields are null.
+        if (fromMemory.currentStatus.getAccessToken() == null) return false;
+
+        return true;
     }
 
     /**
@@ -182,9 +196,7 @@ public class ClientStateModel implements Serializable {
         ClientStatusPojo oldStatus = currentStatus;
         unsyncedStatuses.add(status);
         currentStatus = status;
-
-        // Notify listeners of the change.
-        notifyStatusChange(oldStatus, currentStatus);
+        // notifyStatusChange(oldStatus, currentStatus);
     }
 
     /**
@@ -217,7 +229,7 @@ public class ClientStateModel implements Serializable {
     public void enqueueAnalysisResult(@NonNull AnalysisResultPojo result) {
         if (!analysisResultLock.isHeldByCurrentThread()) throw new AccessControlException("analysisResultLock needs to be acquired by the thread");
         unsyncedAnalysisResults.add(result);
-        notifyAnalysisResultQueueChange(result);
+        // notifyAnalysisResultQueueChange(result);
     }
 
     /**
@@ -253,7 +265,7 @@ public class ClientStateModel implements Serializable {
         if (unsyncedKeyStrokes.isEmpty()) unsyncedKeyStrokes.add(new KeyStrokesPojo());
         unsyncedKeyStrokes.getLast().getKeyStrokes().add(keyStroke);
         allKeyStrokes.add(keyStroke);
-        notifyKeyQueueChange(keyStroke);
+        // notifyKeyQueueChange(keyStroke);
     }
 
     /**
@@ -325,7 +337,7 @@ public class ClientStateModel implements Serializable {
      * @param oldStatus the status that was replaced
      * @param newStatus the new current status
      */
-    private void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+    public void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
         for (IClientStatusListener listener : statusListeners) {
              Runnable r = (Runnable & Serializable) () -> listener.statusChanged(oldStatus, newStatus);
              r.run();
@@ -337,7 +349,7 @@ public class ClientStateModel implements Serializable {
      *
      * @param newKey the newest keystroke
      */
-    private void notifyKeyQueueChange(KeyStrokePojo newKey) {
+    public void notifyKeyQueueChange(KeyStrokePojo newKey) {
         for (IClientKeyListener listener : keyQueueListeners) {
             Runnable r = (Runnable & Serializable) () -> listener.keystrokeQueueChanged(newKey);
             r.run();
@@ -349,11 +361,19 @@ public class ClientStateModel implements Serializable {
      *
      * @param newResult the newest analysis result
      */
-    private void notifyAnalysisResultQueueChange(AnalysisResultPojo newResult) {
+    public void notifyAnalysisResultQueueChange(AnalysisResultPojo newResult) {
         for (IClientAnalysisListener listener : analysisResultQueueListeners) {
             Runnable r = (Runnable & Serializable) () -> listener.analysisResultQueueChanged(newResult);
             r.run();
         }
     }
-    
+
+    /**
+     * Notifies all the listeners of all the queues that the model has changed.
+     */
+    public void notifyModelChange() {
+        notifyStatusChange(null, currentStatus);
+        notifyKeyQueueChange(allKeyStrokes.peekLast());
+        notifyAnalysisResultQueueChange(unsyncedAnalysisResults.peekLast());
+    }
 }

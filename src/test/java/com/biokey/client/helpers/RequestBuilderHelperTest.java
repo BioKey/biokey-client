@@ -3,6 +3,7 @@ package com.biokey.client.helpers;
 import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
@@ -33,10 +34,9 @@ public class RequestBuilderHelperTest {
     private static final String TYPING_PROFILE_ID = "TYPING_PROFILE_ID";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false,""),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, new IChallengeStrategy[] {(String challenge) -> false},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    ACCESS_TOKEN,
-                    0,"");
+                    ACCESS_TOKEN, "", 0);
 
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, 1);
     private static final KeyStrokePojo OTHER_KEY_STROKE_POJO = new KeyStrokePojo('b', false, 2);
@@ -54,7 +54,7 @@ public class RequestBuilderHelperTest {
     public void GIVEN_accessToken_WHEN_headerMapWithToken_THEN_expectedResult() {
         Mockito.when(state.getCurrentStatus()).thenReturn(CLIENT_STATUS_POJO);
         assertTrue("header map has expected value for access token",
-                underTest.headerMapWithToken().getFirst(AppConstants.SERVER_TOKEN_HEADER).equals(ACCESS_TOKEN));
+                underTest.headerMapWithToken(ACCESS_TOKEN).getFirst(AppConstants.SERVER_TOKEN_HEADER).equals(ACCESS_TOKEN));
     }
 
     @Test

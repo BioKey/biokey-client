@@ -14,7 +14,6 @@ public class GoogleAuthStrategy implements IChallengeStrategy, Serializable {
 
     private static final long serialVersionUID = 1000;
 
-    @Override
     public boolean performChallenges(String challenge) {
         int password;
         boolean isValid;

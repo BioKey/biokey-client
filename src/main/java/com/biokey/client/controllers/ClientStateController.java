@@ -1,5 +1,6 @@
 package com.biokey.client.controllers;
 
+import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
@@ -10,19 +11,14 @@ import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
 import com.biokey.client.models.response.LoginResponse;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
-import com.biokey.client.models.response.TypingProfileResponse;
-import com.biokey.client.providers.AppProvider;
-import com.biokey.client.services.ClientInitService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.NonNull;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.util.UriTemplate;
 
-import java.util.HashSet;
+import java.util.Deque;
 
 import static com.biokey.client.constants.AppConstants.KEYSTROKE_TIME_INTERVAL_PER_WINDOW;
 
@@ -62,7 +58,6 @@ public class ClientStateController implements
     public boolean sendKeyStrokes() throws JsonProcessingException {
         // First, make sure to get the lock.
         state.obtainAccessToModel();
-
         try {
             // Change the state of keystrokes to SYNCING.
             KeyStrokesPojo keysToSend = state.getOldestKeyStrokes();
@@ -72,7 +67,7 @@ public class ClientStateController implements
             // Make the request
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + KEYSTROKE_POST_API_ENDPOINT,
-                    requestBuilderHelper.headerMapWithToken(),
+                    requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
                     requestBuilderHelper.requestBodyToPostKeystrokes(keysToSend),
                     String.class,
                     (ResponseEntity<String> response) -> {
@@ -105,70 +100,48 @@ public class ClientStateController implements
     }
 
     /**
-     * Modify the model to include the new keystroke.
-     *
-     * @param keyStroke
-     */
-    public void enqueueKeyStroke(@NonNull KeyStrokePojo keyStroke) {
-        // TODO: write tests
-        // First, make sure to get the lock.
-        state.obtainAccessToKeyStrokes();
-
-        try {
-            // Enqueue key stroke and if the oldest window of keystrokes is too long (by length of time) then create a new window.
-            state.enqueueKeyStroke(keyStroke);
-            if (state.getNewestKeyStrokes().getKeyStrokes().size() >= KEYSTROKE_WINDOW_SIZE_PER_REQUEST ||
-                    keyStroke.getTimeStamp() - state.getNewestKeyStrokes().getKeyStrokes().peekLast().getTimeStamp() < KEYSTROKE_TIME_INTERVAL_PER_WINDOW) {
-                state.divideKeyStrokes();
-            }
-        } finally {
-            state.releaseAccessToKeyStrokes();
-        }
-    }
-
-    /**
      * Send a login request to the server.
      *
      * @param email the email of the user to be logged in
      * @param password the password of the user to be logged in
+     * @param handler the code to call when the server returns a response
      * @throws JsonProcessingException if the cast to json fails
      */
-    public void sendLoginRequest(@NonNull String email, @NonNull String password,ServerRequestExecutorHelper.ServerResponseHandler<LoginResponse> handler) throws JsonProcessingException {
-        //        // First, make sure to get the lock.
+    public void sendLoginRequest(@NonNull String email, @NonNull String password,
+                                 @NonNull ServerRequestExecutorHelper.ServerResponseHandler<LoginResponse> handler) {
+        // TODO: write tests
+        // First, make sure to get the lock.
         state.obtainAccessToStatus();
-
         try {
             // Make the request
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + LOGIN_POST_API_ENDPOINT,
-                    requestBuilderHelper.headerMapNoToken(),
+                    requestBuilderHelper.emptyHeaderMap(),
                     requestBuilderHelper.requestBodyToPostLogin(email, password),
-                    LoginResponse.class,handler);
-
-        } catch (JsonProcessingException e) {
-            log.error("Exception when trying to serialize keystrokes to JSON", e);
-            throw e;
+                    LoginResponse.class,
+                    handler);
         } finally {
             state.releaseAccessToStatus();
         }
     }
 
-
     /**
      * Send a get request to retreive a user's typing profile
      *
      * @param mac the mac address of the computer
-     * @throws JsonProcessingException if the cast to json fails
+     * @param accessToken a new access token after login that has not been reflected in the state
+     * @param handler the code to call when the server returns a response
      */
-    public void retrieveTypingProfileGivenAuthandMAC(@NonNull String mac,String token,ServerRequestExecutorHelper.ServerResponseHandler<TypingProfileContainerResponse> handler) throws JsonProcessingException {
-        //        // First, make sure to get the lock.
+    public void retrieveStatusFromServer(@NonNull String mac, @NonNull String accessToken,
+                                         @NonNull ServerRequestExecutorHelper.ServerResponseHandler<TypingProfileContainerResponse> handler) {
+        // TODO: write tests
+        // First, make sure to get the lock.
         state.obtainAccessToStatus();
-
         try {
-            // Make the request
+            // Make the request.
             serverRequestExecutorHelper.submitGetRequest(
-                    SERVER_NAME + GET_TYPING_PROFILE_ENDPOINT + mac,
-                    requestBuilderHelper.headerMapWithCustomToken(token), //take a specific token not from model
+                    new UriTemplate(SERVER_NAME + GET_TYPING_PROFILE_ENDPOINT).expand(mac).toString(),
+                    requestBuilderHelper.headerMapWithToken(accessToken), // take a specific token not from model
                     TypingProfileContainerResponse.class,
                     handler);
 
@@ -179,6 +152,7 @@ public class ClientStateController implements
 
     /**
      * Sends the server a request with the access token to confirm the client is still authenticated.
+     * @param handler the code to call when the server returns a response
      */
     public void confirmAccessToken(ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
         // First, make sure to get the lock.
@@ -187,11 +161,54 @@ public class ClientStateController implements
             // Make the request
             serverRequestExecutorHelper.submitGetRequest(
                     SERVER_NAME + AUTH_GET_API_ENDPOINT,
-                    requestBuilderHelper.headerMapWithToken(),
-                    String.class, handler
-                    );
+                    requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
+                    String.class,
+                    handler);
         } finally {
             state.releaseAccessToStatus();
+        }
+    }
+
+    /**
+     * Modify the model to include the new key stroke.
+     *
+     * @param keyStroke the key stroke to enqueue
+     */
+    public void enqueueKeyStroke(@NonNull KeyStrokePojo keyStroke) {
+        // TODO: write tests
+        // First, make sure to get the lock.
+        state.obtainAccessToKeyStrokes();
+        try {
+            // Enqueue key stroke and if the oldest window of keystrokes is too long (by length of time) then create a new window.
+            state.enqueueKeyStroke(keyStroke);
+
+            Deque<KeyStrokePojo> newestKeyStrokes = state.getNewestKeyStrokes().getKeyStrokes();
+            if (newestKeyStrokes.size() >= KEYSTROKE_WINDOW_SIZE_PER_REQUEST ||
+                    keyStroke.getTimeStamp() - newestKeyStrokes.peekLast().getTimeStamp() < KEYSTROKE_TIME_INTERVAL_PER_WINDOW) {
+                state.divideKeyStrokes();
+            }
+
+            state.notifyKeyQueueChange(keyStroke);
+        } finally {
+            state.releaseAccessToKeyStrokes();
+        }
+    }
+
+    /**
+     * Modify the model to include the new status.
+     *
+     * @param status the status to enqueue
+     */
+    public void enqueueStatus(@NonNull ClientStatusPojo status) {
+        // TODO: write tests
+        // First, make sure to get the lock.
+        state.obtainAccessToStatus();
+        try {
+            ClientStatusPojo oldStatus = state.getCurrentStatus();
+            state.enqueueStatus(status);
+            state.notifyStatusChange(oldStatus, status);
+        } finally {
+            state.releaseAccessToKeyStrokes();
         }
     }
 
@@ -201,7 +218,45 @@ public class ClientStateController implements
      * @param fromMemory client status loaded from memory, to be passed to the model
      */
     public void passStateToModel(@NonNull ClientStateModel fromMemory) {
-        state.loadStateFromMemory(fromMemory);
+        // TODO: write tests
+        state.obtainAccessToModel();
+        try {
+            state.loadStateFromMemory(fromMemory);
+
+            // Make sure that the loaded state is unauthenticated.
+            ClientStatusPojo currentStatus = fromMemory.getCurrentStatus();
+            if (currentStatus.getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
+                ClientStatusPojo unAuthenticatedStatus = createStatusWithAuth(AuthConstants.UNAUTHENTICATED);
+                fromMemory.enqueueStatus(unAuthenticatedStatus);
+            }
+
+            // Notify the change.
+            state.notifyModelChange();
+        } finally {
+            state.releaseAccessToModel();
+        }
+    }
+
+    /**
+     * Checks if the client state model read from memory is valid.
+     *
+     * @return true if the client state model read from memory is valid
+     */
+    public boolean checkStateModel(@NonNull ClientStateModel fromMemory) {
+        // TODO: write tests
+        return state.checkStateModel(fromMemory);
+    }
+
+    /**
+     * Returns a new status with the authStatus set to the new authStatus.
+     *
+     * @param newAuth the new authStatus
+     */
+    public ClientStatusPojo createStatusWithAuth(AuthConstants newAuth) {
+        // TODO: write tests
+        ClientStatusPojo currentStatus = state.getCurrentStatus();
+        return new ClientStatusPojo(currentStatus.getProfile(), newAuth, currentStatus.getSecurityStatus(),
+                currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), System.currentTimeMillis());
     }
 
     /**

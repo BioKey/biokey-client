@@ -23,6 +23,8 @@ public class LockerService implements ClientStateModel.IClientStatusListener, Cl
      * to challenge the user and a flag for whether the locker should lock or unlock.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+
+        // TODO: needs more thought on different cases
         /*
          * If the client has been newly challenged, issue a challenge.
          * If the client has failed the challenge, lock the OS.

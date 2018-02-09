@@ -25,6 +25,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      * on the analysis model to run through the typing profile.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+        // TODO: needs more thought on different cases
         /*
          * If the typing profile is loaded, start analyzing.
          * If the typing profile becomes null, stop analyzing.

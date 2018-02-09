@@ -22,35 +22,22 @@ public class RequestBuilderHelper {
     /**
      * Create header map with the current status' access token added.
      *
+     * @param token the custom token
      * @return header map with the current status' access token as the only element
      */
-    public HttpHeaders headerMapWithToken() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(AppConstants.SERVER_TOKEN_HEADER, state.getCurrentStatus().getAccessToken());
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return headers;
-    }
-
-    /**
-     * Create header map with the custom token
-     *
-     * @param token the custom token
-     * @return header map with the custom access token as the only element
-     */
-    public HttpHeaders headerMapWithCustomToken(String token) {
+    public HttpHeaders headerMapWithToken(String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.add(AppConstants.SERVER_TOKEN_HEADER, token);
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
     }
 
-
     /**
-     * Create header map specifying application/json
+     * Create empty header map specifying content type application/json.
      *
      * @return header map specifying application/json
      */
-    public HttpHeaders headerMapNoToken (){
+    public HttpHeaders emptyHeaderMap(){
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
@@ -76,7 +63,7 @@ public class RequestBuilderHelper {
      * @return string representing the request body for POST keystrokes
      * @throws JsonProcessingException if serialization of login body to JSON has failed
      */
-    public String requestBodyToPostLogin(@NonNull String email, @NonNull String password) throws JsonProcessingException {
+    public String requestBodyToPostLogin(@NonNull String email, @NonNull String password) {
         return "{\"email\":" + "\"" + email + "\"" + ",\"password\":" + "\"" + password + "\"}";
     }
 }

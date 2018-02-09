@@ -2,6 +2,7 @@ package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
+import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
@@ -38,15 +39,13 @@ public class ClientStateControllerIntegrationTest {
     private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
     private static final Set<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
 
-   //private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTZmZWE3NTA3Y2EzYzNmNzQ3NzNmMjciLCJpYXQiOjE1MTcyOTkxNDMwODJ9.58EymCmHmHYRKDtb0sokO_OL4OaZfJVfwaETjiP7JgA";
     private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTcyODgzMzVlZjI3ZTcyNTQ0YmI0ZDQiLCJpYXQiOjE1MTc1MDI2MDM4MzN9.LNP-izZT0bc-KI6jtIpbfrYAsahkFP-61t1OO_G_WfY";
     private static final String TYPING_PROFILE_ID = "5a6fea7607ca3c3f74773f2b";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, (String challenge) -> false,""),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, new IChallengeStrategy[] {(String challenge) -> false},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    ACCESS_TOKEN,
-                    0,"");
+                    ACCESS_TOKEN, "", 0);
 
     @Spy
     private static ClientStateModel state = new ClientStateModel();

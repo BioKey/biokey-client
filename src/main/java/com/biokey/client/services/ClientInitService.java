@@ -1,35 +1,27 @@
 package com.biokey.client.services;
 
-import com.biokey.client.App;
-import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.AppConstants;
+import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
-
 import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.models.response.LoginResponse;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
-import com.biokey.client.views.GoogleAuthChallengeView;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang.SerializationException;
+import com.biokey.client.models.response.TypingProfileResponse;
+import lombok.NonNull;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+
 import javax.swing.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.*;
-import java.security.MessageDigest;
-import java.util.concurrent.ExecutionException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.util.prefs.Preferences;
 
 /**
@@ -42,14 +34,15 @@ public class ClientInitService extends JFrame implements
         ClientStateModel.IClientAnalysisListener {
 
     private static Logger log = Logger.getLogger(ClientInitService.class);
-    private Preferences prefs = Preferences.userRoot().node(this.getClass().getName());
-    private static int newKeyCount = 0;
-    private static final MessageDigest sha1 = DigestUtils.getSha1Digest();
 
     @Autowired
     private ClientStateController controller;
     @Autowired
     private ClientStateModel state;
+
+    private Preferences prefs = Preferences.userRoot().node(this.getClass().getName());
+    private int newKeyCount = 0;
+
     private JTextField emailInput;
     private JPanel loginPanel;
     private JPasswordField passwordInput;
@@ -57,108 +50,47 @@ public class ClientInitService extends JFrame implements
     private JLabel informationLabel;
 
     public ClientInitService() {
-
-        submitButton.addActionListener(new ActionListener() {
-            /**
-             * This is invoked when the user attempts to login with an eamil/password combo
-             *
-             * @param e unused
-             */
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    controller.sendLoginRequest(emailInput.getText(), new String (passwordInput.getPassword()), (ResponseEntity<LoginResponse> response) -> {
-                        // First, make sure to get the lock.
-                        state.obtainAccessToModel();
-                        try {
-                            // Check if the response was good.
-                            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                                log.debug("Login failed and received response " + response);
-                                //on failed login, do nothing other than show message to user that login failed.
-                                return;
-                            }
-
-                            //if successful go onto next function to retreive state given token and mac
-
-                            log.debug("Login Succeeded and received response: " + response);
-                            // call next function to get model with access token
-                            try {
-                                getTypingProfileGivenAuthandMAC(response.getBody().getToken());
-                            } catch (JsonProcessingException e2) {
-                                e2.printStackTrace();
-                            }
-                        } finally {
-                            state.releaseAccessToModel();
-                        }
-                    });
-
-                } catch (JsonProcessingException e1) {
-                    e1.printStackTrace();
-                }
-
-            }
-        });
+        initLoginForm();
     }
 
     /**
-     * Login to
-     * @param token the token to use to authenticate the user
-     * @throws JsonProcessingException
+     * Adds action listeners to the login form.
      */
-    public void getTypingProfileGivenAuthandMAC (String token) throws JsonProcessingException
-    {
-        //hardcode
-        controller.retrieveTypingProfileGivenAuthandMAC("ABC",token,(ResponseEntity<TypingProfileContainerResponse> response) -> {
-            log.debug("Token: " + token);
-            // First, make sure to get the lock.
-            state.obtainAccessToModel();
-            try {
+    private void initLoginForm() {
+        submitButton.addActionListener((ActionEvent e) -> {
+            controller.sendLoginRequest(emailInput.getText(), new String(passwordInput.getPassword()),
+                    (ResponseEntity<LoginResponse> response) -> {
                 // Check if the response was good.
                 if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                    log.debug("Error occurred when retreiving typing profile " + response);
-                    //if this failed, leave the frame still running and update message
+                    log.debug("Login failed and received response " + response);
+                    // On failed login, show message to user that login failed.
                     informationLabel.setText("Login failed. Please try again.");
                     return;
                 }
 
-
-                log.debug("Successfuly retreived typing profile: " + response);
-                //if this succeeded, we can remove the frame
-                submitButton.setEnabled(false);
-                this.dispose(); //TODO: won't disappear for some reason need to figure this one out
-                log.debug("Dispose now");
-
-
-                //TODO: update client status. Not 100% sure what to do. Maybe we need an enque typing profile method?
-               /* ClientStatusPojo currentStatus = state.getCurrentStatus();
-                ClientStatusPojo newStatus = new ClientStatusPojo(currentStatus.getProfile(),AuthConstants.AUTHENTICATED,
-                        currentStatus.getSecurityStatus(),currentStatus.getAccessToken(),currentStatus.getTimeStamp(),currentStatus.getPhoneNumber());
-                state.enqueueStatus(newStatus);*/
-
-            } finally {
-                state.releaseAccessToModel();
-            }
+                // If successful, call next function to retrieve status.
+                log.debug("Login Succeeded and received response: " + response);
+                String mac = getMAC();
+                if (mac == null) {
+                    log.debug("Could not retrieve MAC address.");
+                    informationLabel.setText("Login failed. Could not retrieve MAC address.");
+                } else retrieveStatusFromServer(getMAC(), response.getBody().getToken());
+            });
         });
     }
+
     /**
      * Implementation of listener to the ClientStateModel's status. The service will save the client state periodically.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-
         saveClientState();
 
-        /*
-         * If the typing profile is loaded, start the heartbeat.
-         * If the typing profile becomes null, stop the heartbeat
-         */
-        if(newStatus.getProfile() != null) startHeartbeat();
-        else stopHeartbeat();
-
+        // TODO: needs more thought on different cases
         /*
          * If the client becomes authenticated, start the heartbeat.
          * If the client becomes unauthenticated, stop the heartbeat.
          */
-        if(oldStatus.getAuthStatus() != newStatus.getAuthStatus()){
+        if (oldStatus.getAuthStatus() != newStatus.getAuthStatus()){
             if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) startHeartbeat();
             else stopHeartbeat();
         }
@@ -172,8 +104,6 @@ public class ClientInitService extends JFrame implements
         if (++newKeyCount >= AppConstants.KEYSTROKE_WINDOW_SIZE_PER_SAVE) {
             saveClientState();
         }
-        //TODO: Implement keystrokeQueueChanged()
-        return;
     }
 
     /**
@@ -182,8 +112,6 @@ public class ClientInitService extends JFrame implements
      */
     public void analysisResultQueueChanged(AnalysisResultPojo newResult) {
         saveClientState();
-        //TODO: Implement analysisResultQueueChanged()
-        return;
     }
 
     /**
@@ -191,72 +119,37 @@ public class ClientInitService extends JFrame implements
      * calls the {@link #checkCorrupt()} and at least one of the login functions.
      */
     public void retrieveClientState() {
-
-        state.obtainAccessToModel();
         try {
-            /* Read from file
-            FileInputStream fis = new FileInputStream(AppConstants.LOCAL_STATE_PATH);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            ClientStateModel fromMemory = (ClientStateModel) ois.readObject();
-            */
-
             byte[] stateBytes = prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, new byte[0]);
+            ClientStateModel fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
 
-            if (stateBytes.length == 0) {
-                log.debug("New user!");
-                login();
-            }
-            else if (checkCorrupt(stateBytes)) {
-                ClientStateModel fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
-                controller.passStateToModel(fromMemory);
-                login(state.getCurrentStatus().getAccessToken());
+            // TODO: checkCorrupt()
+            if (controller.checkStateModel(fromMemory)) {
                 log.debug("Retrieved client state from file");
+                controller.passStateToModel(fromMemory);
+                // Don't try to login here because the retrieved model might lock the computer.
+                // We should only try to login after the computer is unlocked.
             }
-            else {
-                log.debug("Checksum invalid!");
-            }
+            else loginWithoutModel();
         } catch (Exception e) {
-
-            if(e instanceof ClassCastException || e instanceof SerializationException) {
-                log.debug("Could not retrieve initial client state from file", e);
-                loginNoToken(); //JOSH added this. I hope this was ok and doesn't screw with BK's stuff...
-                // TODO: Finalize behaviour. Lock? Allow a new login?
-            }
-            else log.debug("Could not retrieve initial client state from file", e);
-
-        } finally {
-            state.releaseAccessToModel();
+            log.debug("Could not retrieve initial client state from file", e);
+            loginWithoutModel();
         }
     }
 
     /**
-     * Called when the status of the client changes. Saves the entire state to the disk and OS.
-     *
-     * @return true if the save was successful
+     * Called when the status of the client changes. Saves the entire state to Preferences.
      */
     public void saveClientState() {
         Runnable r = () -> {
             state.obtainAccessToModel();
             try {
-                /* Write to file
-                FileOutputStream fos = new FileOutputStream(AppConstants.LOCAL_STATE_PATH, false);
-                ObjectOutputStream oos = new ObjectOutputStream(fos);
-                oos.writeObject(state);
-                oos.flush()
-                oos.close();
-                */
-
-                /* Checksums
-                byte[] checksum = sha1.digest(SerializationUtils.serialize(stateBytes));
-                prefs.put(AppConstants.CLIENT_STATE_CHECKSUM_PREFERENCES_ID, new String(checksum));
-                */
-
                 byte[] stateBytes = SerializationUtils.serialize(state);
                 prefs.putByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, stateBytes);
-
+                // TODO: lockLocalSave()
                 log.debug("Saved client state to file");
             }
-            catch (Exception e){
+            catch (Exception e) {
                 log.debug("Could not save client state to file", e);
             } finally {
                 state.releaseAccessToModel();
@@ -287,52 +180,68 @@ public class ClientInitService extends JFrame implements
 
     /**
      * Login without any local credentials. Will prompt the user for the credentials.
-     *
-     * @return true if the user successfully logged in
      */
-    private boolean loginNoToken() {
-
-        JFrame frame = new JFrame("Google Auth Challenge Strategy");
+    private void loginWithoutModel() {
+        // TODO: Tell LockerService to lock.
+        JFrame frame = new JFrame("Login");
         frame.setContentPane(loginPanel);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
-        return false;
     }
 
     /**
      * Login with local credentials (auth token). Will call the no parameter version if the credentials are not validated by server.
-     *
-     * @return true if the user successfully logged in
      */
-    private boolean loginWithToken() {
-
+    private void loginWithModel() {
         controller.confirmAccessToken((ResponseEntity<String> response) -> {
-            state.obtainAccessToStatus();
+            // Check if the response was good.
+            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                log.debug("Access token did not authenticate and received response: " + response);
+                // No status change. Just send them to login screen.
+                loginWithoutModel();
+            }
 
-            try {
-                // Check if the response was good.
-                if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                    log.debug("Access token did not authenticate and received response: " + response);
-                    // no status change. Just send them to login screen
-                    loginNoToken();
-                }
-
-                // If it was good then enqueue new status where authenticated is true if it currently isn't
-                log.debug("User successfully authenticated and received response: " + response);
-                if (state.getCurrentStatus().getAuthStatus() == AuthConstants.UNAUTHENTICATED)
-                {
-                    ClientStatusPojo currentStatus = state.getCurrentStatus();
-                    ClientStatusPojo newStatus = new ClientStatusPojo(currentStatus.getProfile(),AuthConstants.AUTHENTICATED,
-                    currentStatus.getSecurityStatus(),currentStatus.getAccessToken(),currentStatus.getTimeStamp(),currentStatus.getPhoneNumber());
-                    state.enqueueStatus(newStatus);
-                }
-
-            } finally {
-                state.releaseAccessToStatus();
+            log.debug("User successfully authenticated and received response: " + response);
+            // If response was good then enqueue new status.
+            if (!state.getCurrentStatus().getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
+                controller.enqueueStatus(controller.createStatusWithAuth(AuthConstants.AUTHENTICATED));
             }
         });
-        return false; //can't figure out how to do this return properly
+    }
+
+    /**
+     * Retrieve status from server given the authToken and computer's MAC address.
+     *
+     * @param mac the MAC address associated with the computer
+     * @param token the token to use to authenticate the user
+     */
+    private void retrieveStatusFromServer(@NonNull String mac, @NonNull String token) {
+        // TODO: create new machine on server?
+        controller.retrieveStatusFromServer(mac, token, (ResponseEntity<TypingProfileContainerResponse> response) -> {
+            // Check if the response was good.
+            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                log.debug("Error occurred when retrieving typing profile " + response);
+                // On failed retrieval, show message to user that it failed.
+                informationLabel.setText("Login failed. Please try again.");
+            }
+
+            log.debug("Successfully retrieved typing profile: " + response);
+            // If this succeeded, we can remove the frame.
+            submitButton.setEnabled(false);
+            this.dispose(); //TODO: make sure this disappears
+
+            // Enqueue the response as the new status.
+            TypingProfileResponse responseBody = response.getBody().getTypingProfile();
+            SecurityConstants newSecurityStatus = (responseBody.isLockStatus()) ? SecurityConstants.LOCKED : SecurityConstants.UNLOCKED; // TODO: confirm this works, change server
+            ClientStatusPojo newStatus = new ClientStatusPojo(
+                    new TypingProfilePojo(responseBody.get_id(), responseBody.getMachine(), responseBody.getUser(),
+                            responseBody.getTensorFlowModel(),
+                            new float[] {}, null, // TODO: need to retrieve org information too!
+                            responseBody.getEndpoint()), AuthConstants.AUTHENTICATED, newSecurityStatus, token, "", // TODO: need phone number
+                            System.currentTimeMillis());
+            controller.enqueueStatus(newStatus);
+        });
     }
 
     /**
@@ -340,15 +249,8 @@ public class ClientInitService extends JFrame implements
      *
      * @return true if corruption was detected
      */
-    private boolean checkCorrupt(byte [] stateBytes) {
+    private boolean checkCorrupt() {
         // TODO: Implement checkCorrupt()
-        // Read from Preferences, calculate checksum
-        /*
-        String candidateChecksum = new String(sha1.digest(SerializationUtils.serialize(stateBytes)));
-        String targetChecksum = prefs.get(AppConstants.CLIENT_STATE_CHECKSUM_PREFERENCES_ID,"");
-        log.debug(candidateChecksum);
-        return targetChecksum.equals(candidateChecksum);
-        */
         return true;
     }
 
@@ -358,6 +260,21 @@ public class ClientInitService extends JFrame implements
      * @return true if the lock was successfully completed
      */
     private boolean lockLocalSave() {
+        // TODO: Implement lockLocalSave()
         return false;
+    }
+
+    /**
+     * Get computer's MAC address as a string representation.
+     *
+     * @return string representation of MAC
+     */
+    private String getMAC() {
+        try {
+            byte[] mac = NetworkInterface.getByInetAddress(InetAddress.getLocalHost()).getHardwareAddress();
+            return new String(mac);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
