@@ -7,10 +7,9 @@ public class TypingProfileResponse {
     private final String _id;
     private final String user;
     private final String machine;
-    private final String accessToken;
+    private final boolean isLocked;
     private final String tensorFlowModel;
     private final String endpoint;
-    private final String _v;
-    private final boolean lockStatus;
-    private final boolean authStatus;
+    private final String[] challengeStrategies;
+    private final float[] threshold;
 }

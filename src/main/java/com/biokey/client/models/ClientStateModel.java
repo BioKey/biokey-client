@@ -153,7 +153,7 @@ public class ClientStateModel implements Serializable {
         this.unsyncedAnalysisResults = fromMemory.unsyncedAnalysisResults;
         this.allKeyStrokes = fromMemory.allKeyStrokes;
 
-        // Notify all the listeners.
+        // Notify all the listeners?
     }
 
     /**
@@ -193,7 +193,7 @@ public class ClientStateModel implements Serializable {
         if (!statusLock.isHeldByCurrentThread() || !retrievedStatusBeforeEnqueue)
             throw new AccessControlException("statusLock needs to be acquired by the thread");
 
-        ClientStatusPojo oldStatus = currentStatus;
+        // ClientStatusPojo oldStatus = currentStatus;
         unsyncedStatuses.add(status);
         currentStatus = status;
         // notifyStatusChange(oldStatus, currentStatus);

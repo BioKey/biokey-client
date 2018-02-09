@@ -4,6 +4,7 @@ import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
+import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
@@ -22,6 +23,9 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.prefs.Preferences;
 
 /**
@@ -39,6 +43,8 @@ public class ClientInitService extends JFrame implements
     private ClientStateController controller;
     @Autowired
     private ClientStateModel state;
+    @Autowired
+    private Map<String, IChallengeStrategy> strategies;
 
     private Preferences prefs = Preferences.userRoot().node(this.getClass().getName());
     private int newKeyCount = 0;
@@ -61,7 +67,7 @@ public class ClientInitService extends JFrame implements
             controller.sendLoginRequest(emailInput.getText(), new String(passwordInput.getPassword()),
                     (ResponseEntity<LoginResponse> response) -> {
                 // Check if the response was good.
-                if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                if (response == null || !response.getStatusCode().is2xxSuccessful() || response.getBody().getToken() == null) {
                     log.debug("Login failed and received response " + response);
                     // On failed login, show message to user that login failed.
                     informationLabel.setText("Login failed. Please try again.");
@@ -73,7 +79,7 @@ public class ClientInitService extends JFrame implements
                 String mac = getMAC();
                 if (mac == null) {
                     log.debug("Could not retrieve MAC address.");
-                    informationLabel.setText("Login failed. Could not retrieve MAC address.");
+                    informationLabel.setText("Login failed. Could not retrieve MAC address. Please try again.");
                 } else retrieveStatusFromServer(getMAC(), response.getBody().getToken());
             });
         });
@@ -119,22 +125,29 @@ public class ClientInitService extends JFrame implements
      * calls the {@link #checkCorrupt()} and at least one of the login functions.
      */
     public void retrieveClientState() {
+        ClientStateModel fromMemory;
+
+        // Ensure no saves are currently happening.
+        state.obtainAccessToModel();
         try {
             byte[] stateBytes = prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, new byte[0]);
-            ClientStateModel fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
-
-            // TODO: checkCorrupt()
-            if (controller.checkStateModel(fromMemory)) {
-                log.debug("Retrieved client state from file");
-                controller.passStateToModel(fromMemory);
-                // Don't try to login here because the retrieved model might lock the computer.
-                // We should only try to login after the computer is unlocked.
-            }
-            else loginWithoutModel();
+            fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
         } catch (Exception e) {
             log.debug("Could not retrieve initial client state from file", e);
             loginWithoutModel();
+            return;
+        } finally {
+            state.releaseAccessToModel();
         }
+
+        // TODO: checkCorrupt()
+        if (controller.checkStateModel(fromMemory)) {
+            log.debug("Retrieved client state from file");
+            controller.passStateToModel(fromMemory);
+            // Don't try to login here because the retrieved model might lock the computer.
+            // We should only try to login after the computer is unlocked.
+        }
+        else loginWithoutModel();
     }
 
     /**
@@ -182,7 +195,7 @@ public class ClientInitService extends JFrame implements
      * Login without any local credentials. Will prompt the user for the credentials.
      */
     private void loginWithoutModel() {
-        // TODO: Tell LockerService to lock.
+        // TODO: somehow lock
         JFrame frame = new JFrame("Login");
         frame.setContentPane(loginPanel);
         frame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
@@ -195,17 +208,23 @@ public class ClientInitService extends JFrame implements
      */
     private void loginWithModel() {
         controller.confirmAccessToken((ResponseEntity<String> response) -> {
-            // Check if the response was good.
-            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                log.debug("Access token did not authenticate and received response: " + response);
-                // No status change. Just send them to login screen.
-                loginWithoutModel();
-            }
+            // First, make sure to get the lock.
+            state.obtainAccessToStatus();
+            try {
+                // Check if the response was good.
+                if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                    log.debug("Access token did not authenticate and received response: " + response);
+                    // No status change. Just send them to login screen.
+                    loginWithoutModel();
+                }
 
-            log.debug("User successfully authenticated and received response: " + response);
-            // If response was good then enqueue new status.
-            if (!state.getCurrentStatus().getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
-                controller.enqueueStatus(controller.createStatusWithAuth(AuthConstants.AUTHENTICATED));
+                log.debug("User successfully authenticated and received response: " + response);
+                // If response was good then enqueue new status.
+                if (!state.getCurrentStatus().getAuthStatus().equals(AuthConstants.AUTHENTICATED)) { // TODO: check null
+                    controller.enqueueStatus(controller.createStatusWithAuth(state.getCurrentStatus(), AuthConstants.AUTHENTICATED));
+                }
+            } finally {
+                state.releaseAccessToStatus();
             }
         });
     }
@@ -217,30 +236,29 @@ public class ClientInitService extends JFrame implements
      * @param token the token to use to authenticate the user
      */
     private void retrieveStatusFromServer(@NonNull String mac, @NonNull String token) {
-        // TODO: create new machine on server?
+        // TODO: create new machine on server? create typing profile on server?
         controller.retrieveStatusFromServer(mac, token, (ResponseEntity<TypingProfileContainerResponse> response) -> {
-            // Check if the response was good.
-            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                log.debug("Error occurred when retrieving typing profile " + response);
-                // On failed retrieval, show message to user that it failed.
-                informationLabel.setText("Login failed. Please try again.");
+            // First, make sure to get the lock.
+            state.obtainAccessToStatus();
+            try {
+                // Check if the response was good.
+                if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                    log.debug("Error occurred when retrieving typing profile " + response);
+                    // On failed retrieval, show message to user that it failed.
+                    informationLabel.setText("Login failed. Please try again.");
+                }
+
+                log.debug("Successfully retrieved typing profile: " + response);
+                // If this succeeded, we can remove the frame.
+                submitButton.setEnabled(false);
+                this.dispose(); //TODO: make sure this disappears
+
+                // Enqueue the response as the new status.
+                ClientStatusPojo newStatus = castToClientStatus(response.getBody(), token);
+                controller.enqueueStatus(newStatus);
+            } finally {
+                state.releaseAccessToStatus();
             }
-
-            log.debug("Successfully retrieved typing profile: " + response);
-            // If this succeeded, we can remove the frame.
-            submitButton.setEnabled(false);
-            this.dispose(); //TODO: make sure this disappears
-
-            // Enqueue the response as the new status.
-            TypingProfileResponse responseBody = response.getBody().getTypingProfile();
-            SecurityConstants newSecurityStatus = (responseBody.isLockStatus()) ? SecurityConstants.LOCKED : SecurityConstants.UNLOCKED; // TODO: confirm this works, change server
-            ClientStatusPojo newStatus = new ClientStatusPojo(
-                    new TypingProfilePojo(responseBody.get_id(), responseBody.getMachine(), responseBody.getUser(),
-                            responseBody.getTensorFlowModel(),
-                            new float[] {}, null, // TODO: need to retrieve org information too!
-                            responseBody.getEndpoint()), AuthConstants.AUTHENTICATED, newSecurityStatus, token, "", // TODO: need phone number
-                            System.currentTimeMillis());
-            controller.enqueueStatus(newStatus);
         });
     }
 
@@ -265,6 +283,28 @@ public class ClientInitService extends JFrame implements
     }
 
     /**
+     * Cast the response from the server to a new client status.
+     *
+     * @param responseContainer response from the server
+     * @param token the access token used to call the server
+     * @return new client status based on response
+     */
+    private ClientStatusPojo castToClientStatus(@NonNull TypingProfileContainerResponse responseContainer, @NonNull String token) {
+        TypingProfileResponse response = responseContainer.getTypingProfile();
+        return new ClientStatusPojo(
+                new TypingProfilePojo(response.get_id(), response.getMachine(), response.getUser(),
+                        response.getTensorFlowModel(),
+                        response.getThreshold(),
+                        castToChallengeStrategy(response.getChallengeStrategies()),
+                response.getEndpoint()),
+                AuthConstants.AUTHENTICATED,
+                castToSecurityConstant(response.isLocked()),
+                token,
+                responseContainer.getPhoneNumber(),
+                System.currentTimeMillis());
+    }
+
+    /**
      * Get computer's MAC address as a string representation.
      *
      * @return string representation of MAC
@@ -276,5 +316,31 @@ public class ClientInitService extends JFrame implements
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * Casts the string representations of challenge strategies from the server to the correct IChallengeStrategy impl.
+     *
+     * @param challengeStrategies array of string representations of challenge strategies from the server
+     * @return array of accepted IChallengeStrategy impl
+     */
+    private IChallengeStrategy[] castToChallengeStrategy(@NonNull String[] challengeStrategies) {
+        List<IChallengeStrategy> acceptedStrategies = new ArrayList<>();
+        for (int i = 0; i < challengeStrategies.length; i++) {
+            if (strategies.containsKey(challengeStrategies[i])) {
+                acceptedStrategies.add(strategies.get(challengeStrategies[i]));
+            }
+        }
+        return acceptedStrategies.toArray(new IChallengeStrategy[acceptedStrategies.size()]);
+    }
+
+    /**
+     * Cast the boolean representation of security constant to the correct enum object.
+     *
+     * @param isLocked boolean representation of security constant.
+     * @return the correct enum object
+     */
+    private SecurityConstants castToSecurityConstant(@NonNull boolean isLocked) {
+        return (isLocked) ? SecurityConstants.LOCKED : SecurityConstants.UNLOCKED;
     }
 }

@@ -30,7 +30,7 @@ public class ServerRequestExecutorHelperIntegrationTest {
         testCompleteFlag = new CountDownLatch(1);
     }
 
-    public void waitForCompletion() {
+    private void waitForCompletion() {
         try {
             if (!testCompleteFlag.await(TEST_TIMEOUT, TimeUnit.MILLISECONDS)) {
                 System.out.println("Test timed out.");

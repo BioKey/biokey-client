@@ -13,4 +13,9 @@ public interface IChallengeStrategy extends Serializable {
      * @return whether the challenge was successfully completed by the user
      */
     boolean performChallenges(String challenge);
+
+    /**
+     * Return the string representation that is consistent with the server.
+     */
+    String getServerRepresentation();
 }

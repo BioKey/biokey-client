@@ -61,7 +61,7 @@ public class ClientStateController implements
         try {
             // Change the state of keystrokes to SYNCING.
             KeyStrokesPojo keysToSend = state.getOldestKeyStrokes();
-            if (!keysToSend.getSyncedWithServer().equals(SyncStatusConstants.UNSYNCED)) return false;
+            if (keysToSend == null || !keysToSend.getSyncedWithServer().equals(SyncStatusConstants.UNSYNCED)) return false;
             keysToSend.setSyncedWithServer(SyncStatusConstants.SYNCING);
 
             // Make the request
@@ -109,7 +109,6 @@ public class ClientStateController implements
      */
     public void sendLoginRequest(@NonNull String email, @NonNull String password,
                                  @NonNull ServerRequestExecutorHelper.ServerResponseHandler<LoginResponse> handler) {
-        // TODO: write tests
         // First, make sure to get the lock.
         state.obtainAccessToStatus();
         try {
@@ -126,7 +125,7 @@ public class ClientStateController implements
     }
 
     /**
-     * Send a get request to retreive a user's typing profile
+     * Send a GET request to retrieve a user's typing profile.
      *
      * @param mac the mac address of the computer
      * @param accessToken a new access token after login that has not been reflected in the state
@@ -134,14 +133,14 @@ public class ClientStateController implements
      */
     public void retrieveStatusFromServer(@NonNull String mac, @NonNull String accessToken,
                                          @NonNull ServerRequestExecutorHelper.ServerResponseHandler<TypingProfileContainerResponse> handler) {
-        // TODO: write tests
         // First, make sure to get the lock.
         state.obtainAccessToStatus();
         try {
             // Make the request.
-            serverRequestExecutorHelper.submitGetRequest(
+            serverRequestExecutorHelper.submitPostRequest(
                     new UriTemplate(SERVER_NAME + GET_TYPING_PROFILE_ENDPOINT).expand(mac).toString(),
-                    requestBuilderHelper.headerMapWithToken(accessToken), // take a specific token not from model
+                    requestBuilderHelper.headerMapWithToken(accessToken),
+                    "{}", // TODO: make helper function for better form
                     TypingProfileContainerResponse.class,
                     handler);
 
@@ -160,7 +159,7 @@ public class ClientStateController implements
         try {
             // Make the request
             serverRequestExecutorHelper.submitGetRequest(
-                    SERVER_NAME + AUTH_GET_API_ENDPOINT,
+                    SERVER_NAME + USERS_GET_API_ENDPOINT,
                     requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
                     String.class,
                     handler);
@@ -175,19 +174,19 @@ public class ClientStateController implements
      * @param keyStroke the key stroke to enqueue
      */
     public void enqueueKeyStroke(@NonNull KeyStrokePojo keyStroke) {
-        // TODO: write tests
         // First, make sure to get the lock.
         state.obtainAccessToKeyStrokes();
         try {
-            // Enqueue key stroke and if the oldest window of keystrokes is too long (by length of time) then create a new window.
-            state.enqueueKeyStroke(keyStroke);
-
-            Deque<KeyStrokePojo> newestKeyStrokes = state.getNewestKeyStrokes().getKeyStrokes();
-            if (newestKeyStrokes.size() >= KEYSTROKE_WINDOW_SIZE_PER_REQUEST ||
-                    keyStroke.getTimeStamp() - newestKeyStrokes.peekLast().getTimeStamp() < KEYSTROKE_TIME_INTERVAL_PER_WINDOW) {
-                state.divideKeyStrokes();
+            // If the oldest window of keystrokes is too long (by keys or by time) then create a new window.
+            if (state.getNewestKeyStrokes() != null) {
+                Deque<KeyStrokePojo> newestKeyStrokes = state.getNewestKeyStrokes().getKeyStrokes();
+                if (newestKeyStrokes.size() >= KEYSTROKE_WINDOW_SIZE_PER_REQUEST ||
+                        keyStroke.getTimeStamp() - newestKeyStrokes.peekLast().getTimeStamp() > KEYSTROKE_TIME_INTERVAL_PER_WINDOW) {
+                    state.divideKeyStrokes();
+                }
             }
 
+            state.enqueueKeyStroke(keyStroke);
             state.notifyKeyQueueChange(keyStroke);
         } finally {
             state.releaseAccessToKeyStrokes();
@@ -200,7 +199,6 @@ public class ClientStateController implements
      * @param status the status to enqueue
      */
     public void enqueueStatus(@NonNull ClientStatusPojo status) {
-        // TODO: write tests
         // First, make sure to get the lock.
         state.obtainAccessToStatus();
         try {
@@ -208,7 +206,7 @@ public class ClientStateController implements
             state.enqueueStatus(status);
             state.notifyStatusChange(oldStatus, status);
         } finally {
-            state.releaseAccessToKeyStrokes();
+            state.releaseAccessToStatus();
         }
     }
 
@@ -218,22 +216,23 @@ public class ClientStateController implements
      * @param fromMemory client status loaded from memory, to be passed to the model
      */
     public void passStateToModel(@NonNull ClientStateModel fromMemory) {
-        // TODO: write tests
         state.obtainAccessToModel();
+        fromMemory.obtainAccessToModel();
         try {
             state.loadStateFromMemory(fromMemory);
 
             // Make sure that the loaded state is unauthenticated.
             ClientStatusPojo currentStatus = fromMemory.getCurrentStatus();
             if (currentStatus.getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
-                ClientStatusPojo unAuthenticatedStatus = createStatusWithAuth(AuthConstants.UNAUTHENTICATED);
-                fromMemory.enqueueStatus(unAuthenticatedStatus);
+                ClientStatusPojo unAuthenticatedStatus = createStatusWithAuth(currentStatus, AuthConstants.UNAUTHENTICATED);
+                state.enqueueStatus(unAuthenticatedStatus);
             }
 
             // Notify the change.
             state.notifyModelChange();
         } finally {
             state.releaseAccessToModel();
+            fromMemory.releaseAccessToModel();
         }
     }
 
@@ -243,18 +242,16 @@ public class ClientStateController implements
      * @return true if the client state model read from memory is valid
      */
     public boolean checkStateModel(@NonNull ClientStateModel fromMemory) {
-        // TODO: write tests
         return state.checkStateModel(fromMemory);
     }
 
     /**
      * Returns a new status with the authStatus set to the new authStatus.
      *
+     * @param currentStatus the current status
      * @param newAuth the new authStatus
      */
-    public ClientStatusPojo createStatusWithAuth(AuthConstants newAuth) {
-        // TODO: write tests
-        ClientStatusPojo currentStatus = state.getCurrentStatus();
+    public ClientStatusPojo createStatusWithAuth(ClientStatusPojo currentStatus, AuthConstants newAuth) {
         return new ClientStatusPojo(currentStatus.getProfile(), newAuth, currentStatus.getSecurityStatus(),
                 currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), System.currentTimeMillis());
     }
@@ -264,7 +261,7 @@ public class ClientStateController implements
      * The controller will send server requests periodically.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-        //TODO: Implement keystrokeQueueChanged()
+        //TODO: Implement statusChanged()
         return;
     }
 

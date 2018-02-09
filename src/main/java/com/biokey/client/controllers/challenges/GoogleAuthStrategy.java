@@ -27,6 +27,10 @@ public class GoogleAuthStrategy implements IChallengeStrategy, Serializable {
         return isValid;
     }
 
+    public String getServerRepresentation() {
+        return "GoogleAuth";
+    }
+
     /*public static void main (String [] args)
     {
         new GoogleAuthStrategy();*/

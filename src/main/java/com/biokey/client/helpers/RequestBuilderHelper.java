@@ -64,7 +64,7 @@ public class RequestBuilderHelper {
      * @throws JsonProcessingException if serialization of login body to JSON has failed
      */
     public String requestBodyToPostLogin(@NonNull String email, @NonNull String password) {
-        return "{\"email\":" + "\"" + email + "\"" + ",\"password\":" + "\"" + password + "\"}";
+        return "{\"email\": \"" + email + "\", \"password\": \"" + password + "\"}";
     }
 }
 

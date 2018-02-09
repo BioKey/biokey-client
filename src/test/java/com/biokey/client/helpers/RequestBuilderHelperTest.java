@@ -34,15 +34,18 @@ public class RequestBuilderHelperTest {
     private static final String TYPING_PROFILE_ID = "TYPING_PROFILE_ID";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, new IChallengeStrategy[] {(String challenge) -> false},""),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, new IChallengeStrategy[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     ACCESS_TOKEN, "", 0);
+    private static final String EMAIL = "EMAIL";
+    private static final String PASSWORD = "PASSWORD";
 
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, 1);
     private static final KeyStrokePojo OTHER_KEY_STROKE_POJO = new KeyStrokePojo('b', false, 2);
     private static final KeyStrokesPojo KEY_STROKES_POJO = new KeyStrokesPojo();
 
     private static final String EXPECTED_KEY_STROKE_JSON = "{\"keystrokes\": [{\"character\":\"t\",\"keyDown\":true,\"timestamp\":1,\"typingProfile\":\"TYPING_PROFILE_ID\"},{\"character\":\"b\",\"keyDown\":false,\"timestamp\":2,\"typingProfile\":\"TYPING_PROFILE_ID\"}]}";
+    private static final String EXPECTED_LOGIN_JSON = "{\"email\": \"EMAIL\", \"password\": \"PASSWORD\"}";
 
     @BeforeClass
     public static void loadData() {
@@ -52,15 +55,25 @@ public class RequestBuilderHelperTest {
 
     @Test
     public void GIVEN_accessToken_WHEN_headerMapWithToken_THEN_expectedResult() {
-        Mockito.when(state.getCurrentStatus()).thenReturn(CLIENT_STATUS_POJO);
-        assertTrue("header map has expected value for access token",
+        assertTrue("header map does not have expected value for access token",
                 underTest.headerMapWithToken(ACCESS_TOKEN).getFirst(AppConstants.SERVER_TOKEN_HEADER).equals(ACCESS_TOKEN));
     }
 
     @Test
-    public void GIVEN_keyStrokesAndTypingProfile_WHEN_headerMapWithToken_THEN_expectedResult() throws JsonProcessingException {
+    public void GIVEN_accessToken_WHEN_emptyHeaderMap_THEN_expectedResult() {
+        assertTrue("header map is not empty other than charset", underTest.emptyHeaderMap().size() == 1);
+    }
+
+    @Test
+    public void GIVEN_input_WHEN_requestBodyToPostKeystrokes_THEN_expectedResult() throws JsonProcessingException {
         Mockito.when(state.getCurrentStatus()).thenReturn(CLIENT_STATUS_POJO);
-        assertTrue("header map has expected value for access token",
+        assertTrue("generated JSON does not match expected JSON",
                 underTest.requestBodyToPostKeystrokes(KEY_STROKES_POJO).equals(EXPECTED_KEY_STROKE_JSON));
+    }
+
+    @Test
+    public void GIVEN_input_WHEN_requestBodyToPostLogin_THEN_expectedResult() {
+        assertTrue("generated JSON does not match expected JSON",
+                underTest.requestBodyToPostLogin(EMAIL, PASSWORD).equals(EXPECTED_LOGIN_JSON));
     }
 }

@@ -19,6 +19,10 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
         return challenge.equals(password);
     }
 
+    public String getServerRepresentation() {
+        return "TextMessage";
+    }
+
     public void sendMessage ()
     {
         Twilio.init(ACCOUNT_SID, AUTH_TOKEN);

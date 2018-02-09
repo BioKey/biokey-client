@@ -17,34 +17,32 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Set;
 
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.powermock.api.mockito.PowerMockito.spy;
+import static org.mockito.Mockito.*;
 import static org.powermock.api.mockito.PowerMockito.verifyPrivate;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(ClientStateModel.class)
 public class ClientStateModelTest {
 
-    private static final ClientStateModel.IClientStatusListener STATUS_LISTENER = (ClientStatusPojo oldStatus, ClientStatusPojo newStatus) -> {};
+    private static final ClientStateModel.IClientStatusListener STATUS_LISTENER = mock(ClientStateModel.IClientStatusListener.class);
     private static final HashSet<ClientStateModel.IClientStatusListener> STATUS_LISTENER_SET = new HashSet<>();
-    private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
+    private static final ClientStateModel.IClientKeyListener KEY_LISTENER = mock(ClientStateModel.IClientKeyListener.class);
     private static final HashSet<ClientStateModel.IClientKeyListener> KEY_LISTENER_SET = new HashSet<>();
-    private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
+    private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = mock(ClientStateModel.IClientAnalysisListener.class);
     private static final HashSet<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "","","",new float[] {}, new IChallengeStrategy[] {(String challenge) -> false},""),
+                    new TypingProfilePojo("", "", "", "", new float[] {}, new IChallengeStrategy[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", 0);
     private final ClientStatusPojo OTHER_CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "","","",new float[] {}, new IChallengeStrategy[] {(String challenge) -> false},""),
+                    new TypingProfilePojo("", "", "", "", new float[] {}, new IChallengeStrategy[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", 0);
 
@@ -61,6 +59,9 @@ public class ClientStateModelTest {
         STATUS_LISTENER_SET.add(STATUS_LISTENER);
         KEY_LISTENER_SET.add(KEY_LISTENER);
         ANALYSIS_LISTENER_SET.add(ANALYSIS_LISTENER);
+        doNothing().when(STATUS_LISTENER).statusChanged(any(), any());
+        doNothing().when(KEY_LISTENER).keystrokeQueueChanged(any());
+        doNothing().when(ANALYSIS_LISTENER).analysisResultQueueChanged(any());
     }
 
     @Before
@@ -89,7 +90,7 @@ public class ClientStateModelTest {
         badListeners.add(underTest::getOldestKeyStrokes);
         badListeners.add(underTest::getKeyStrokes);
 
-        // All the functions with no parameters
+        // All the functions with no parameters.
         for (ITestRunner badListener : badListeners) {
             try {
                 badListener.run();
@@ -97,6 +98,14 @@ public class ClientStateModelTest {
             } catch (Exception e) {
                 assertTrue(e instanceof AccessControlException);
             }
+        }
+
+        // Test the functions with parameters.
+        try {
+            underTest.loadStateFromMemory(underTest);
+            fail("AccessControlException not thrown.");
+        } catch (Exception e) {
+            assertTrue(e instanceof AccessControlException);
         }
 
         try {
@@ -122,7 +131,7 @@ public class ClientStateModelTest {
     }
 
     @Test
-    public void GIVEN_newKeyStroke_WHEN_enqueueKeyStroke_THEN_success() throws Exception {
+    public void GIVEN_newKeyStroke_WHEN_enqueueKeyStroke_THEN_success() {
         try {
             underTest.obtainAccessToKeyStrokes();
             ClientStateModel underTestPartialMock = spy(underTest);
@@ -131,14 +140,14 @@ public class ClientStateModelTest {
                     underTestPartialMock.getKeyStrokes().contains(KEY_STROKE_POJO));
             assertTrue("Should have found added key stroke in unsynced key strokes queue",
                     underTestPartialMock.getOldestKeyStrokes().getKeyStrokes().contains(KEY_STROKE_POJO));
-            verifyPrivate(underTestPartialMock).invoke("notifyKeyQueueChange", any());
+            //verifyPrivate(underTestPartialMock).invoke("notifyKeyQueueChange", any());
         } finally {
             underTest.releaseAccessToKeyStrokes();
         }
     }
 
     @Test
-    public void GIVEN_dividedKeyStrokes_WHEN_enqueueKeyStroke_THEN_orderRetrievedCorrect() throws Exception {
+    public void GIVEN_dividedKeyStrokes_WHEN_enqueueKeyStroke_THEN_orderRetrievedCorrect() {
         try {
             underTest.obtainAccessToKeyStrokes();
             underTest.enqueueKeyStroke(KEY_STROKE_POJO);
@@ -224,14 +233,14 @@ public class ClientStateModelTest {
     }
 
     @Test
-    public void GIVEN_newAnalysisResult_WHEN_enqueueAnalysisResult_THEN_success() throws Exception {
+    public void GIVEN_newAnalysisResult_WHEN_enqueueAnalysisResult_THEN_success() {
         try {
             underTest.obtainAccessToAnalysisResult();
             ClientStateModel underTestPartialMock = spy(underTest);
             underTestPartialMock.enqueueAnalysisResult(ANALYSIS_RESULT_POJO);
             assertTrue("Should have found added analysis result",
                     underTestPartialMock.getOldestAnalysisResult() == ANALYSIS_RESULT_POJO);
-            verifyPrivate(underTestPartialMock).invoke("notifyAnalysisResultQueueChange", any());
+            //verifyPrivate(underTestPartialMock).invoke("notifyAnalysisResultQueueChange", any());
         } finally {
             underTest.releaseAccessToAnalysisResult();
         }
@@ -272,7 +281,7 @@ public class ClientStateModelTest {
     }
 
     @Test
-    public void GIVEN_newStatus_WHEN_enqueueStatus_THEN_success() throws Exception {
+    public void GIVEN_newStatus_WHEN_enqueueStatus_THEN_success() {
         try {
             underTest.obtainAccessToStatus();
             ClientStateModel underTestPartialMock = spy(underTest);
@@ -282,7 +291,7 @@ public class ClientStateModelTest {
 
             assertTrue("Should have found added analysis result",
                     underTestPartialMock.getOldestStatus() == CLIENT_STATUS_POJO);
-            verifyPrivate(underTestPartialMock).invoke("notifyStatusChange", any(), any());
+            //verifyPrivate(underTestPartialMock).invoke("notifyStatusChange", any(), any());
         } finally {
             underTest.releaseAccessToStatus();
         }
@@ -299,7 +308,7 @@ public class ClientStateModelTest {
     }
 
     @Test
-    public void GIVEN_newStatusWhileModelLocked_WHEN_enqueueStatus_THEN_success() throws Exception {
+    public void GIVEN_newStatusWhileModelLocked_WHEN_enqueueStatus_THEN_success() {
         try {
             underTest.obtainAccessToModel();
             ClientStateModel underTestPartialMock = spy(underTest);
@@ -307,7 +316,7 @@ public class ClientStateModelTest {
             underTestPartialMock.enqueueStatus(CLIENT_STATUS_POJO);
             assertTrue("Should have found added analysis result",
                     underTestPartialMock.getOldestStatus() == CLIENT_STATUS_POJO);
-            verifyPrivate(underTestPartialMock).invoke("notifyStatusChange", any(), any());
+            //verifyPrivate(underTestPartialMock).invoke("notifyStatusChange", any(), any());
         } finally {
             underTest.releaseAccessToModel();
         }
@@ -350,5 +359,51 @@ public class ClientStateModelTest {
         } finally {
             underTest.releaseAccessToStatus();
         }
+    }
+
+    @Test
+    public void GIVEN_notifyQueues_WHEN_notify_THEN_lambdasCalled() {
+        underTest.notifyStatusChange(null, null);
+        underTest.notifyKeyQueueChange(null);
+        underTest.notifyAnalysisResultQueueChange(null);
+        underTest.notifyModelChange();
+        verify(STATUS_LISTENER, timeout(100).times(2)).statusChanged(any(), any());
+        verify(KEY_LISTENER, timeout(100).times(2)).keystrokeQueueChanged(any());
+        verify(ANALYSIS_LISTENER, timeout(100).times(2)).analysisResultQueueChanged(any());
+    }
+
+    @Test
+    public void GIVEN_newModel_WHEN_loadStateFromMemory_THEN_changesReflected() {
+        ClientStateModel newModel = new ClientStateModel();
+        try {
+            newModel.obtainAccessToStatus();
+            newModel.getCurrentStatus();
+            newModel.enqueueStatus(CLIENT_STATUS_POJO);
+            underTest.obtainAccessToModel();
+            underTest.loadStateFromMemory(newModel);
+
+            assertTrue("changes should be reflected to model", underTest.getCurrentStatus() == CLIENT_STATUS_POJO);
+        } finally {
+            newModel.releaseAccessToStatus();
+            underTest.releaseAccessToModel();
+        }
+    }
+
+    @Test
+    public void GIVEN_itself_WHEN_checkStateModel_THEN_returnInvalid() {
+        assertTrue("the model should not be valid", !underTest.checkStateModel(underTest));
+    }
+
+    @Test
+    public void GIVEN_itselfAfterEnqueueStatus_WHEN_checkStateModel_THEN_returnInvalid() {
+        try {
+            underTest.obtainAccessToStatus();
+            underTest.getCurrentStatus();
+            underTest.enqueueStatus(CLIENT_STATUS_POJO);
+            assertTrue("the model should be valid", underTest.checkStateModel(underTest));
+        } finally {
+            underTest.releaseAccessToStatus();
+        }
+
     }
 }

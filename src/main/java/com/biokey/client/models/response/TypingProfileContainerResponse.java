@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class TypingProfileContainerResponse {
     private final TypingProfileResponse typingProfile;
+    private final String phoneNumber;
 }

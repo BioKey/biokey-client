@@ -18,6 +18,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.internal.util.reflection.Whitebox;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.context.ApplicationContext;
@@ -34,8 +35,7 @@ import static org.mockito.Mockito.*;
 import static org.powermock.api.mockito.PowerMockito.spy;
 import static org.powermock.api.mockito.PowerMockito.verifyPrivate;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(ClientInitService.class)
+@RunWith(MockitoJUnitRunner.class)
 public class ClientInitServiceIntegrationTest {
 
     private static final ClientStateModel.IClientStatusListener STATUS_LISTENER = (ClientStatusPojo oldStatus, ClientStatusPojo newStatus) -> {};
@@ -46,12 +46,10 @@ public class ClientInitServiceIntegrationTest {
     private static final Set<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "","","",new float[] {}, new IChallengeStrategy[] {(String challenge) -> false},""),
+                    new TypingProfilePojo("", "","","",new float[] {}, new IChallengeStrategy[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    "","", 777
+                    "HELLO","", 777
             );
-
-    private static Logger log = Logger.getLogger(ClientInitService.class);
 
     private static ClientStateModel state;
     private static ClientInitService underTest;
@@ -75,43 +73,19 @@ public class ClientInitServiceIntegrationTest {
     }
 
     @Test
-    public void GIVEN_validState_WHEN_saveClientState_retrieveClientState_THEN_success() throws Exception {
-        ClientInitService underTestPartialMock = spy(underTest);
-        try {
-            underTestPartialMock.saveClientState();
-            underTestPartialMock.saveClientState();
-            underTestPartialMock.retrieveClientState();
+    public void GIVEN_validState_WHEN_saveClientState_retrieveClientState_THEN_success() {
+        // Try simultaneously saving.
+        underTest.saveClientState();
+        underTest.saveClientState();
+        // After saving, try retrieving.
+        underTest.retrieveClientState();
 
+        try {
             state.obtainAccessToModel();
             assertTrue("Retrieved state should be equivalent to saved state",
-                    state.getCurrentStatus().getTimeStamp() == CLIENT_STATUS_POJO.getTimeStamp());
-            verifyPrivate(underTestPartialMock).invoke("login", anyString());
-        }
-        finally {
+                    state.getCurrentStatus().getAccessToken().equals(CLIENT_STATUS_POJO.getAccessToken()));
+        } finally {
             state.releaseAccessToModel();
         }
-    }
-
-    @Test
-    public void GIVEN_noState_WHEN_retrieveClientState_THEN_login() throws Exception {
-        ClientInitService underTestPartialMock = spy(underTest);
-        Preferences prefs = (Preferences) Whitebox.getInternalState(underTest, "prefs");
-        prefs.putByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, new byte[0]);
-        underTestPartialMock.retrieveClientState();
-        verifyPrivate(underTestPartialMock).invoke("login");
-    }
-
-    @Test
-    public void GIVEN_invalidState_WHEN_retrieveClientState_THEN_no_login() throws Exception {
-        ClientInitService underTestPartialMock = spy(underTest);
-        Preferences prefs = (Preferences) Whitebox.getInternalState(underTest, "prefs");
-        prefs.putByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, new byte[]{(byte)0xaa});
-        underTestPartialMock.retrieveClientState();
-        verifyPrivate(underTestPartialMock).invoke("login");
-    }
-
-    @After
-    public void validate() {
-        validateMockitoUsage();
     }
 }
