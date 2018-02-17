@@ -3,6 +3,8 @@ package com.biokey.client.services;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
+import com.biokey.client.helpers.RequestBuilderHelper;
+import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
@@ -15,10 +17,14 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class AnalysisEngineService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientKeyListener {
 
-    @Autowired
     private ClientStateController controller;
-    @Autowired
     private ClientStateModel state;
+
+    @Autowired
+    public AnalysisEngineService(ClientStateController controller, ClientStateModel state) {
+        this.controller = controller;
+        this.state = state;
+    }
 
     /**
      * Implementation of listener to the ClientStateModel's status. The status will contain the details

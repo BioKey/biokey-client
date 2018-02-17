@@ -11,12 +11,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Service that responds to changes in client status and locks or unlocks the OS accordingly.
  */
-public class LockerService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientAnalysisListener {
+public class ChallengeService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientAnalysisListener {
+
+    private ClientStateController controller;
+    private ClientStateModel state;
 
     @Autowired
-    private ClientStateController controller;
-    @Autowired
-    private ClientStateModel state;
+    public ChallengeService(ClientStateController controller, ClientStateModel state) {
+        this.controller = controller;
+        this.state = state;
+    }
 
     /**
      * Implementation of listener to the ClientStateModel's status. The status will contain the accepted strategies

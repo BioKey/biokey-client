@@ -35,12 +35,17 @@ public class ClientStateController implements
 
     private static Logger log = Logger.getLogger(ClientStateController.class);
 
+    private ClientStateModel state;
+    private RequestBuilderHelper requestBuilderHelper;
+    private ServerRequestExecutorHelper serverRequestExecutorHelper;
+
     @Autowired
-    ClientStateModel state;
-    @Autowired
-    RequestBuilderHelper requestBuilderHelper;
-    @Autowired
-    ServerRequestExecutorHelper serverRequestExecutorHelper;
+    public ClientStateController(ClientStateModel state, RequestBuilderHelper requestBuilderHelper,
+                                 ServerRequestExecutorHelper serverRequestExecutorHelper) {
+        this.state = state;
+        this.requestBuilderHelper = requestBuilderHelper;
+        this.serverRequestExecutorHelper = serverRequestExecutorHelper;
+    }
 
     /**
      * Sends the server a message at fixed time intervals to let it know when the client is alive.
@@ -61,14 +66,14 @@ public class ClientStateController implements
         try {
             // Change the state of keystrokes to SYNCING.
             KeyStrokesPojo keysToSend = state.getOldestKeyStrokes();
-            if (keysToSend == null || !(keysToSend.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
+            if (state.getCurrentStatus() == null || keysToSend == null || !(keysToSend.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
             keysToSend.setSyncedWithServer(SyncStatusConstants.SYNCING);
 
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + KEYSTROKE_POST_API_ENDPOINT,
                     requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
-                    requestBuilderHelper.requestBodyToPostKeystrokes(keysToSend),
+                    requestBuilderHelper.requestBodyToPostKeystrokes(keysToSend, state.getCurrentStatus().getProfile().getId()),
                     String.class,
                     (ResponseEntity<String> response) -> {
                         // First, make sure to get the lock.

@@ -13,13 +13,14 @@ import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.models.response.LoginResponse;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
 import com.biokey.client.models.response.TypingProfileResponse;
+import com.biokey.client.views.frames.LockFrameView;
+import com.biokey.client.views.panels.LoginPanelView;
 import lombok.NonNull;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
-import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -33,56 +34,59 @@ import java.util.prefs.Preferences;
  * Service that retrieves the client state from the disk and OS and ensures that it has not been corrupted.
  * If the local data does not exist, then the service prompts the user to login and download the client state.
  */
-public class ClientInitService extends JFrame implements
+public class ClientInitService implements
         ClientStateModel.IClientStatusListener,
         ClientStateModel.IClientKeyListener,
         ClientStateModel.IClientAnalysisListener {
 
     private static Logger log = Logger.getLogger(ClientInitService.class);
 
-    @Autowired
     private ClientStateController controller;
-    @Autowired
     private ClientStateModel state;
-    @Autowired
     private Map<String, IChallengeStrategy> strategies;
+    private LockFrameView lockFrameView;
+    private LoginPanelView view;
 
     private Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;
 
-    private JTextField emailInput;
-    private JPanel loginPanel;
-    private JPasswordField passwordInput;
-    private JButton submitButton;
-    private JLabel informationLabel;
+    @Autowired
+    public ClientInitService(ClientStateController controller, ClientStateModel state,
+                             Map<String, IChallengeStrategy> strategies,
+                             LockFrameView lockFrameView, LoginPanelView view)  {
 
-    public ClientInitService() {
-        initLoginForm();
-    }
+        this.controller = controller;
+        this.state = state;
+        this.strategies = strategies;
+        this.lockFrameView = lockFrameView;
+        this.view = view;
 
-    /**
-     * Adds action listeners to the login form.
-     */
-    private void initLoginForm() {
-        submitButton.addActionListener((ActionEvent e) -> {
-            controller.sendLoginRequest(emailInput.getText(), new String(passwordInput.getPassword()),
+        // Add action to login view on submit.
+        view.addSubmitAction((ActionEvent e) -> {
+            // Disable submit.
+            view.setEnableSubmit(false);
+
+            // Send login request to the server.
+            controller.sendLoginRequest(view.getEmail(), view.getPassword(),
                     (ResponseEntity<LoginResponse> response) -> {
-                // Check if the response was good.
-                if (response == null || !response.getStatusCode().is2xxSuccessful() || response.getBody().getToken() == null) {
-                    log.debug("Login failed and received response " + response);
-                    // On failed login, show message to user that login failed.
-                    informationLabel.setText("Login failed. Please try again.");
-                    return;
-                }
+                        // Check if the response was good.
+                        if (response == null || !response.getStatusCode().is2xxSuccessful() || response.getBody().getToken() == null) {
+                            log.debug("Login failed and received response " + response);
+                            // On failed login, show message to user that login failed.
+                            view.setEnableSubmit(true);
+                            view.setInformationText("Login failed. Please try again.");
+                            return;
+                        }
 
-                // If successful, call next function to retrieve status.
-                log.debug("Login Succeeded and received response: " + response);
-                String mac = getMAC();
-                if (mac == null) {
-                    log.debug("Could not retrieve MAC address.");
-                    informationLabel.setText("Login failed. Could not retrieve MAC address. Please try again.");
-                } else retrieveStatusFromServer(getMAC(), response.getBody().getToken());
-            });
+                        // If successful, call next function to retrieve status.
+                        log.debug("Login Succeeded and received response: " + response);
+                        String mac = getMAC();
+                        if (mac == null) {
+                            log.debug("Could not retrieve MAC address.");
+                            view.setEnableSubmit(true);
+                            view.setInformationText("Login failed. Could not retrieve MAC address. Please try again.");
+                        } else retrieveStatusFromServer(getMAC(), response.getBody().getToken());
+                    });
         });
     }
 
@@ -218,14 +222,10 @@ public class ClientInitService extends JFrame implements
         // First, clear any client data that may have been corrupted.
         clearClientData();
 
-        // TODO: somehow lock
-
         // Initiate the view.
-        JFrame frame = new JFrame("Login");
-        frame.setContentPane(loginPanel);
-        frame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
+        view.setEnableSubmit(true);
+        lockFrameView.addPanel(view.getLoginPanel());
+        lockFrameView.lock();
     }
 
     /**
@@ -277,13 +277,14 @@ public class ClientInitService extends JFrame implements
                 if (response == null || !response.getStatusCode().is2xxSuccessful()) {
                     log.debug("Error occurred when retrieving typing profile " + response);
                     // On failed retrieval, show message to user that it failed.
-                    informationLabel.setText("Login failed. Please try again.");
+                    view.setEnableSubmit(true);
+                    view.setInformationText("Login failed. Please try again.");
                 }
 
                 log.debug("Successfully retrieved typing profile: " + response);
                 // If this succeeded, we can remove the frame.
-                submitButton.setEnabled(false);
-                this.dispose(); //TODO: make sure this disappears, will finish when unifying the view logic
+                lockFrameView.unlock();
+                lockFrameView.hidePanel(view.getLoginPanel());
 
                 // Enqueue the response as the new status.
                 ClientStatusPojo newStatus = castToClientStatus(response.getBody(), token);

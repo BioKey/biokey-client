@@ -68,7 +68,7 @@ public class RequestBuilderHelperTest {
     public void GIVEN_input_WHEN_requestBodyToPostKeystrokes_THEN_expectedResult() throws JsonProcessingException {
         Mockito.when(state.getCurrentStatus()).thenReturn(CLIENT_STATUS_POJO);
         assertTrue("generated JSON does not match expected JSON",
-                underTest.requestBodyToPostKeystrokes(KEY_STROKES_POJO).equals(EXPECTED_KEY_STROKE_JSON));
+                underTest.requestBodyToPostKeystrokes(KEY_STROKES_POJO, TYPING_PROFILE_ID).equals(EXPECTED_KEY_STROKE_JSON));
     }
 
     @Test

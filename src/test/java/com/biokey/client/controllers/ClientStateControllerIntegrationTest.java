@@ -13,7 +13,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.http.ResponseEntity;
@@ -61,14 +60,13 @@ public class ClientStateControllerIntegrationTest {
     private static ClientStateModel state = new ClientStateModel();
     private static ClientStateModel initialState;
 
-    @InjectMocks @Spy
+    @Spy
     private RequestBuilderHelper requestBuilderHelper = new RequestBuilderHelper();
 
     @Spy
     private ServerRequestExecutorHelper serverRequestExecutorHelper = new ServerRequestExecutorHelper(Executors.newCachedThreadPool());
 
-    @InjectMocks
-    private ClientStateController underTest = new ClientStateController();
+    private ClientStateController underTest = new ClientStateController(state, requestBuilderHelper, serverRequestExecutorHelper);
 
     @BeforeClass
     public static void setupListeners() {

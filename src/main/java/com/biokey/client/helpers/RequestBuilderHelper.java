@@ -16,9 +16,6 @@ import java.util.Queue;
 
 public class RequestBuilderHelper {
 
-    @Autowired
-    private ClientStateModel state;
-
     /**
      * Create header map with the current status' access token added.
      *
@@ -46,12 +43,14 @@ public class RequestBuilderHelper {
     /**
      * Create request body for POST keystrokes.
      *
+     * @param keysToSend the keys to serialize
+     * @param typingProfileId the typing profile id to attach to each serialized key
      * @return string representing the request body for POST keystrokes
      * @throws JsonProcessingException if serialization of keystrokes to JSON has failed
      */
-    public String requestBodyToPostKeystrokes(KeyStrokesPojo keysToSend) throws JsonProcessingException {
+    public String requestBodyToPostKeystrokes(KeyStrokesPojo keysToSend, String typingProfileId) throws JsonProcessingException {
         ObjectWriter writer = (new ObjectMapper()).writerFor(Queue.class)
-                .withAttribute("typingProfile", state.getCurrentStatus().getProfile().getId());
+                .withAttribute("typingProfile", typingProfileId);
         return "{\"keystrokes\": " + writer.writeValueAsString(keysToSend.getKeyStrokes()) + "}";
     }
 

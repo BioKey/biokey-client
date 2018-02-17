@@ -1,6 +1,5 @@
 package com.biokey.client.services;
 
-import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.controllers.challenges.IChallengeStrategy;
@@ -11,29 +10,17 @@ import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
 
 import com.biokey.client.providers.AppProvider;
-import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.internal.util.reflection.Whitebox;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.prefs.Preferences;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.powermock.api.mockito.PowerMockito.spy;
-import static org.powermock.api.mockito.PowerMockito.verifyPrivate;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ClientInitServiceIntegrationTest {
