@@ -30,6 +30,7 @@ public class LockerService implements ClientStateModel.IClientStatusListener, Cl
          * If the client has failed the challenge, lock the OS.
          * If the client state is newly 'unlocked', unlock the OS.
          */
+        /*
         if(oldStatus.getSecurityStatus() != newStatus.getSecurityStatus()) {
             if(newStatus.getSecurityStatus() == SecurityConstants.CHALLENGE) {
                 issueChallenges();
@@ -41,6 +42,7 @@ public class LockerService implements ClientStateModel.IClientStatusListener, Cl
                 unlock();
             }
         }
+        */
     }
 
     /**

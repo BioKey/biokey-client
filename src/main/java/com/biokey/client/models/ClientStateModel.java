@@ -72,7 +72,7 @@ public class ClientStateModel implements Serializable {
      * A thread that has called this method must make sure to release the lock through a finally block.
      */
     public void obtainAccessToStatus() {
-        statusLock.lock();
+        if (!statusLock.isHeldByCurrentThread()) statusLock.lock();
         retrievedStatusBeforeEnqueue = false;
     }
 
@@ -80,7 +80,7 @@ public class ClientStateModel implements Serializable {
      * Release access to get and modify status.
      */
     public void releaseAccessToStatus() {
-        statusLock.unlock();
+        if (statusLock.isHeldByCurrentThread()) statusLock.unlock();
         retrievedStatusBeforeEnqueue = false;
     }
 
@@ -89,14 +89,14 @@ public class ClientStateModel implements Serializable {
      * A thread that has called this method must make sure to release the lock through a finally block.
      */
     public void obtainAccessToAnalysisResult() {
-        analysisResultLock.lock();
+        if (!analysisResultLock.isHeldByCurrentThread()) analysisResultLock.lock();
     }
 
     /**
      * Release access to get and modify analysis results.
      */
     public void releaseAccessToAnalysisResult() {
-        analysisResultLock.unlock();
+        if (analysisResultLock.isHeldByCurrentThread()) analysisResultLock.unlock();
     }
 
     /**
@@ -104,14 +104,14 @@ public class ClientStateModel implements Serializable {
      * A thread that has called this method must make sure to release the lock through a finally block.
      */
     public void obtainAccessToKeyStrokes() {
-        keyStrokesLock.lock();
+        if (!keyStrokesLock.isHeldByCurrentThread()) keyStrokesLock.lock();
     }
 
     /**
      * Release access to get and modify key strokes.
      */
     public void releaseAccessToKeyStrokes() {
-        keyStrokesLock.unlock();
+        if (keyStrokesLock.isHeldByCurrentThread()) keyStrokesLock.unlock();
     }
 
     /**
@@ -119,9 +119,9 @@ public class ClientStateModel implements Serializable {
      * A thread that has called this method must make sure to release the lock through a finally block.
      */
     public void obtainAccessToModel() {
-        statusLock.lock();
-        analysisResultLock.lock();
-        keyStrokesLock.lock();
+        if (!statusLock.isHeldByCurrentThread()) statusLock.lock();
+        if (!analysisResultLock.isHeldByCurrentThread()) analysisResultLock.lock();
+        if (!keyStrokesLock.isHeldByCurrentThread()) keyStrokesLock.lock();
         retrievedStatusBeforeEnqueue = true;
     }
 
@@ -129,9 +129,9 @@ public class ClientStateModel implements Serializable {
      * Release access to get and modify the entire model.
      */
     public void releaseAccessToModel() {
-        statusLock.unlock();
-        analysisResultLock.unlock();
-        keyStrokesLock.unlock();
+        if (statusLock.isHeldByCurrentThread()) statusLock.unlock();
+        if (analysisResultLock.isHeldByCurrentThread()) analysisResultLock.unlock();
+        if (keyStrokesLock.isHeldByCurrentThread()) keyStrokesLock.unlock();
         retrievedStatusBeforeEnqueue = false;
     }
 
@@ -140,7 +140,7 @@ public class ClientStateModel implements Serializable {
      *
      * @param fromMemory client state to be loaded
      */
-    public void loadStateFromMemory(ClientStateModel fromMemory) {
+    public void loadStateFromMemory(@NonNull ClientStateModel fromMemory) {
         if (!statusLock.isHeldByCurrentThread() ||
                 !keyStrokesLock.isHeldByCurrentThread() ||
                 !analysisResultLock.isHeldByCurrentThread())
@@ -171,6 +171,22 @@ public class ClientStateModel implements Serializable {
         if (fromMemory.currentStatus.getAccessToken() == null) return false;
 
         return true;
+    }
+
+    /**
+     * Clear all the data from the model.
+     */
+    public void clear() {
+        if (!statusLock.isHeldByCurrentThread() ||
+                !keyStrokesLock.isHeldByCurrentThread() ||
+                !analysisResultLock.isHeldByCurrentThread())
+            throw new AccessControlException("Locks needs to be acquired by the thread");
+
+        this.unsyncedStatuses.clear();
+        this.unsyncedKeyStrokes.clear();
+        this.unsyncedAnalysisResults.clear();
+        this.allKeyStrokes.clear();
+        this.currentStatus = null;
     }
 
     /**

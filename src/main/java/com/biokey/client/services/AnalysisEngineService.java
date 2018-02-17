@@ -30,17 +30,20 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
          * If the typing profile is loaded, start analyzing.
          * If the typing profile becomes null, stop analyzing.
          */
+        /*
         if(newStatus.getProfile() != null) {
             start();
         }
         else {
             stop();
         }
+        */
 
         /*
          * If the client becomes authenticated, start analyzing.
          * If the client becomes unauthenticated, stop analyzing.
          */
+        /*
         if(oldStatus.getAuthStatus() != newStatus.getAuthStatus()) {
             if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) {
                 start();
@@ -49,11 +52,13 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 stop();
             }
         }
+        */
 
         /*
          * If the client is newly challenged, stop logging keystrokes.
          * If the client is newly 'unlocked', start logging keystrokes
          */
+        /*
         if(oldStatus.getSecurityStatus() != newStatus.getSecurityStatus()) {
             if(oldStatus.getSecurityStatus() == SecurityConstants.UNLOCKED) {
                 stop();
@@ -62,6 +67,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 start();
             }
         }
+        */
     }
 
     /**

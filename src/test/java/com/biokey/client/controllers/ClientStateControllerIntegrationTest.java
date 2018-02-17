@@ -178,6 +178,19 @@ public class ClientStateControllerIntegrationTest {
     }
 
     @Test
+    public void GIVEN_noStatus_WHEN_confirmAccessToken_THEN_nullResponse() {
+        underTest.clearModel();
+        underTest.confirmAccessToken((ResponseEntity<String> response) -> {
+            assertTrue("should have received null response", response == null);
+            testCompleteFlag.countDown();
+        });
+
+        waitForCompletion();
+        verify(serverRequestExecutorHelper, never()).submitGetRequest(any(), any(), any(), any());
+        verify(state).releaseAccessToStatus();
+    }
+
+    @Test
     public void GIVEN_manyKeystrokes_WHEN_enqueueKeyStroke_THEN_dividesCorrectly() {
         int numEnqueues = 2 * KEYSTROKE_WINDOW_SIZE_PER_REQUEST + 1;
         for (int i = 0; i < numEnqueues; i++) {
@@ -252,7 +265,13 @@ public class ClientStateControllerIntegrationTest {
     @Test
     public void GIVEN_na_WHEN_checkStateModel_THEN_na() {
         // Covered in ClientStateModelTest
-        state.checkStateModel(state);
+        underTest.checkStateModel(state);
+    }
+
+    @Test
+    public void GIVEN_na_WHEN_clearModel_THEN_na() {
+        // Covered in ClientStateModelTest
+        underTest.clearModel();
     }
 
     @Test

@@ -28,10 +28,12 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
          * If the client becomes authenticated, start logging keystrokes.
          * If the client becomes unauthenticated, stop logging keystrokes.
          */
+        /*
         if(oldStatus.getAuthStatus() != newStatus.getAuthStatus()){
             if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
             else stop();
         }
+        */
     }
 
     /**

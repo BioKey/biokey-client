@@ -26,6 +26,7 @@ import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 /**
@@ -46,7 +47,7 @@ public class ClientInitService extends JFrame implements
     @Autowired
     private Map<String, IChallengeStrategy> strategies;
 
-    private Preferences prefs = Preferences.userRoot().node(this.getClass().getName());
+    private Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;
 
     private JTextField emailInput;
@@ -89,16 +90,35 @@ public class ClientInitService extends JFrame implements
      * Implementation of listener to the ClientStateModel's status. The service will save the client state periodically.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+        log.debug("Status Changed!");
+        // First, run a save.
         saveClientState();
 
-        // TODO: needs more thought on different cases
-        /*
-         * If the client becomes authenticated, start the heartbeat.
-         * If the client becomes unauthenticated, stop the heartbeat.
-         */
-        if (oldStatus.getAuthStatus() != newStatus.getAuthStatus()){
-            if (newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) startHeartbeat();
+        AuthConstants oldAuthStatus = (oldStatus == null) ? null : oldStatus.getAuthStatus();
+        AuthConstants newAuthStatus = (newStatus == null) ? null : newStatus.getAuthStatus();
+        SecurityConstants oldLockedStatus = (oldStatus == null) ? null : oldStatus.getSecurityStatus();
+        SecurityConstants newLockedStatus = (newStatus == null) ? null : newStatus.getSecurityStatus();
+
+        // Second, logic for the heartbeat.
+        if (oldAuthStatus != newAuthStatus){
+            if (newAuthStatus == AuthConstants.AUTHENTICATED) startHeartbeat();
             else stopHeartbeat();
+        }
+
+        // Third, logic to login.
+        // Check 1: if new status is null, something bad happened, reset using loginWithoutModel.
+        if (newStatus == null) {
+            loginWithoutModel();
+        }
+        // Check 2: if client changed to unauthenticated, and the client is unlocked, then try loginWithModel.
+        else if (oldAuthStatus != newAuthStatus && newAuthStatus == AuthConstants.UNAUTHENTICATED &&
+                newLockedStatus == SecurityConstants.UNLOCKED) {
+            loginWithModel();
+        }
+        // Check 3: if client remains unauthenticated, and the client changes to unlocked, then try loginWithModel.
+        else if (oldAuthStatus == newAuthStatus && newAuthStatus == AuthConstants.UNAUTHENTICATED &&
+                oldLockedStatus != newLockedStatus && newLockedStatus == SecurityConstants.UNLOCKED) {
+            loginWithModel();
         }
     }
 
@@ -133,7 +153,7 @@ public class ClientInitService extends JFrame implements
             byte[] stateBytes = prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, new byte[0]);
             fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
         } catch (Exception e) {
-            log.debug("Could not retrieve initial client state from file", e);
+            log.debug("Could not retrieve initial client state from preferences", e);
             loginWithoutModel();
             return;
         } finally {
@@ -142,7 +162,7 @@ public class ClientInitService extends JFrame implements
 
         // TODO: checkCorrupt()
         if (controller.checkStateModel(fromMemory)) {
-            log.debug("Retrieved client state from file");
+            log.debug("Retrieved client state from preferences");
             controller.passStateToModel(fromMemory);
             // Don't try to login here because the retrieved model might lock the computer.
             // We should only try to login after the computer is unlocked.
@@ -176,9 +196,9 @@ public class ClientInitService extends JFrame implements
      *
      * @return true if the heartbeat was successfully started
      */
-    private boolean startHeartbeat() {
+    private void startHeartbeat() {
         //TODO: Implement startHeartbeat().
-        return false;
+        return;
     }
 
     /**
@@ -186,17 +206,21 @@ public class ClientInitService extends JFrame implements
      *
      * @return true if the heartbeat was successfully stopped
      */
-    private boolean stopHeartbeat() {
+    private void stopHeartbeat() {
         //TODO: Implement stopHeartbeat().
-        return false;
+        return;
     }
 
     /**
      * Login without any local credentials. Will prompt the user for the credentials.
      */
     private void loginWithoutModel() {
-        // TODO: clear the save?
+        // First, clear any client data that may have been corrupted.
+        clearClientData();
+
         // TODO: somehow lock
+
+        // Initiate the view.
         JFrame frame = new JFrame("Login");
         frame.setContentPane(loginPanel);
         frame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
@@ -208,12 +232,6 @@ public class ClientInitService extends JFrame implements
      * Login with local credentials (auth token). Will call the no parameter version if the credentials are not validated by server.
      */
     private void loginWithModel() {
-        // First, check if there is a current status.
-        if (state.getCurrentStatus() == null) {
-            log.error("Login with model but no model was found.");
-            retrieveClientState();
-        }
-
         controller.confirmAccessToken((ResponseEntity<String> response) -> {
             // First, make sure to get the lock.
             state.obtainAccessToStatus();
@@ -225,10 +243,18 @@ public class ClientInitService extends JFrame implements
                     loginWithoutModel();
                 }
 
+                // Check if there is a current status.
+                ClientStatusPojo currentStatus = state.getCurrentStatus();
+                if (currentStatus == null) {
+                    log.error("Login with model but no model was found.");
+                    retrieveClientState();
+                    return;
+                }
+
                 // If response was good then enqueue new status.
                 log.debug("User successfully authenticated and received response: " + response);
-                if (!state.getCurrentStatus().getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
-                    controller.enqueueStatus(controller.createStatusWithAuth(state.getCurrentStatus(), AuthConstants.AUTHENTICATED));
+                if (!(currentStatus.getAuthStatus() == AuthConstants.AUTHENTICATED)) {
+                    controller.enqueueStatus(controller.createStatusWithAuth(currentStatus, AuthConstants.AUTHENTICATED));
                 }
             } finally {
                 state.releaseAccessToStatus();
@@ -257,15 +283,30 @@ public class ClientInitService extends JFrame implements
                 log.debug("Successfully retrieved typing profile: " + response);
                 // If this succeeded, we can remove the frame.
                 submitButton.setEnabled(false);
-                this.dispose(); //TODO: make sure this disappears
+                this.dispose(); //TODO: make sure this disappears, will finish when unifying the view logic
 
                 // Enqueue the response as the new status.
                 ClientStatusPojo newStatus = castToClientStatus(response.getBody(), token);
+                state.getCurrentStatus(); // Superfluous call because we don't care what the old status was.
                 controller.enqueueStatus(newStatus);
             } finally {
                 state.releaseAccessToStatus();
             }
         });
+    }
+
+    /**
+     * Clear both the model and Preferences.
+     */
+    private void clearClientData() {
+        // Clear ClientStateModel.
+        controller.clearModel();
+        // Clear save to Preferences.
+        try {
+            prefs.clear();
+        } catch (BackingStoreException e) {
+            log.error("Caught BackingStoreException when trying to clear saved Preferences", e);
+        }
     }
 
     /**
@@ -350,7 +391,7 @@ public class ClientInitService extends JFrame implements
      * @param isLocked boolean representation of security constant.
      * @return the correct enum object
      */
-    private SecurityConstants castToSecurityConstant(@NonNull boolean isLocked) {
+    private SecurityConstants castToSecurityConstant(boolean isLocked) {
         return (isLocked) ? SecurityConstants.LOCKED : SecurityConstants.UNLOCKED;
     }
 }

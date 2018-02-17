@@ -79,6 +79,7 @@ public class ClientStateModelTest {
     @Test
     public void GIVEN_noAccess_WHEN_anyFunction_THEN_throwsException() {
         ArrayList<ITestRunner> badListeners = new ArrayList<>();
+        badListeners.add(underTest::clear);
         badListeners.add(underTest::getCurrentStatus);
         badListeners.add(underTest::dequeueStatus);
         badListeners.add(underTest::getOldestStatus);
@@ -127,6 +128,31 @@ public class ClientStateModelTest {
             fail("AccessControlException not thrown.");
         } catch (Exception e) {
             assertTrue(e instanceof AccessControlException);
+        }
+    }
+
+    @Test
+    public void GIVEN_multipleObtainReleaseAccess_WHEN_obtainReleaseFunctions_THEN_success() {
+        try {
+            underTest.obtainAccessToModel();
+            underTest.obtainAccessToModel();
+            underTest.releaseAccessToModel();
+            underTest.releaseAccessToModel();
+            underTest.releaseAccessToModel();
+
+            for (int i = 0; i < 2; i++) {
+                underTest.obtainAccessToStatus();
+                underTest.obtainAccessToKeyStrokes();
+                underTest.obtainAccessToAnalysisResult();
+            }
+
+            for (int i = 0; i < 3; i++) {
+                underTest.releaseAccessToStatus();
+                underTest.releaseAccessToKeyStrokes();
+                underTest.releaseAccessToAnalysisResult();
+            }
+        } finally {
+            underTest.releaseAccessToModel();
         }
     }
 
@@ -405,5 +431,24 @@ public class ClientStateModelTest {
             underTest.releaseAccessToStatus();
         }
 
+    }
+
+    @Test
+    public void GIVEN_enqueuedItems_WHEN_clear_THEN_itemsCleared() {
+        try {
+            underTest.obtainAccessToModel();
+            underTest.enqueueStatus(CLIENT_STATUS_POJO);
+            underTest.enqueueKeyStroke(KEY_STROKE_POJO);
+            underTest.enqueueAnalysisResult(ANALYSIS_RESULT_POJO);
+            underTest.clear();
+            assertTrue("Should have found no current status",underTest.getCurrentStatus() == null);
+            assertTrue("Should have found no old status",underTest.getOldestStatus() == null);
+            assertTrue("Should have found no new keystrokes",underTest.getNewestKeyStrokes() == null);
+            assertTrue("Should have found no old keystrokes",underTest.getOldestKeyStrokes() == null);
+            assertTrue("Should have found no keystrokes",underTest.getKeyStrokes().size() == 0);
+            assertTrue("Should have found no analysis results",underTest.getOldestAnalysisResult() == null);
+        } finally {
+            underTest.releaseAccessToModel();
+        }
     }
 }

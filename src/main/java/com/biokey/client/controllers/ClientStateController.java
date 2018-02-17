@@ -61,10 +61,10 @@ public class ClientStateController implements
         try {
             // Change the state of keystrokes to SYNCING.
             KeyStrokesPojo keysToSend = state.getOldestKeyStrokes();
-            if (keysToSend == null || !keysToSend.getSyncedWithServer().equals(SyncStatusConstants.UNSYNCED)) return false;
+            if (keysToSend == null || !(keysToSend.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
             keysToSend.setSyncedWithServer(SyncStatusConstants.SYNCING);
 
-            // Make the request
+            // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + KEYSTROKE_POST_API_ENDPOINT,
                     requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
@@ -153,10 +153,17 @@ public class ClientStateController implements
      * Sends the server a request with the access token to confirm the client is still authenticated.
      * @param handler the code to call when the server returns a response
      */
-    public void confirmAccessToken(ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
+    public void confirmAccessToken(@NonNull ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
         // First, make sure to get the lock.
         state.obtainAccessToStatus();
         try {
+            // Check if there is a current status.
+            if (state.getCurrentStatus() == null) {
+                log.error("Confirm access token called but no model was found.");
+                handler.handleResponse(null);
+                return;
+            }
+
             // Make the request
             serverRequestExecutorHelper.submitGetRequest(
                     SERVER_NAME + USERS_GET_API_ENDPOINT,
@@ -223,12 +230,11 @@ public class ClientStateController implements
 
             // Make sure that the loaded state is unauthenticated.
             ClientStatusPojo currentStatus = fromMemory.getCurrentStatus();
-            if (currentStatus != null && currentStatus.getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
+            if (currentStatus != null && currentStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) {
                 ClientStatusPojo unAuthenticatedStatus = createStatusWithAuth(currentStatus, AuthConstants.UNAUTHENTICATED);
                 state.enqueueStatus(unAuthenticatedStatus);
             }
 
-            // Notify the change.
             state.notifyModelChange();
         } finally {
             state.releaseAccessToModel();
@@ -246,12 +252,24 @@ public class ClientStateController implements
     }
 
     /**
+     * Tell the model to clear itself.
+     */
+    public void clearModel() {
+        state.obtainAccessToModel();
+        try {
+            state.clear();
+        } finally {
+            state.releaseAccessToModel();
+        }
+    }
+
+    /**
      * Returns a new status with the authStatus set to the new authStatus.
      *
      * @param currentStatus the current status
      * @param newAuth the new authStatus
      */
-    public ClientStatusPojo createStatusWithAuth(ClientStatusPojo currentStatus, AuthConstants newAuth) {
+    public ClientStatusPojo createStatusWithAuth(@NonNull ClientStatusPojo currentStatus, @NonNull AuthConstants newAuth) {
         return new ClientStatusPojo(currentStatus.getProfile(), newAuth, currentStatus.getSecurityStatus(),
                 currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), System.currentTimeMillis());
     }
