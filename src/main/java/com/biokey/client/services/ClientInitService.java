@@ -97,7 +97,7 @@ public class ClientInitService extends JFrame implements
          * If the client becomes unauthenticated, stop the heartbeat.
          */
         if (oldStatus.getAuthStatus() != newStatus.getAuthStatus()){
-            if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) startHeartbeat();
+            if (newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) startHeartbeat();
             else stopHeartbeat();
         }
     }
@@ -195,6 +195,7 @@ public class ClientInitService extends JFrame implements
      * Login without any local credentials. Will prompt the user for the credentials.
      */
     private void loginWithoutModel() {
+        // TODO: clear the save?
         // TODO: somehow lock
         JFrame frame = new JFrame("Login");
         frame.setContentPane(loginPanel);
@@ -207,6 +208,12 @@ public class ClientInitService extends JFrame implements
      * Login with local credentials (auth token). Will call the no parameter version if the credentials are not validated by server.
      */
     private void loginWithModel() {
+        // First, check if there is a current status.
+        if (state.getCurrentStatus() == null) {
+            log.error("Login with model but no model was found.");
+            retrieveClientState();
+        }
+
         controller.confirmAccessToken((ResponseEntity<String> response) -> {
             // First, make sure to get the lock.
             state.obtainAccessToStatus();
@@ -218,9 +225,9 @@ public class ClientInitService extends JFrame implements
                     loginWithoutModel();
                 }
 
-                log.debug("User successfully authenticated and received response: " + response);
                 // If response was good then enqueue new status.
-                if (!state.getCurrentStatus().getAuthStatus().equals(AuthConstants.AUTHENTICATED)) { // TODO: check null
+                log.debug("User successfully authenticated and received response: " + response);
+                if (!state.getCurrentStatus().getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
                     controller.enqueueStatus(controller.createStatusWithAuth(state.getCurrentStatus(), AuthConstants.AUTHENTICATED));
                 }
             } finally {
@@ -236,7 +243,6 @@ public class ClientInitService extends JFrame implements
      * @param token the token to use to authenticate the user
      */
     private void retrieveStatusFromServer(@NonNull String mac, @NonNull String token) {
-        // TODO: create new machine on server? create typing profile on server?
         controller.retrieveStatusFromServer(mac, token, (ResponseEntity<TypingProfileContainerResponse> response) -> {
             // First, make sure to get the lock.
             state.obtainAccessToStatus();
@@ -291,6 +297,8 @@ public class ClientInitService extends JFrame implements
      */
     private ClientStatusPojo castToClientStatus(@NonNull TypingProfileContainerResponse responseContainer, @NonNull String token) {
         TypingProfileResponse response = responseContainer.getTypingProfile();
+        if (response == null) return null;
+
         return new ClientStatusPojo(
                 new TypingProfilePojo(response.get_id(), response.getMachine(), response.getUser(),
                         response.getTensorFlowModel(),
@@ -325,6 +333,8 @@ public class ClientInitService extends JFrame implements
      * @return array of accepted IChallengeStrategy impl
      */
     private IChallengeStrategy[] castToChallengeStrategy(@NonNull String[] challengeStrategies) {
+        if (challengeStrategies.length == 0) return null;
+
         List<IChallengeStrategy> acceptedStrategies = new ArrayList<>();
         for (int i = 0; i < challengeStrategies.length; i++) {
             if (strategies.containsKey(challengeStrategies[i])) {

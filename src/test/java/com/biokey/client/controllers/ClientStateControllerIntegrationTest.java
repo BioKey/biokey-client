@@ -43,11 +43,12 @@ public class ClientStateControllerIntegrationTest {
     private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
     private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
 
-    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTdlMDE3ODFhYjAwMDMwMGMyM2E0YjgiLCJpYXQiOjE1MTgyMDczOTk3MzF9.hRkIWRfk3ePFgzN_1_MSEDiUqwnGukkAydxLOMBm110";
-    private static final String TYPING_PROFILE_ID = "5a7e01791ab000300c23a4bc";
+    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTg3M2RkZTJlODQ4YTYyZDBkZmIwY2IiLCJpYXQiOjE1MTg4MTI2OTM4NTB9.ka1ZG_gvi0KyffKLOrc1XeBISg7bgPKGUW2zmmIR61g";
+    private static final String TYPING_PROFILE_ID = "5a873ddf2e848a62d0dfb0cf";
     private static final String EMAIL = "a@a.com";
     private static final String PASSWORD = "a";
     private static final String MAC = "ABC";
+    private static final String UNKNOWN_MAC = "!@#";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
                     new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, new IChallengeStrategy[] {},""),
@@ -141,6 +142,19 @@ public class ClientStateControllerIntegrationTest {
     @Test
     public void GIVEN_realCallToServer_WHEN_retrieveStatusFromServer_THEN_success() {
         underTest.retrieveStatusFromServer(MAC, ACCESS_TOKEN, (ResponseEntity<TypingProfileContainerResponse> response) -> {
+            assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
+            System.out.println(response.getBody());
+            testCompleteFlag.countDown();
+        });
+
+        waitForCompletion();
+        verify(serverRequestExecutorHelper).submitPostRequest(any(), any(), any(), any(), any());
+        verify(state).releaseAccessToStatus();
+    }
+
+    @Test
+    public void GIVEN_realCallToServerWithUnknownMAC_WHEN_retrieveStatusFromServer_THEN_success() {
+        underTest.retrieveStatusFromServer(UNKNOWN_MAC, ACCESS_TOKEN, (ResponseEntity<TypingProfileContainerResponse> response) -> {
             assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
             System.out.println(response.getBody());
             testCompleteFlag.countDown();

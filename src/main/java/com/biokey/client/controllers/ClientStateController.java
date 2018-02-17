@@ -138,7 +138,7 @@ public class ClientStateController implements
         try {
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
-                    new UriTemplate(SERVER_NAME + GET_TYPING_PROFILE_ENDPOINT).expand(mac).toString(),
+                    new UriTemplate(SERVER_NAME + POST_TYPING_PROFILE_ENDPOINT).expand(mac).toString(),
                     requestBuilderHelper.headerMapWithToken(accessToken),
                     "{}", // TODO: make helper function for better form
                     TypingProfileContainerResponse.class,
@@ -223,7 +223,7 @@ public class ClientStateController implements
 
             // Make sure that the loaded state is unauthenticated.
             ClientStatusPojo currentStatus = fromMemory.getCurrentStatus();
-            if (currentStatus.getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
+            if (currentStatus != null && currentStatus.getAuthStatus().equals(AuthConstants.AUTHENTICATED)) {
                 ClientStatusPojo unAuthenticatedStatus = createStatusWithAuth(currentStatus, AuthConstants.UNAUTHENTICATED);
                 state.enqueueStatus(unAuthenticatedStatus);
             }
