@@ -4,6 +4,8 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
+import lombok.Data;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
@@ -66,6 +68,18 @@ public class ClientStateModel implements Serializable {
 
     @Setter @NonNull
     private transient Set<IClientAnalysisListener> analysisResultQueueListeners;
+
+    @Setter
+    private boolean sendHeartbeat;
+
+    /**
+     * Returns whether or not heartbeats should be sent
+     * @return whether heartbeats should be sent
+     */
+    public boolean getSendHearbeat ()
+    {
+        return sendHeartbeat;
+    }
 
     /**
      * Obtain access to status. If a thread is not holding this lock, it can not get or modify the status.

@@ -1,5 +1,6 @@
 package com.biokey.client.controllers;
 
+import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.RequestBuilderHelper;
@@ -19,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriTemplate;
 
 import java.util.Deque;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.biokey.client.constants.AppConstants.KEYSTROKE_TIME_INTERVAL_PER_WINDOW;
 
@@ -50,8 +53,29 @@ public class ClientStateController implements
     /**
      * Sends the server a message at fixed time intervals to let it know when the client is alive.
      */
-    public void sendHeartbeat() {
-        return; //TODO: Implement heartbeat().
+    public void sendHeartbeat(@NonNull String mac, @NonNull ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
+        state.obtainAccessToStatus();
+
+        try{
+
+            // Check if there is a current status.
+            if (state.getCurrentStatus() == null) {
+                log.error("Confirm access token called but no model was found.");
+                handler.handleResponse(null);
+                return;
+            }
+
+            serverRequestExecutorHelper.submitPostRequest(
+                    new UriTemplate(SERVER_NAME + HEARTBEAT_ENDPOINT).expand(mac).toString(),
+                    requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
+                    "",
+                    String.class,
+                    handler);
+        }
+        finally {
+            state.releaseAccessToStatus();
+        }
+
     }
 
     /**
@@ -128,6 +152,7 @@ public class ClientStateController implements
             state.releaseAccessToStatus();
         }
     }
+
 
     /**
      * Send a GET request to retrieve a user's typing profile.

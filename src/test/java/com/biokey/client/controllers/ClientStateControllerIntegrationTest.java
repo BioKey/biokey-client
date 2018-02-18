@@ -42,7 +42,7 @@ public class ClientStateControllerIntegrationTest {
     private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
     private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
 
-    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTg3M2RkZTJlODQ4YTYyZDBkZmIwY2IiLCJpYXQiOjE1MTg4MTI2OTM4NTB9.ka1ZG_gvi0KyffKLOrc1XeBISg7bgPKGUW2zmmIR61g";
+    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTg4ZjViYjhmMDA3YjBiZGMxMmE0NDQiLCJpYXQiOjE1MTg5Mjg3NTc5MDZ9.hmOBNopCesk_UenX7Ss8lB8XCa4HNr_tv7LlP_WkbzY";
     private static final String TYPING_PROFILE_ID = "5a873ddf2e848a62d0dfb0cf";
     private static final String EMAIL = "a@a.com";
     private static final String PASSWORD = "a";
@@ -128,6 +128,18 @@ public class ClientStateControllerIntegrationTest {
     @Test
     public void GIVEN_realCallToServer_WHEN_sendLoginRequest_THEN_success() {
         underTest.sendLoginRequest(EMAIL, PASSWORD, (ResponseEntity<LoginResponse> response) -> {
+            assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
+            testCompleteFlag.countDown();
+        });
+
+        waitForCompletion();
+        verify(serverRequestExecutorHelper).submitPostRequest(any(), any(), any(), any(), any());
+        verify(state).releaseAccessToStatus();
+    }
+
+    @Test
+    public void GIVEN_loggedIn_WHEN_sendHeartbeat_THEN_success () {
+        underTest.sendHeartbeat(MAC,(ResponseEntity<String> response) -> {
             assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
             testCompleteFlag.countDown();
         });
@@ -278,4 +290,5 @@ public class ClientStateControllerIntegrationTest {
                 underTest.createStatusWithAuth(CLIENT_STATUS_POJO, AuthConstants.UNAUTHENTICATED)
                         .getAuthStatus().equals(AuthConstants.UNAUTHENTICATED));
     }
+
 }
