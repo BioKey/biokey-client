@@ -4,7 +4,6 @@ import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.controllers.challenges.IChallengeStrategy;
-import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
@@ -13,22 +12,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertTrue;
 
-@RunWith(PowerMockRunner.class)
 public class RequestBuilderHelperTest {
 
-    @InjectMocks
-    private RequestBuilderHelper underTest;
-
-    @Mock
-    private ClientStateModel state;
+    private RequestBuilderHelper underTest = new RequestBuilderHelper();
 
     private static final String ACCESS_TOKEN = "ACCESS_TOKEN";
     private static final String TYPING_PROFILE_ID = "TYPING_PROFILE_ID";
@@ -66,7 +55,6 @@ public class RequestBuilderHelperTest {
 
     @Test
     public void GIVEN_input_WHEN_requestBodyToPostKeystrokes_THEN_expectedResult() throws JsonProcessingException {
-        Mockito.when(state.getCurrentStatus()).thenReturn(CLIENT_STATUS_POJO);
         assertTrue("generated JSON does not match expected JSON",
                 underTest.requestBodyToPostKeystrokes(KEY_STROKES_POJO, TYPING_PROFILE_ID).equals(EXPECTED_KEY_STROKE_JSON));
     }

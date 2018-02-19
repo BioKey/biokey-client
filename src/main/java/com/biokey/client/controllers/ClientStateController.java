@@ -1,6 +1,5 @@
 package com.biokey.client.controllers;
 
-import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.RequestBuilderHelper;
@@ -53,11 +52,9 @@ public class ClientStateController implements
     /**
      * Sends the server a message at fixed time intervals to let it know when the client is alive.
      */
-    public void sendHeartbeat(@NonNull String mac, @NonNull ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
+    public void sendHeartbeat(@NonNull String id, @NonNull ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
         state.obtainAccessToStatus();
-
-        try{
-
+        try {
             // Check if there is a current status.
             if (state.getCurrentStatus() == null) {
                 log.error("Confirm access token called but no model was found.");
@@ -66,16 +63,14 @@ public class ClientStateController implements
             }
 
             serverRequestExecutorHelper.submitPostRequest(
-                    new UriTemplate(SERVER_NAME + HEARTBEAT_ENDPOINT).expand(mac).toString(),
+                    new UriTemplate(SERVER_NAME + HEARTBEAT_ENDPOINT).expand(id).toString(),
                     requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
                     "",
                     String.class,
                     handler);
-        }
-        finally {
+        } finally {
             state.releaseAccessToStatus();
         }
-
     }
 
     /**

@@ -61,8 +61,6 @@ public class ClientInitService implements
         this.lockFrameView = lockFrameView;
         this.view = view;
 
-
-
         // Add action to login view on submit.
         view.addSubmitAction((ActionEvent e) -> {
             // Disable submit.
@@ -197,68 +195,53 @@ public class ClientInitService implements
         r.run();
     }
 
-    private void sendHeartbeat ()
-    {
-        String mac = getMAC();
-        controller.sendHeartbeat(mac,
-                (ResponseEntity<String> response) -> {
-                    // First, make sure to get the lock.
-                    state.obtainAccessToModel();
-                    try {
-
-                        TimerTask callNextHeartbeat = new TimerTask() {
-                            @Override
-                            public void run() {
-                                sendHeartbeat();
-                            }
-                        };
-
-                        // Check if the response was good.
-                        if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                            log.debug("Heartbeat failed and received response: " + response);
-
-                            //if error is 401, then we are no longer authenticated
-                            if (response.getStatusCodeValue()==401) {
-                                ClientStatusPojo currentStatus = state.getCurrentStatus();
-                                ClientStatusPojo unAuthenticatedStatus = controller.createStatusWithAuth(currentStatus, AuthConstants.UNAUTHENTICATED);
-                                controller.enqueueStatus(unAuthenticatedStatus);
-                            }
-
-                            if (response.getStatusCodeValue() ==400) //try to send another one
-                                timer.schedule (callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
-
-                            return;
-                        }
-
-                        log.debug("Heartbeat succeeded and received response: " + response);
-
-
-                        //call next one
-                        timer.schedule (callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
-
-                    } finally {
-                        state.releaseAccessToModel();
-                    }});
-        return;
-    }
     /**
      * Starts the controller's heartbeat function.
-     *
-     * @return true if the heartbeat was successfully started
      */
     private void startHeartbeat() {
-        sendHeartbeat();
-        return;
+        // Enqueue the next heartbeat.
+        TimerTask callNextHeartbeat = new TimerTask() {
+            @Override
+            public void run() {
+                startHeartbeat();
+            }
+        };
+        timer.schedule(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
+
+        state.obtainAccessToStatus();
+        try {
+            controller.sendHeartbeat(state.getCurrentStatus().getProfile().getId(), (ResponseEntity<String> response) -> {
+                // First, make sure to get the lock.
+                state.obtainAccessToModel();
+                try {
+                    // Check if the response was good.
+                    if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                        log.debug("Heartbeat failed and received response: " + response);
+
+                        // If error is 401, then client is no longer authenticated.
+                        if (response.getStatusCodeValue() == 401) {
+                            ClientStatusPojo unAuthenticatedStatus =
+                                    controller.createStatusWithAuth(state.getCurrentStatus(), AuthConstants.UNAUTHENTICATED);
+                            controller.enqueueStatus(unAuthenticatedStatus);
+                        }
+
+                        if (response.getStatusCodeValue() == 400) ; // Client is probably offline. Do nothing.
+                    } else log.debug("Heartbeat succeeded and received response: " + response);
+                } finally {
+                    state.releaseAccessToModel();
+                }
+            });
+        } finally {
+            state.releaseAccessToStatus();
+        }
     }
 
     /**
      * Stops the controller's heartbeat function.
-     *
-     * @return true if the heartbeat was successfully stopped
      */
     private void stopHeartbeat() {
         timer.cancel();
-        return;
+        timer = new Timer();
     }
 
     /**
@@ -293,7 +276,7 @@ public class ClientInitService implements
                 ClientStatusPojo currentStatus = state.getCurrentStatus();
                 if (currentStatus == null) {
                     log.error("Login with model but no model was found.");
-                    retrieveClientState();
+                    loginWithoutModel();
                     return;
                 }
 
@@ -406,7 +389,6 @@ public class ClientInitService implements
      * @return string representation of MAC
      */
     private String getMAC() {
-        //TODO Tony fix this somehow
         try {
             byte[] mac = NetworkInterface.getByInetAddress(InetAddress.getLocalHost()).getHardwareAddress();
             return new String(mac);
@@ -425,9 +407,9 @@ public class ClientInitService implements
         if (challengeStrategies.length == 0) return null;
 
         List<IChallengeStrategy> acceptedStrategies = new ArrayList<>();
-        for (int i = 0; i < challengeStrategies.length; i++) {
-            if (strategies.containsKey(challengeStrategies[i])) {
-                acceptedStrategies.add(strategies.get(challengeStrategies[i]));
+        for (String strategy : challengeStrategies) {
+            if (strategies.containsKey(strategy)) {
+                acceptedStrategies.add(strategies.get(strategy));
             }
         }
         return acceptedStrategies.toArray(new IChallengeStrategy[acceptedStrategies.size()]);

@@ -16,10 +16,10 @@ public class LockFrameView {
     public LockFrameView() {
         // TODO: Sankalp should reconfigure this frame to work with locking!
         // TODO: Make sure to test for double screen, test disable special key presses (only allow alphanum), test...
-        lockFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // https://stackoverflow.com/questions/32077449/whats-the-point-of-setdefaultcloseoperationwindowconstants-exit-on-close
+        // lockFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // https://stackoverflow.com/questions/32077449/whats-the-point-of-setdefaultcloseoperationwindowconstants-exit-on-close
         lockFrame.setUndecorated(true);
         lockFrame.pack();
-        lockFrame.setAlwaysOnTop(true); // Pushes frame to the top.
+        // lockFrame.setAlwaysOnTop(true); // Pushes frame to the top.
         lockFrame.setResizable(false); // Can't change the size of frame.
         lockFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         lockFrame.setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height); // Fullscreen based on screen size.

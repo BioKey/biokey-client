@@ -42,7 +42,7 @@ public class ClientStateControllerIntegrationTest {
     private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
     private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
 
-    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTg4ZjViYjhmMDA3YjBiZGMxMmE0NDQiLCJpYXQiOjE1MTg5Mjg3NTc5MDZ9.hmOBNopCesk_UenX7Ss8lB8XCa4HNr_tv7LlP_WkbzY";
+    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTg3M2RkZTJlODQ4YTYyZDBkZmIwY2IiLCJpYXQiOjE1MTg5OTgzMjc1MDJ9.j1EUWy2Ic4pwHlKvOXCd9l89P_rb-Tg2_XIQXkl_QN8";
     private static final String TYPING_PROFILE_ID = "5a873ddf2e848a62d0dfb0cf";
     private static final String EMAIL = "a@a.com";
     private static final String PASSWORD = "a";
@@ -50,7 +50,7 @@ public class ClientStateControllerIntegrationTest {
     private static final String UNKNOWN_MAC = "!@#";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, new IChallengeStrategy[] {},""),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, MAC,"","",new float[] {}, new IChallengeStrategy[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     ACCESS_TOKEN, "", 0);
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, Integer.MAX_VALUE);
@@ -66,7 +66,7 @@ public class ClientStateControllerIntegrationTest {
     @Spy
     private ServerRequestExecutorHelper serverRequestExecutorHelper = new ServerRequestExecutorHelper(Executors.newCachedThreadPool());
 
-    private ClientStateController underTest = new ClientStateController(state, requestBuilderHelper, serverRequestExecutorHelper);
+    private ClientStateController underTest;
 
     @BeforeClass
     public static void setupListeners() {
@@ -95,6 +95,7 @@ public class ClientStateControllerIntegrationTest {
 
             state.obtainAccessToModel();
             state.loadStateFromMemory(initialState);
+            underTest = new ClientStateController(state, requestBuilderHelper, serverRequestExecutorHelper);
         } finally {
             initialState.releaseAccessToModel();
             state.releaseAccessToModel();
@@ -139,7 +140,7 @@ public class ClientStateControllerIntegrationTest {
 
     @Test
     public void GIVEN_loggedIn_WHEN_sendHeartbeat_THEN_success () {
-        underTest.sendHeartbeat(MAC,(ResponseEntity<String> response) -> {
+        underTest.sendHeartbeat(TYPING_PROFILE_ID,(ResponseEntity<String> response) -> {
             assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
             testCompleteFlag.countDown();
         });

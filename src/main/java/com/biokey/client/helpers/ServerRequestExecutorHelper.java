@@ -85,7 +85,6 @@ public class ServerRequestExecutorHelper {
             // Add body and header to an Http Entity.
             HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
 
-            System.out.println (url);
             // Pre-suppose that the response fails for whatever reason.
             ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
