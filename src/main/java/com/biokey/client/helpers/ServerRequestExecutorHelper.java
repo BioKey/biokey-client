@@ -4,7 +4,6 @@ import lombok.NonNull;
 import org.apache.log4j.Logger;
 import org.springframework.http.*;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -52,7 +51,7 @@ public class ServerRequestExecutorHelper {
             HttpEntity<HashMap<String, String>> requestEntity = new HttpEntity<>(headers);
 
             // Pre-suppose that the response fails for whatever reason.
-            ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            ResponseEntity<T> response = null;
 
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
@@ -86,7 +85,7 @@ public class ServerRequestExecutorHelper {
             HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
 
             // Pre-suppose that the response fails for whatever reason.
-            ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            ResponseEntity<T> response = null;
 
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
@@ -120,7 +119,7 @@ public class ServerRequestExecutorHelper {
             HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
 
             // Pre-suppose that the response fails for whatever reason.
-            ResponseEntity<T> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            ResponseEntity<T> response = null;
 
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.

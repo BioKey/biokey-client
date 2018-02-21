@@ -57,8 +57,7 @@ public class ServerRequestExecutorHelperIntegrationTest {
     public void GIVEN_badUrl_WHEN_submitGetRequest_THEN_success() {
         underTest.submitGetRequest(BAD_GET_REQUEST_URL, new HttpHeaders(), String.class,
                 (ResponseEntity<String> response) -> {
-                    assertTrue("Response should be 400 BAD REQUEST", response.getStatusCodeValue() == 400);
-                    assertTrue("Response body should be null", response.getBody() == null);
+                    assertTrue("Response should be null", response == null);
                     testCompleteFlag.countDown();
                 });
         waitForCompletion();

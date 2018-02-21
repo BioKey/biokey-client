@@ -1,62 +1,82 @@
 package com.biokey.client.controllers.challenges;
 
-import com.biokey.client.views.GoogleAuthChallengeView;
+import com.biokey.client.constants.AppConstants;
+import com.biokey.client.helpers.ServerRequestExecutorHelper;
+import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.views.frames.GoogleAuthFrameView;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
-import lombok.Setter;
+import lombok.Getter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 
-import javax.swing.*;
-import java.awt.font.NumericShaper;
 import java.io.Serializable;
 
 public class GoogleAuthStrategy implements IChallengeStrategy, Serializable {
 
     private static final long serialVersionUID = 1000;
 
-    public boolean performChallenges(String challenge) {
-        int password;
-        boolean isValid;
+    private ClientStateModel state;
+    private ServerRequestExecutorHelper serverRequestExecutorHelper;
+    private GoogleAuthFrameView view;
+
+    @Getter private boolean initialized = false;
+    private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
+    private GoogleAuthenticatorKey gKey;
+
+    @Autowired
+    public GoogleAuthStrategy(ClientStateModel state, ServerRequestExecutorHelper serverRequestExecutorHelper, GoogleAuthFrameView view) {
+        this.state = state;
+        this.serverRequestExecutorHelper = serverRequestExecutorHelper;
+        this.view = view;
+    }
+
+    public void init() {
+        if (initialized) return;
+
+        gKey = gAuth.createCredentials();
+        state.setGKey(gKey.getKey());
+
+        String accountName;
+        state.obtainAccessToStatus();
         try {
-            password = Integer.parseInt(challenge);
-            GoogleAuthenticator gAuth = new GoogleAuthenticator();
-            isValid = gAuth.authorize("633X7JWPCWSTJC53", password);
-        } catch (NumberFormatException nfe) {
-            isValid = false;
+            accountName = "Machine@" + state.getCurrentStatus().getProfile().getMachineId();
+        } catch (Exception e) {
+            accountName = AppConstants.APP_NAME;
+        } finally {
+            state.releaseAccessToStatus();
         }
-        return isValid;
+
+        System.out.println(GoogleAuthenticatorQRGenerator.getOtpAuthURL(AppConstants.APP_NAME, accountName, gKey));
+
+        // Get the QR code then display it.
+        serverRequestExecutorHelper.submitGetRequest(
+                GoogleAuthenticatorQRGenerator.getOtpAuthURL(AppConstants.APP_NAME, accountName, gKey),
+                new HttpHeaders(), byte[].class, (ResponseEntity<byte[]> response) -> {
+                    // Display QR code. Once it is displayed, user has seen it and the strategy can be considered initialized.
+                    view.displayImage(
+                        (response == null) ? null : response.getBody(),
+                        "Could not generate QR Code. Use following code in 2FA app: " + gKey.getKey());
+                    initialized = true;
+                });
+    }
+
+    public boolean issueChallenge() {
+        // Nothing to do.
+        return true;
+    }
+
+    public boolean checkChallenge(String attempt) {
+        try {
+            return gAuth.authorize(gKey.getKey(), Integer.parseInt(attempt));
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public String getServerRepresentation() {
         return "GoogleAuth";
     }
-
-    /*public static void main (String [] args)
-    {
-        new GoogleAuthStrategy();*/
-
-        /* one time run at start for user to generate code
-        GoogleAuthenticator gAuth = new GoogleAuthenticator();
-        final GoogleAuthenticatorKey key = gAuth.createCredentials();
-        System.out.println (key.getKey()); // need to store this somewhere for each user since it is used for reauth
-        //633X7JWPCWSTJC53 is the current key on my phone
-        */
-
-        // for testing purposes
-        /*
-
-        GoogleAuthenticator gAuth = new GoogleAuthenticator();
-        int code = gAuth.getTotpPassword("633X7JWPCWSTJC53");
-        System.out.println(code);
-        */
-
-        /*
-        GoogleAuthenticator gAuth = new GoogleAuthenticator();
-        boolean isCodeValid = gAuth.authorize()
-        */
-
-        //trying to get it nicely as a scannable QR code but not really sure what this whole accountName thing is
-        //System.out.println(GoogleAuthenticatorQRGenerator.getOtpAuthURL(null,"Josh",key));
-
-  //  }
 }

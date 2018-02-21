@@ -7,12 +7,30 @@ import java.io.Serializable;
  */
 public interface IChallengeStrategy extends Serializable {
 
+    class ChallengeException extends Exception {
+        ChallengeException(Exception e) {
+            super(e);
+        }
+    }
+
     /**
-     * Ask the challenge strategy to issue the challenge and return whether the user was successful.
-     *
-     * @return whether the challenge was successfully completed by the user
+     * Initialize this challenge strategy.
      */
-    boolean performChallenges(String challenge);
+    void init();
+
+    /**
+     * Ask the challenge strategy to issue the challenge.
+     *
+     * @return true if the challenge was successfully issued
+     */
+    boolean issueChallenge();
+
+    /**
+     * Ask the challenge strategy to check whether the challenge passed.
+     *
+     * @return true if the attempt matched the challenge
+     */
+    boolean checkChallenge(String attempt);
 
     /**
      * Return the string representation that is consistent with the server.

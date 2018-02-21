@@ -48,7 +48,20 @@ public class ClientInitService implements
     private Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;
 
-    private Timer timer = new Timer();
+    private Timer hearbeatTimer = new Timer();
+    private Timer loginTimer = new Timer();
+    private final TimerTask callNextHeartbeat = new TimerTask() {
+        @Override
+        public void run() {
+            startHeartbeat();
+        }
+    };
+    private final TimerTask callNextLogin = new TimerTask() {
+        @Override
+        public void run() {
+            loginWithModel();
+        }
+    };
 
     @Autowired
     public ClientInitService(ClientStateController controller, ClientStateModel state,
@@ -200,13 +213,7 @@ public class ClientInitService implements
      */
     private void startHeartbeat() {
         // Enqueue the next heartbeat.
-        TimerTask callNextHeartbeat = new TimerTask() {
-            @Override
-            public void run() {
-                startHeartbeat();
-            }
-        };
-        timer.schedule(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
+        hearbeatTimer.schedule(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
 
         state.obtainAccessToStatus();
         try {
@@ -218,14 +225,20 @@ public class ClientInitService implements
                     if (response == null || !response.getStatusCode().is2xxSuccessful()) {
                         log.debug("Heartbeat failed and received response: " + response);
 
+                        // Client is probably offline. Do nothing.
+                        if (response == null) return;
+
                         // If error is 401, then client is no longer authenticated.
                         if (response.getStatusCodeValue() == 401) {
-                            ClientStatusPojo unAuthenticatedStatus =
-                                    controller.createStatusWithAuth(state.getCurrentStatus(), AuthConstants.UNAUTHENTICATED);
-                            controller.enqueueStatus(unAuthenticatedStatus);
+                            controller.enqueueStatus(controller.createStatusWithAuth(
+                                    state.getCurrentStatus(), AuthConstants.UNAUTHENTICATED));
+                            return;
                         }
 
-                        if (response.getStatusCodeValue() == 400) ; // Client is probably offline. Do nothing.
+                        // If error is something else unknown, then client is no longer authenticated.
+                        controller.enqueueStatus(controller.createStatusWithAuth(
+                                state.getCurrentStatus(), AuthConstants.UNAUTHENTICATED));
+
                     } else log.debug("Heartbeat succeeded and received response: " + response);
                 } finally {
                     state.releaseAccessToModel();
@@ -240,8 +253,8 @@ public class ClientInitService implements
      * Stops the controller's heartbeat function.
      */
     private void stopHeartbeat() {
-        timer.cancel();
-        timer = new Timer();
+        hearbeatTimer.cancel();
+        hearbeatTimer = new Timer();
     }
 
     /**
@@ -268,7 +281,11 @@ public class ClientInitService implements
                 // Check if the response was good.
                 if (response == null || !response.getStatusCode().is2xxSuccessful()) {
                     log.debug("Access token did not authenticate and received response: " + response);
-                    // No status change. Just send them to login screen.
+
+                    // Client is probably offline. Try logging in again.
+                    if (response == null) loginTimer.schedule(callNextLogin, AppConstants.TIME_BETWEEN_HEARTBEATS);
+
+                    // If there is another error then just send user to login.
                     loginWithoutModel();
                 }
 

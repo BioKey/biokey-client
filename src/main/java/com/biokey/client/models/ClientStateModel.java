@@ -4,6 +4,8 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
@@ -52,6 +54,9 @@ public class ClientStateModel implements Serializable {
     private Deque<AnalysisResultPojo> unsyncedAnalysisResults = new LinkedBlockingDeque<>();
     private Deque<KeyStrokesPojo> unsyncedKeyStrokes = new LinkedBlockingDeque<>();
     private Deque<KeyStrokePojo> allKeyStrokes = new LinkedBlockingDeque<>(); // need a record of all keyStrokes for the analysis engine
+
+    @Getter @Setter
+    private String gKey;
 
     private final ReentrantLock statusLock = new ReentrantLock(true);
     private boolean retrievedStatusBeforeEnqueue = false;
@@ -152,6 +157,7 @@ public class ClientStateModel implements Serializable {
         this.unsyncedKeyStrokes = fromMemory.unsyncedKeyStrokes;
         this.unsyncedAnalysisResults = fromMemory.unsyncedAnalysisResults;
         this.allKeyStrokes = fromMemory.allKeyStrokes;
+        this.gKey = fromMemory.gKey;
 
         // Notify all the listeners?
     }
@@ -185,6 +191,7 @@ public class ClientStateModel implements Serializable {
         this.unsyncedAnalysisResults.clear();
         this.allKeyStrokes.clear();
         this.currentStatus = null;
+        this.gKey = null;
     }
 
     /**
