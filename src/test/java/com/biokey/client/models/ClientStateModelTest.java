@@ -2,7 +2,6 @@ package com.biokey.client.models;
 
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
-import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
@@ -37,12 +36,12 @@ public class ClientStateModelTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", "", new float[] {}, new IChallengeStrategy[] {}, ""),
+                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", 0);
     private final ClientStatusPojo OTHER_CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", "", new float[] {}, new IChallengeStrategy[] {}, ""),
+                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", 0);
 

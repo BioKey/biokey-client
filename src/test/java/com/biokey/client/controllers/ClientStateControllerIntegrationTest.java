@@ -2,8 +2,6 @@ package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
-import com.biokey.client.controllers.challenges.IChallengeStrategy;
-import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.*;
@@ -50,7 +48,7 @@ public class ClientStateControllerIntegrationTest {
     private static final String UNKNOWN_MAC = "!@#";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, MAC,"","",new float[] {}, new IChallengeStrategy[] {},""),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, MAC,"","",new float[] {}, new String[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     ACCESS_TOKEN, "", 0);
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, Integer.MAX_VALUE);
@@ -59,9 +57,6 @@ public class ClientStateControllerIntegrationTest {
     @Spy
     private static ClientStateModel state = new ClientStateModel();
     private static ClientStateModel initialState;
-
-    @Spy
-    private RequestBuilderHelper requestBuilderHelper = new RequestBuilderHelper();
 
     @Spy
     private ServerRequestExecutorHelper serverRequestExecutorHelper = new ServerRequestExecutorHelper(Executors.newCachedThreadPool());
@@ -95,7 +90,7 @@ public class ClientStateControllerIntegrationTest {
 
             state.obtainAccessToModel();
             state.loadStateFromMemory(initialState);
-            underTest = new ClientStateController(state, requestBuilderHelper, serverRequestExecutorHelper);
+            underTest = new ClientStateController(state, serverRequestExecutorHelper);
         } finally {
             initialState.releaseAccessToModel();
             state.releaseAccessToModel();

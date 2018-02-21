@@ -20,7 +20,7 @@ public class TextMessageStrategyTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", "", new float[] {}, new IChallengeStrategy[] {}, ""),
+                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "+16476688628", 0);
 

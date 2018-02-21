@@ -38,14 +38,12 @@ public class ClientStateController implements
     private static Logger log = Logger.getLogger(ClientStateController.class);
 
     private ClientStateModel state;
-    private RequestBuilderHelper requestBuilderHelper;
     private ServerRequestExecutorHelper serverRequestExecutorHelper;
 
     @Autowired
-    public ClientStateController(ClientStateModel state, RequestBuilderHelper requestBuilderHelper,
+    public ClientStateController(ClientStateModel state,
                                  ServerRequestExecutorHelper serverRequestExecutorHelper) {
         this.state = state;
-        this.requestBuilderHelper = requestBuilderHelper;
         this.serverRequestExecutorHelper = serverRequestExecutorHelper;
     }
 
@@ -64,7 +62,7 @@ public class ClientStateController implements
 
             serverRequestExecutorHelper.submitPostRequest(
                     new UriTemplate(SERVER_NAME + HEARTBEAT_ENDPOINT).expand(id).toString(),
-                    requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
+                    RequestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
                     "",
                     String.class,
                     handler);
@@ -91,8 +89,8 @@ public class ClientStateController implements
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + KEYSTROKE_POST_API_ENDPOINT,
-                    requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
-                    requestBuilderHelper.requestBodyToPostKeystrokes(keysToSend, state.getCurrentStatus().getProfile().getId()),
+                    RequestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
+                    RequestBuilderHelper.requestBodyToPostKeystrokes(keysToSend, state.getCurrentStatus().getProfile().getId()),
                     String.class,
                     (ResponseEntity<String> response) -> {
                         // First, make sure to get the lock.
@@ -129,7 +127,6 @@ public class ClientStateController implements
      * @param email the email of the user to be logged in
      * @param password the password of the user to be logged in
      * @param handler the code to call when the server returns a response
-     * @throws JsonProcessingException if the cast to json fails
      */
     public void sendLoginRequest(@NonNull String email, @NonNull String password,
                                  @NonNull ServerRequestExecutorHelper.ServerResponseHandler<LoginResponse> handler) {
@@ -139,8 +136,8 @@ public class ClientStateController implements
             // Make the request
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + LOGIN_POST_API_ENDPOINT,
-                    requestBuilderHelper.emptyHeaderMap(),
-                    requestBuilderHelper.requestBodyToPostLogin(email, password),
+                    RequestBuilderHelper.emptyHeaderMap(),
+                    RequestBuilderHelper.requestBodyToPostLogin(email, password),
                     LoginResponse.class,
                     handler);
         } finally {
@@ -164,7 +161,7 @@ public class ClientStateController implements
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
                     new UriTemplate(SERVER_NAME + POST_TYPING_PROFILE_ENDPOINT).expand(mac).toString(),
-                    requestBuilderHelper.headerMapWithToken(accessToken),
+                    RequestBuilderHelper.headerMapWithToken(accessToken),
                     "{}", // TODO: make helper function for better form
                     TypingProfileContainerResponse.class,
                     handler);
@@ -192,7 +189,7 @@ public class ClientStateController implements
             // Make the request
             serverRequestExecutorHelper.submitGetRequest(
                     SERVER_NAME + USERS_GET_API_ENDPOINT,
-                    requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
+                    RequestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
                     String.class,
                     handler);
         } finally {

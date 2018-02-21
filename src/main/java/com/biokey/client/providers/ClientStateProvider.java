@@ -19,9 +19,8 @@ public class ClientStateProvider {
 
     @Bean
     @Autowired
-    public ClientStateController clientStateController(RequestBuilderHelper requestBuilderHelper,
-                                                       ServerRequestExecutorHelper serverRequestExecutorHelper) {
-        return new ClientStateController(clientStateModel(), requestBuilderHelper, serverRequestExecutorHelper);
+    public ClientStateController clientStateController(ServerRequestExecutorHelper serverRequestExecutorHelper) {
+        return new ClientStateController(clientStateModel(), serverRequestExecutorHelper);
     }
 
     @Bean

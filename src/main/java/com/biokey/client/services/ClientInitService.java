@@ -4,15 +4,13 @@ import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
-import com.biokey.client.controllers.challenges.IChallengeStrategy;
+import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
-import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.models.response.LoginResponse;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
-import com.biokey.client.models.response.TypingProfileResponse;
 import com.biokey.client.views.frames.LockFrameView;
 import com.biokey.client.views.panels.LoginPanelView;
 import lombok.NonNull;
@@ -22,8 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
 import java.awt.event.ActionEvent;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.util.*;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
@@ -41,36 +37,21 @@ public class ClientInitService implements
 
     private ClientStateController controller;
     private ClientStateModel state;
-    private Map<String, IChallengeStrategy> strategies;
     private LockFrameView lockFrameView;
     private LoginPanelView view;
 
     private Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;
 
-    private Timer hearbeatTimer = new Timer();
+    private Timer heartbeatTimer = new Timer();
     private Timer loginTimer = new Timer();
-    private final TimerTask callNextHeartbeat = new TimerTask() {
-        @Override
-        public void run() {
-            startHeartbeat();
-        }
-    };
-    private final TimerTask callNextLogin = new TimerTask() {
-        @Override
-        public void run() {
-            loginWithModel();
-        }
-    };
 
     @Autowired
     public ClientInitService(ClientStateController controller, ClientStateModel state,
-                             Map<String, IChallengeStrategy> strategies,
                              LockFrameView lockFrameView, LoginPanelView view)  {
 
         this.controller = controller;
         this.state = state;
-        this.strategies = strategies;
         this.lockFrameView = lockFrameView;
         this.view = view;
 
@@ -93,12 +74,12 @@ public class ClientInitService implements
 
                         // If successful, call next function to retrieve status.
                         log.debug("Login Succeeded and received response: " + response);
-                        String mac = getMAC();
+                        String mac = PojoHelper.getMAC();
                         if (mac == null) {
                             log.debug("Could not retrieve MAC address.");
                             view.setEnableSubmit(true);
                             view.setInformationText("Login failed. Could not retrieve MAC address. Please try again.");
-                        } else retrieveStatusFromServer(getMAC(), response.getBody().getToken());
+                        } else retrieveStatusFromServer(mac, response.getBody().getToken());
                     });
         });
     }
@@ -213,7 +194,13 @@ public class ClientInitService implements
      */
     private void startHeartbeat() {
         // Enqueue the next heartbeat.
-        hearbeatTimer.schedule(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
+        TimerTask callNextHeartbeat = new TimerTask() {
+            @Override
+            public void run() {
+                startHeartbeat();
+            }
+        };
+        heartbeatTimer.schedule(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
 
         state.obtainAccessToStatus();
         try {
@@ -253,8 +240,8 @@ public class ClientInitService implements
      * Stops the controller's heartbeat function.
      */
     private void stopHeartbeat() {
-        hearbeatTimer.cancel();
-        hearbeatTimer = new Timer();
+        heartbeatTimer.cancel();
+        heartbeatTimer = new Timer();
     }
 
     /**
@@ -283,7 +270,15 @@ public class ClientInitService implements
                     log.debug("Access token did not authenticate and received response: " + response);
 
                     // Client is probably offline. Try logging in again.
-                    if (response == null) loginTimer.schedule(callNextLogin, AppConstants.TIME_BETWEEN_HEARTBEATS);
+                    if (response == null) {
+                        TimerTask callNextLogin = new TimerTask() {
+                            @Override
+                            public void run() {
+                                loginWithModel();
+                            }
+                        };
+                        loginTimer.schedule(callNextLogin, AppConstants.TIME_BETWEEN_HEARTBEATS);
+                    }
 
                     // If there is another error then just send user to login.
                     loginWithoutModel();
@@ -333,7 +328,7 @@ public class ClientInitService implements
                 lockFrameView.hidePanel(view.getLoginPanel());
 
                 // Enqueue the response as the new status.
-                ClientStatusPojo newStatus = castToClientStatus(response.getBody(), token);
+                ClientStatusPojo newStatus = PojoHelper.castToClientStatus(response.getBody(), token);
                 state.getCurrentStatus(); // Superfluous call because we don't care what the old status was.
                 controller.enqueueStatus(newStatus);
             } finally {
@@ -374,71 +369,5 @@ public class ClientInitService implements
     private boolean lockLocalSave() {
         // TODO: Implement lockLocalSave()
         return false;
-    }
-
-    /**
-     * Cast the response from the server to a new client status.
-     *
-     * @param responseContainer response from the server
-     * @param token the access token used to call the server
-     * @return new client status based on response
-     */
-    private ClientStatusPojo castToClientStatus(@NonNull TypingProfileContainerResponse responseContainer, @NonNull String token) {
-        TypingProfileResponse response = responseContainer.getTypingProfile();
-        if (response == null) return null;
-
-        return new ClientStatusPojo(
-                new TypingProfilePojo(response.get_id(), response.getMachine(), response.getUser(),
-                        response.getTensorFlowModel(),
-                        response.getThreshold(),
-                        castToChallengeStrategy(response.getChallengeStrategies()),
-                response.getEndpoint()),
-                AuthConstants.AUTHENTICATED,
-                castToSecurityConstant(response.isLocked()),
-                token,
-                responseContainer.getPhoneNumber(),
-                System.currentTimeMillis());
-    }
-
-    /**
-     * Get computer's MAC address as a string representation.
-     *
-     * @return string representation of MAC
-     */
-    private String getMAC() {
-        try {
-            byte[] mac = NetworkInterface.getByInetAddress(InetAddress.getLocalHost()).getHardwareAddress();
-            return new String(mac);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * Casts the string representations of challenge strategies from the server to the correct IChallengeStrategy impl.
-     *
-     * @param challengeStrategies array of string representations of challenge strategies from the server
-     * @return array of accepted IChallengeStrategy impl
-     */
-    private IChallengeStrategy[] castToChallengeStrategy(@NonNull String[] challengeStrategies) {
-        if (challengeStrategies.length == 0) return null;
-
-        List<IChallengeStrategy> acceptedStrategies = new ArrayList<>();
-        for (String strategy : challengeStrategies) {
-            if (strategies.containsKey(strategy)) {
-                acceptedStrategies.add(strategies.get(strategy));
-            }
-        }
-        return acceptedStrategies.toArray(new IChallengeStrategy[acceptedStrategies.size()]);
-    }
-
-    /**
-     * Cast the boolean representation of security constant to the correct enum object.
-     *
-     * @param isLocked boolean representation of security constant.
-     * @return the correct enum object
-     */
-    private SecurityConstants castToSecurityConstant(boolean isLocked) {
-        return (isLocked) ? SecurityConstants.LOCKED : SecurityConstants.UNLOCKED;
     }
 }

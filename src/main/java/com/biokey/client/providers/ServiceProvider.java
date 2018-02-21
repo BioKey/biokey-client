@@ -1,7 +1,6 @@
 package com.biokey.client.providers;
 
 import com.biokey.client.controllers.ClientStateController;
-import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.services.*;
 import com.biokey.client.views.frames.LockFrameView;
@@ -12,22 +11,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * Configuration class that provides the singleton instances of the services that are BioKey client's backbone.
  */
 @Configuration
-@Import({ClientStateProvider.class, ChallengeProvider.class, ViewProvider.class})
+@Import({ClientStateProvider.class, ViewProvider.class})
 public class ServiceProvider {
 
     @Bean
     @Autowired
     public ClientInitService clientInitService(ClientStateController clientStateController, ClientStateModel clientStateModel,
-                                               Map<String, IChallengeStrategy> allSupportedAuthStrategies,
                                                LockFrameView lockFrameView, LoginPanelView loginPanelView) {
-        return new ClientInitService(clientStateController, clientStateModel, allSupportedAuthStrategies, lockFrameView, loginPanelView);
+        return new ClientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView);
     }
 
     @Bean
@@ -57,10 +54,9 @@ public class ServiceProvider {
     @Bean
     @Autowired
     public Set<ClientStateModel.IClientStatusListener> statusListeners(ClientStateController clientStateController, ClientStateModel clientStateModel,
-                                                                       Map<String, IChallengeStrategy> allSupportedAuthStrategies,
                                                                        LockFrameView lockFrameView, LoginPanelView loginPanelView) {
         Set<ClientStateModel.IClientStatusListener> serviceStatusListeners = new HashSet<>();
-        serviceStatusListeners.add(clientInitService(clientStateController, clientStateModel, allSupportedAuthStrategies, lockFrameView, loginPanelView));
+        serviceStatusListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView));
         serviceStatusListeners.add(analysisEngineService(clientStateController, clientStateModel));
         serviceStatusListeners.add(keyloggerDaemonService(clientStateController, clientStateModel));
         serviceStatusListeners.add(lockerService(clientStateController, clientStateModel));
@@ -73,11 +69,10 @@ public class ServiceProvider {
     @Bean
     @Autowired
     public Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners(ClientStateController clientStateController, ClientStateModel clientStateModel,
-                                                                                Map<String, IChallengeStrategy> allSupportedAuthStrategies,
                                                                                 LockFrameView lockFrameView, LoginPanelView loginPanelView) {
         Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners = new HashSet<>();
         analysisQueueListeners.add(lockerService(clientStateController, clientStateModel));
-        analysisQueueListeners.add(clientInitService(clientStateController, clientStateModel, allSupportedAuthStrategies, lockFrameView, loginPanelView));
+        analysisQueueListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView));
         analysisQueueListeners.add(clientStateController);
 
         return analysisQueueListeners;
@@ -86,11 +81,10 @@ public class ServiceProvider {
     @Bean
     @Autowired
     public Set<ClientStateModel.IClientKeyListener> keyQueueListeners(ClientStateController clientStateController, ClientStateModel clientStateModel,
-                                                                      Map<String, IChallengeStrategy> allSupportedAuthStrategies,
                                                                       LockFrameView lockFrameView, LoginPanelView loginPanelView) {
         Set<ClientStateModel.IClientKeyListener> keyQueueListeners = new HashSet<>();
         keyQueueListeners.add(analysisEngineService(clientStateController, clientStateModel));
-        keyQueueListeners.add(clientInitService(clientStateController, clientStateModel, allSupportedAuthStrategies, lockFrameView, loginPanelView));
+        keyQueueListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView));
         keyQueueListeners.add(clientStateController);
 
         return keyQueueListeners;
