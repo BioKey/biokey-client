@@ -193,15 +193,28 @@ public class ClientInitService implements
      * Starts the controller's heartbeat function.
      */
     private void startHeartbeat() {
-        // Enqueue the next heartbeat.
+        // Enqueue the next heartbeat. First heartbeat should not occur now.
         TimerTask callNextHeartbeat = new TimerTask() {
             @Override
             public void run() {
-                startHeartbeat();
+                sendHeartBeat();
             }
         };
         heartbeatTimer.schedule(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
+    }
 
+    /**
+     * Stops the controller's heartbeat function.
+     */
+    private void stopHeartbeat() {
+        heartbeatTimer.cancel();
+        heartbeatTimer = new Timer();
+    }
+
+    /**
+     * Sends a heartbeat using the controller's interface.
+     */
+    private void sendHeartBeat() {
         state.obtainAccessToStatus();
         try {
             controller.sendHeartbeat(state.getCurrentStatus().getProfile().getId(), (ResponseEntity<String> response) -> {
@@ -234,14 +247,6 @@ public class ClientInitService implements
         } finally {
             state.releaseAccessToStatus();
         }
-    }
-
-    /**
-     * Stops the controller's heartbeat function.
-     */
-    private void stopHeartbeat() {
-        heartbeatTimer.cancel();
-        heartbeatTimer = new Timer();
     }
 
     /**

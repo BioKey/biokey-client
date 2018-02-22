@@ -6,10 +6,15 @@ import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
+import com.biokey.client.views.frames.FakeAnalysisFrameView;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import javax.swing.*;
+import java.awt.event.ActionEvent;
 
 /**
  * Service that runs the analysis model and reports analysis results that represent the likelihood that the user's
@@ -18,12 +23,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class AnalysisEngineService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientKeyListener {
 
     private ClientStateController controller;
-    private ClientStateModel state;
+
+    // TODO: delete once the fake is no longer needed.
+    private FakeAnalysisFrameView frame = new FakeAnalysisFrameView();
+
+    private boolean isRunning = false;
 
     @Autowired
-    public AnalysisEngineService(ClientStateController controller, ClientStateModel state) {
+    public AnalysisEngineService(ClientStateController controller) {
         this.controller = controller;
-        this.state = state;
+
+        // TODO: delete once the fake is no longer needed.
+        frame.enqueueButton.addActionListener((ActionEvent aE) -> {
+            try {
+                controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), Float.parseFloat(frame.analysisResultTextField.getText())));
+            } catch (Exception e) {
+                frame.informationLabel.setText("Invalid analysis result.");
+            }
+        });
+        frame.setContentPane(frame.fakeAnalysisPanel);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.pack();
     }
 
     /**
@@ -31,83 +51,50 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      * on the analysis model to run through the typing profile.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-        // TODO: needs more thought on different cases
-        /*
-         * If the typing profile is loaded, start analyzing.
-         * If the typing profile becomes null, stop analyzing.
-         */
-        /*
-        if(newStatus.getProfile() != null) {
-            start();
-        }
-        else {
-            stop();
-        }
-        */
-
-        /*
-         * If the client becomes authenticated, start analyzing.
-         * If the client becomes unauthenticated, stop analyzing.
-         */
-        /*
-        if(oldStatus.getAuthStatus() != newStatus.getAuthStatus()) {
-            if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) {
-                start();
-            }
-            else {
-                stop();
-            }
-        }
-        */
-
-        /*
-         * If the client is newly challenged, stop logging keystrokes.
-         * If the client is newly 'unlocked', start logging keystrokes
-         */
-        /*
-        if(oldStatus.getSecurityStatus() != newStatus.getSecurityStatus()) {
-            if(oldStatus.getSecurityStatus() == SecurityConstants.UNLOCKED) {
-                stop();
-            }
-            else if(newStatus.getSecurityStatus() == SecurityConstants.UNLOCKED ) {
-                start();
-            }
-        }
-        */
+        if (newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
+        else stop();
     }
 
     /**
      * Implementation of listener to the ClientStateModel's keystroke queues. New keys need to be fed into the model.
      */
     public void keystrokeQueueChanged(KeyStrokePojo newKey) {
-        //TODO: Implement keystrokeQueueChanged()
-        return;
+        analyze();
     }
 
     /**
      * Start running the analysis engine.
-     *
-     * @return true if analysis engine successfully started
      */
-    private boolean start() {
-        return false;
+    private void start() {
+        isRunning = true;
+        // TODO: delete once the fake is no longer needed.
+        frame.setVisible(true);
     }
 
     /**
      * Stop running the analysis engine.
-     *
-     * @return true if analysis engine successfully stopped
      */
-    private boolean stop() {
-        return false;
+    private void stop() {
+        isRunning = false;
+        // TODO: delete once the fake is no longer needed.
+        frame.setVisible(false);
     }
 
     /**
      * Use the current keystroke data to generate the likelihood that the user's typing matches their current profile.
-     *
-     * @return the likelihood expressed as a decimal value between 0 and 1.
      */
-    private float analyze() {
-        return 0;
+    private void analyze() {
+        if (!isRunning) return;
+        Runnable r = () -> {
+            // TODO: delete once the fake is no longer needed.
+            try {
+                frame.informationLabel.setText("analyze() was called.");
+                Thread.sleep(500);
+            } catch (Exception e) {
+                frame.informationLabel.setText("");
+            }
+            frame.informationLabel.setText("");
+        };
+        r.run();
     }
 }

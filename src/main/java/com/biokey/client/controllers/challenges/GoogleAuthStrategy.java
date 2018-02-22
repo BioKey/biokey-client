@@ -70,7 +70,7 @@ public class GoogleAuthStrategy implements IChallengeStrategy, Serializable {
 
     public boolean checkChallenge(String attempt) {
         try {
-            return gAuth.authorize(gKey.getKey(), Integer.parseInt(attempt));
+            return gAuth.authorize(state.getGKey(), Integer.parseInt(attempt));
         } catch (NumberFormatException e) {
             return false;
         }

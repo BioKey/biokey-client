@@ -1,5 +1,6 @@
 package com.biokey.client;
 
+import com.biokey.client.constants.Credentials;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.providers.AppProvider;
 import com.biokey.client.services.ClientInitService;

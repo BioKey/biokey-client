@@ -29,8 +29,8 @@ public class ServiceProvider {
 
     @Bean
     @Autowired
-    public AnalysisEngineService analysisEngineService(ClientStateController clientStateController, ClientStateModel clientStateModel) {
-        return new AnalysisEngineService(clientStateController, clientStateModel);
+    public AnalysisEngineService analysisEngineService(ClientStateController clientStateController) {
+        return new AnalysisEngineService(clientStateController);
     }
 
     @Bean
@@ -57,7 +57,7 @@ public class ServiceProvider {
                                                                        LockFrameView lockFrameView, LoginPanelView loginPanelView) {
         Set<ClientStateModel.IClientStatusListener> serviceStatusListeners = new HashSet<>();
         serviceStatusListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView));
-        serviceStatusListeners.add(analysisEngineService(clientStateController, clientStateModel));
+        serviceStatusListeners.add(analysisEngineService(clientStateController));
         serviceStatusListeners.add(keyloggerDaemonService(clientStateController));
         serviceStatusListeners.add(lockerService(clientStateController, clientStateModel));
         serviceStatusListeners.add(serverListenerService(clientStateController, clientStateModel));
@@ -83,7 +83,7 @@ public class ServiceProvider {
     public Set<ClientStateModel.IClientKeyListener> keyQueueListeners(ClientStateController clientStateController, ClientStateModel clientStateModel,
                                                                       LockFrameView lockFrameView, LoginPanelView loginPanelView) {
         Set<ClientStateModel.IClientKeyListener> keyQueueListeners = new HashSet<>();
-        keyQueueListeners.add(analysisEngineService(clientStateController, clientStateModel));
+        keyQueueListeners.add(analysisEngineService(clientStateController));
         keyQueueListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView));
         keyQueueListeners.add(clientStateController);
 

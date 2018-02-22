@@ -223,6 +223,22 @@ public class ClientStateController implements
     }
 
     /**
+     * Modify the model to include the new analysis result.
+     *
+     * @param analysisResult the analysis result to enqueue
+     */
+    public void enqueueAnalysisResult(@NonNull AnalysisResultPojo analysisResult) {
+        // First, make sure to get the lock.
+        state.obtainAccessToAnalysisResult();
+        try {
+            state.enqueueAnalysisResult(analysisResult);
+            state.notifyAnalysisResultQueueChange(analysisResult);
+        } finally {
+            state.obtainAccessToAnalysisResult();
+        }
+    }
+
+    /**
      * Modify the model to include the new status.
      *
      * @param status the status to enqueue

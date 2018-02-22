@@ -57,6 +57,7 @@ public class LocalSaveUtil extends JFrame {
             fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
         } catch (Exception e) {
             informationTextArea.setText("Could not retrieve from Preferences. " + e.toString());
+            clearTextFields();
             return;
         }
 
@@ -153,23 +154,27 @@ public class LocalSaveUtil extends JFrame {
         informationTextArea.setText("");
         try {
             prefs.clear();
-            idTextField.setText("");
-            machineIdTextField.setText("");
-            userIdTextField.setText("");
-            modelTextField.setText("");
-            thresholdTextField.setText("");
-            challengesTextField.setText("");
-            sqsTextField.setText("");
-            authStatusTextField.setText("");
-            securityStatusTextField.setText("");
-            accessTokenTextField.setText("");
-            phoneNumberTextField.setText("");
-            timestampTextField.setText("");
-            syncStatusTextField.setText("");
+            clearTextFields();
             informationTextArea.setText("Successfully cleared.");
         } catch (BackingStoreException e) {
             informationTextArea.setText("Could not clear. " + e.toString());
         }
+    }
+
+    private void clearTextFields() {
+        idTextField.setText("");
+        machineIdTextField.setText("");
+        userIdTextField.setText("");
+        modelTextField.setText("");
+        thresholdTextField.setText("");
+        challengesTextField.setText("");
+        sqsTextField.setText("");
+        authStatusTextField.setText("");
+        securityStatusTextField.setText("");
+        accessTokenTextField.setText("");
+        phoneNumberTextField.setText("");
+        timestampTextField.setText("");
+        syncStatusTextField.setText("");
     }
 
     public static void main( String[] args ) {
