@@ -1,22 +1,27 @@
 package com.biokey.client.services;
 
-import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
+import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
-import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.awt.event.ActionEvent;
 
 /**
  * Service that responds to changes in client status and locks or unlocks the OS accordingly.
  */
-public class LockerService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientAnalysisListener {
+public class ChallengeService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientAnalysisListener {
+
+    private ClientStateController controller;
+    private ClientStateModel state;
 
     @Autowired
-    private ClientStateController controller;
-    @Autowired
-    private ClientStateModel state;
+    public ChallengeService(ClientStateController controller, ClientStateModel state) {
+        this.controller = controller;
+        this.state = state;
+    }
 
     /**
      * Implementation of listener to the ClientStateModel's status. The status will contain the accepted strategies
@@ -55,27 +60,20 @@ public class LockerService implements ClientStateModel.IClientStatusListener, Cl
     }
 
     /**
-     * Lock the OS.
-     *
-     * @return true if OS successfully locked
-     */
-    private boolean lock() {
-        return false;
-    }
-
-    /**
-     * Unlock the OS.
-     *
-     * @return true if OS successfully unlocked
-     */
-    private boolean unlock() {
-        return false;
-    }
-
-    /**
      * Issues the challenges based on accepted strategies and notify client state of the result.
      */
     private void issueChallenges() {
+        // TODO: set visible, show user the phone number...
+        /**
+        view.addSendAction((ActionEvent aE) -> {
+            try {
+                password = sendPassword();
+            } catch (IChallengeStrategy.ChallengeException e) {
+                log.error("Text Message Challenge: send message failed.", e);
+                this.view.setInformationText("Failed to send text message. Please contact administrator.");
+            }
+        });
+         */
         return;
     }
 

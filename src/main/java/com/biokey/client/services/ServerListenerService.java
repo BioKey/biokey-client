@@ -11,10 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class ServerListenerService implements ClientStateModel.IClientStatusListener {
 
-    @Autowired
     private ClientStateController controller;
-    @Autowired
     private ClientStateModel state;
+
+    @Autowired
+    public ServerListenerService(ClientStateController controller, ClientStateModel state) {
+        this.controller = controller;
+        this.state = state;
+    }
 
     /**
      * Implementation of listener to the ClientStateModel's status.

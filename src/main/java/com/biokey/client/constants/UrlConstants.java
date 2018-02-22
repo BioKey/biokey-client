@@ -10,5 +10,5 @@ public class UrlConstants {
     public static final String USERS_GET_API_ENDPOINT = "/api/users/me";
     public static final String LOGIN_POST_API_ENDPOINT = "/api/auth/login";
     public static final String POST_TYPING_PROFILE_ENDPOINT = "/api/typingProfiles/machine/{id}";
-
+    public static final String HEARTBEAT_ENDPOINT = "/api/typingProfiles/{id}/heartbeat";
 }

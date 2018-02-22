@@ -19,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriTemplate;
 
 import java.util.Deque;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.biokey.client.constants.AppConstants.KEYSTROKE_TIME_INTERVAL_PER_WINDOW;
 
@@ -35,18 +37,38 @@ public class ClientStateController implements
 
     private static Logger log = Logger.getLogger(ClientStateController.class);
 
+    private ClientStateModel state;
+    private ServerRequestExecutorHelper serverRequestExecutorHelper;
+
     @Autowired
-    ClientStateModel state;
-    @Autowired
-    RequestBuilderHelper requestBuilderHelper;
-    @Autowired
-    ServerRequestExecutorHelper serverRequestExecutorHelper;
+    public ClientStateController(ClientStateModel state,
+                                 ServerRequestExecutorHelper serverRequestExecutorHelper) {
+        this.state = state;
+        this.serverRequestExecutorHelper = serverRequestExecutorHelper;
+    }
 
     /**
      * Sends the server a message at fixed time intervals to let it know when the client is alive.
      */
-    public void sendHeartbeat() {
-        return; //TODO: Implement heartbeat().
+    public void sendHeartbeat(@NonNull String id, @NonNull ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
+        state.obtainAccessToStatus();
+        try {
+            // Check if there is a current status.
+            if (state.getCurrentStatus() == null) {
+                log.error("Confirm access token called but no model was found.");
+                handler.handleResponse(null);
+                return;
+            }
+
+            serverRequestExecutorHelper.submitPostRequest(
+                    new UriTemplate(SERVER_NAME + HEARTBEAT_ENDPOINT).expand(id).toString(),
+                    RequestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
+                    "",
+                    String.class,
+                    handler);
+        } finally {
+            state.releaseAccessToStatus();
+        }
     }
 
     /**
@@ -61,14 +83,14 @@ public class ClientStateController implements
         try {
             // Change the state of keystrokes to SYNCING.
             KeyStrokesPojo keysToSend = state.getOldestKeyStrokes();
-            if (keysToSend == null || !(keysToSend.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
+            if (state.getCurrentStatus() == null || keysToSend == null || !(keysToSend.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
             keysToSend.setSyncedWithServer(SyncStatusConstants.SYNCING);
 
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + KEYSTROKE_POST_API_ENDPOINT,
-                    requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
-                    requestBuilderHelper.requestBodyToPostKeystrokes(keysToSend),
+                    RequestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
+                    RequestBuilderHelper.requestBodyToPostKeystrokes(keysToSend, state.getCurrentStatus().getProfile().getId()),
                     String.class,
                     (ResponseEntity<String> response) -> {
                         // First, make sure to get the lock.
@@ -105,7 +127,6 @@ public class ClientStateController implements
      * @param email the email of the user to be logged in
      * @param password the password of the user to be logged in
      * @param handler the code to call when the server returns a response
-     * @throws JsonProcessingException if the cast to json fails
      */
     public void sendLoginRequest(@NonNull String email, @NonNull String password,
                                  @NonNull ServerRequestExecutorHelper.ServerResponseHandler<LoginResponse> handler) {
@@ -115,14 +136,15 @@ public class ClientStateController implements
             // Make the request
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + LOGIN_POST_API_ENDPOINT,
-                    requestBuilderHelper.emptyHeaderMap(),
-                    requestBuilderHelper.requestBodyToPostLogin(email, password),
+                    RequestBuilderHelper.emptyHeaderMap(),
+                    RequestBuilderHelper.requestBodyToPostLogin(email, password),
                     LoginResponse.class,
                     handler);
         } finally {
             state.releaseAccessToStatus();
         }
     }
+
 
     /**
      * Send a GET request to retrieve a user's typing profile.
@@ -139,7 +161,7 @@ public class ClientStateController implements
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
                     new UriTemplate(SERVER_NAME + POST_TYPING_PROFILE_ENDPOINT).expand(mac).toString(),
-                    requestBuilderHelper.headerMapWithToken(accessToken),
+                    RequestBuilderHelper.headerMapWithToken(accessToken),
                     "{}", // TODO: make helper function for better form
                     TypingProfileContainerResponse.class,
                     handler);
@@ -167,7 +189,7 @@ public class ClientStateController implements
             // Make the request
             serverRequestExecutorHelper.submitGetRequest(
                     SERVER_NAME + USERS_GET_API_ENDPOINT,
-                    requestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
+                    RequestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
                     String.class,
                     handler);
         } finally {

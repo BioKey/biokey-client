@@ -2,8 +2,6 @@ package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
-import com.biokey.client.controllers.challenges.IChallengeStrategy;
-import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.*;
@@ -13,7 +11,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.http.ResponseEntity;
@@ -43,7 +40,7 @@ public class ClientStateControllerIntegrationTest {
     private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
     private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
 
-    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTg3M2RkZTJlODQ4YTYyZDBkZmIwY2IiLCJpYXQiOjE1MTg4MTI2OTM4NTB9.ka1ZG_gvi0KyffKLOrc1XeBISg7bgPKGUW2zmmIR61g";
+    private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTg3M2RkZTJlODQ4YTYyZDBkZmIwY2IiLCJpYXQiOjE1MTg5OTgzMjc1MDJ9.j1EUWy2Ic4pwHlKvOXCd9l89P_rb-Tg2_XIQXkl_QN8";
     private static final String TYPING_PROFILE_ID = "5a873ddf2e848a62d0dfb0cf";
     private static final String EMAIL = "a@a.com";
     private static final String PASSWORD = "a";
@@ -51,7 +48,7 @@ public class ClientStateControllerIntegrationTest {
     private static final String UNKNOWN_MAC = "!@#";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, "","","",new float[] {}, new IChallengeStrategy[] {},""),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, MAC,"","",new float[] {}, new String[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     ACCESS_TOKEN, "", 0);
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, Integer.MAX_VALUE);
@@ -61,14 +58,10 @@ public class ClientStateControllerIntegrationTest {
     private static ClientStateModel state = new ClientStateModel();
     private static ClientStateModel initialState;
 
-    @InjectMocks @Spy
-    private RequestBuilderHelper requestBuilderHelper = new RequestBuilderHelper();
-
     @Spy
     private ServerRequestExecutorHelper serverRequestExecutorHelper = new ServerRequestExecutorHelper(Executors.newCachedThreadPool());
 
-    @InjectMocks
-    private ClientStateController underTest = new ClientStateController();
+    private ClientStateController underTest;
 
     @BeforeClass
     public static void setupListeners() {
@@ -97,6 +90,7 @@ public class ClientStateControllerIntegrationTest {
 
             state.obtainAccessToModel();
             state.loadStateFromMemory(initialState);
+            underTest = new ClientStateController(state, serverRequestExecutorHelper);
         } finally {
             initialState.releaseAccessToModel();
             state.releaseAccessToModel();
@@ -130,6 +124,18 @@ public class ClientStateControllerIntegrationTest {
     @Test
     public void GIVEN_realCallToServer_WHEN_sendLoginRequest_THEN_success() {
         underTest.sendLoginRequest(EMAIL, PASSWORD, (ResponseEntity<LoginResponse> response) -> {
+            assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
+            testCompleteFlag.countDown();
+        });
+
+        waitForCompletion();
+        verify(serverRequestExecutorHelper).submitPostRequest(any(), any(), any(), any(), any());
+        verify(state).releaseAccessToStatus();
+    }
+
+    @Test
+    public void GIVEN_loggedIn_WHEN_sendHeartbeat_THEN_success () {
+        underTest.sendHeartbeat(TYPING_PROFILE_ID,(ResponseEntity<String> response) -> {
             assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
             testCompleteFlag.countDown();
         });
@@ -280,4 +286,5 @@ public class ClientStateControllerIntegrationTest {
                 underTest.createStatusWithAuth(CLIENT_STATUS_POJO, AuthConstants.UNAUTHENTICATED)
                         .getAuthStatus().equals(AuthConstants.UNAUTHENTICATED));
     }
+
 }

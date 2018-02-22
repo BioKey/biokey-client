@@ -2,38 +2,72 @@ package com.biokey.client.controllers.challenges;
 
 import java.io.Serializable;
 import java.security.SecureRandom;
+
+import com.biokey.client.models.ClientStateModel;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
+import lombok.Getter;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import static com.biokey.client.constants.AppConstants.FROM_PHONE_NUMBER;
 
 public class TextMessageStrategy implements IChallengeStrategy, Serializable {
 
+    private static Logger log = Logger.getLogger(TextMessageStrategy.class);
     private static final long serialVersionUID = 1001;
 
-    private static final String ACCOUNT_SID = "AC6135115ec55c24ab759c1ae658b2fdfb";
-    private static final String AUTH_TOKEN = "79f75626c0f84962e3dcf81b85caba52";
+    // TODO: take these out!
+    private static final String ACCOUNT_SID = "";
+    private static final String AUTH_TOKEN = "";
 
-    private String password;
+    @Getter private boolean initialized = false;
+    private ClientStateModel state;
+    @Getter private String challenge;
 
-    public boolean performChallenges(String challenge) {
-        return challenge.equals(password);
+    @Autowired
+    public TextMessageStrategy(ClientStateModel state) {
+        this.state = state;
+    }
+
+    public void init() {
+        if (initialized) return;
+        Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
+        initialized = true;
+    }
+
+    public boolean issueChallenge() {
+        // Generate the password
+        SecureRandom random = new SecureRandom();
+        challenge = Integer.toString(random.nextInt(1000000));
+
+        // Obtain access to status to get the phone number.
+        state.obtainAccessToStatus();
+        try {
+            if (state.getCurrentStatus() == null) {
+                log.error("In challenge while current status does not exist.");
+                return false;
+            }
+            // Send password to the user's phone number.
+            Message.creator(new PhoneNumber(state.getCurrentStatus().getPhoneNumber()), new PhoneNumber(FROM_PHONE_NUMBER), challenge).create();
+        } catch(Exception e) {
+            log.error("Twilio failed to send message. Perhaps TO or FROM phone number is incorrect.", e);
+            return false;
+        } finally {
+            state.releaseAccessToStatus();
+        }
+
+        return true;
+    }
+
+    public boolean checkChallenge(String attempt) {
+        boolean passed = (challenge != null) && challenge.equals(attempt);
+        challenge = null;
+        return passed;
     }
 
     public String getServerRepresentation() {
         return "TextMessage";
     }
-
-    public void sendMessage ()
-    {
-        Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
-        password = generateMessage();
-        Message.creator(new PhoneNumber("+16476688628"), new PhoneNumber("+16473602026"), password).create();
-    }
-
-    private String generateMessage ()
-    {
-        SecureRandom random = new SecureRandom();
-        return Integer.toString(random.nextInt(1000000));
-    }
-
 }

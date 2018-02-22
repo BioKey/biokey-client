@@ -4,28 +4,23 @@ import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
-import com.biokey.client.controllers.challenges.IChallengeStrategy;
+import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
-import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.models.response.LoginResponse;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
-import com.biokey.client.models.response.TypingProfileResponse;
+import com.biokey.client.views.frames.LockFrameView;
+import com.biokey.client.views.panels.LoginPanelView;
 import lombok.NonNull;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
-import javax.swing.*;
 import java.awt.event.ActionEvent;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -33,56 +28,59 @@ import java.util.prefs.Preferences;
  * Service that retrieves the client state from the disk and OS and ensures that it has not been corrupted.
  * If the local data does not exist, then the service prompts the user to login and download the client state.
  */
-public class ClientInitService extends JFrame implements
+public class ClientInitService implements
         ClientStateModel.IClientStatusListener,
         ClientStateModel.IClientKeyListener,
         ClientStateModel.IClientAnalysisListener {
 
     private static Logger log = Logger.getLogger(ClientInitService.class);
 
-    @Autowired
     private ClientStateController controller;
-    @Autowired
     private ClientStateModel state;
-    @Autowired
-    private Map<String, IChallengeStrategy> strategies;
+    private LockFrameView lockFrameView;
+    private LoginPanelView view;
 
     private Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;
 
-    private JTextField emailInput;
-    private JPanel loginPanel;
-    private JPasswordField passwordInput;
-    private JButton submitButton;
-    private JLabel informationLabel;
+    private Timer heartbeatTimer = new Timer();
+    private Timer loginTimer = new Timer();
 
-    public ClientInitService() {
-        initLoginForm();
-    }
+    @Autowired
+    public ClientInitService(ClientStateController controller, ClientStateModel state,
+                             LockFrameView lockFrameView, LoginPanelView view)  {
 
-    /**
-     * Adds action listeners to the login form.
-     */
-    private void initLoginForm() {
-        submitButton.addActionListener((ActionEvent e) -> {
-            controller.sendLoginRequest(emailInput.getText(), new String(passwordInput.getPassword()),
+        this.controller = controller;
+        this.state = state;
+        this.lockFrameView = lockFrameView;
+        this.view = view;
+
+        // Add action to login view on submit.
+        view.addSubmitAction((ActionEvent e) -> {
+            // Disable submit.
+            view.setEnableSubmit(false);
+
+            // Send login request to the server.
+            controller.sendLoginRequest(view.getEmail(), view.getPassword(),
                     (ResponseEntity<LoginResponse> response) -> {
-                // Check if the response was good.
-                if (response == null || !response.getStatusCode().is2xxSuccessful() || response.getBody().getToken() == null) {
-                    log.debug("Login failed and received response " + response);
-                    // On failed login, show message to user that login failed.
-                    informationLabel.setText("Login failed. Please try again.");
-                    return;
-                }
+                        // Check if the response was good.
+                        if (response == null || !response.getStatusCode().is2xxSuccessful() || response.getBody().getToken() == null) {
+                            log.debug("Login failed and received response " + response);
+                            // On failed login, show message to user that login failed.
+                            view.setEnableSubmit(true);
+                            view.setInformationText("Login failed. Please try again.");
+                            return;
+                        }
 
-                // If successful, call next function to retrieve status.
-                log.debug("Login Succeeded and received response: " + response);
-                String mac = getMAC();
-                if (mac == null) {
-                    log.debug("Could not retrieve MAC address.");
-                    informationLabel.setText("Login failed. Could not retrieve MAC address. Please try again.");
-                } else retrieveStatusFromServer(getMAC(), response.getBody().getToken());
-            });
+                        // If successful, call next function to retrieve status.
+                        log.debug("Login Succeeded and received response: " + response);
+                        String mac = PojoHelper.getMAC();
+                        if (mac == null) {
+                            log.debug("Could not retrieve MAC address.");
+                            view.setEnableSubmit(true);
+                            view.setInformationText("Login failed. Could not retrieve MAC address. Please try again.");
+                        } else retrieveStatusFromServer(mac, response.getBody().getToken());
+                    });
         });
     }
 
@@ -193,22 +191,57 @@ public class ClientInitService extends JFrame implements
 
     /**
      * Starts the controller's heartbeat function.
-     *
-     * @return true if the heartbeat was successfully started
      */
     private void startHeartbeat() {
-        //TODO: Implement startHeartbeat().
-        return;
+        // Enqueue the next heartbeat.
+        TimerTask callNextHeartbeat = new TimerTask() {
+            @Override
+            public void run() {
+                startHeartbeat();
+            }
+        };
+        heartbeatTimer.schedule(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
+
+        state.obtainAccessToStatus();
+        try {
+            controller.sendHeartbeat(state.getCurrentStatus().getProfile().getId(), (ResponseEntity<String> response) -> {
+                // First, make sure to get the lock.
+                state.obtainAccessToModel();
+                try {
+                    // Check if the response was good.
+                    if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                        log.debug("Heartbeat failed and received response: " + response);
+
+                        // Client is probably offline. Do nothing.
+                        if (response == null) return;
+
+                        // If error is 401, then client is no longer authenticated.
+                        if (response.getStatusCodeValue() == 401) {
+                            controller.enqueueStatus(controller.createStatusWithAuth(
+                                    state.getCurrentStatus(), AuthConstants.UNAUTHENTICATED));
+                            return;
+                        }
+
+                        // If error is something else unknown, then client is no longer authenticated.
+                        controller.enqueueStatus(controller.createStatusWithAuth(
+                                state.getCurrentStatus(), AuthConstants.UNAUTHENTICATED));
+
+                    } else log.debug("Heartbeat succeeded and received response: " + response);
+                } finally {
+                    state.releaseAccessToModel();
+                }
+            });
+        } finally {
+            state.releaseAccessToStatus();
+        }
     }
 
     /**
      * Stops the controller's heartbeat function.
-     *
-     * @return true if the heartbeat was successfully stopped
      */
     private void stopHeartbeat() {
-        //TODO: Implement stopHeartbeat().
-        return;
+        heartbeatTimer.cancel();
+        heartbeatTimer = new Timer();
     }
 
     /**
@@ -218,14 +251,10 @@ public class ClientInitService extends JFrame implements
         // First, clear any client data that may have been corrupted.
         clearClientData();
 
-        // TODO: somehow lock
-
         // Initiate the view.
-        JFrame frame = new JFrame("Login");
-        frame.setContentPane(loginPanel);
-        frame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
+        view.setEnableSubmit(true);
+        lockFrameView.addPanel(view.getLoginPanel());
+        lockFrameView.lock();
     }
 
     /**
@@ -239,7 +268,19 @@ public class ClientInitService extends JFrame implements
                 // Check if the response was good.
                 if (response == null || !response.getStatusCode().is2xxSuccessful()) {
                     log.debug("Access token did not authenticate and received response: " + response);
-                    // No status change. Just send them to login screen.
+
+                    // Client is probably offline. Try logging in again.
+                    if (response == null) {
+                        TimerTask callNextLogin = new TimerTask() {
+                            @Override
+                            public void run() {
+                                loginWithModel();
+                            }
+                        };
+                        loginTimer.schedule(callNextLogin, AppConstants.TIME_BETWEEN_HEARTBEATS);
+                    }
+
+                    // If there is another error then just send user to login.
                     loginWithoutModel();
                 }
 
@@ -247,7 +288,7 @@ public class ClientInitService extends JFrame implements
                 ClientStatusPojo currentStatus = state.getCurrentStatus();
                 if (currentStatus == null) {
                     log.error("Login with model but no model was found.");
-                    retrieveClientState();
+                    loginWithoutModel();
                     return;
                 }
 
@@ -277,16 +318,17 @@ public class ClientInitService extends JFrame implements
                 if (response == null || !response.getStatusCode().is2xxSuccessful()) {
                     log.debug("Error occurred when retrieving typing profile " + response);
                     // On failed retrieval, show message to user that it failed.
-                    informationLabel.setText("Login failed. Please try again.");
+                    view.setEnableSubmit(true);
+                    view.setInformationText("Login failed. Please try again.");
                 }
 
                 log.debug("Successfully retrieved typing profile: " + response);
                 // If this succeeded, we can remove the frame.
-                submitButton.setEnabled(false);
-                this.dispose(); //TODO: make sure this disappears, will finish when unifying the view logic
+                lockFrameView.unlock();
+                lockFrameView.hidePanel(view.getLoginPanel());
 
                 // Enqueue the response as the new status.
-                ClientStatusPojo newStatus = castToClientStatus(response.getBody(), token);
+                ClientStatusPojo newStatus = PojoHelper.castToClientStatus(response.getBody(), token);
                 state.getCurrentStatus(); // Superfluous call because we don't care what the old status was.
                 controller.enqueueStatus(newStatus);
             } finally {
@@ -327,71 +369,5 @@ public class ClientInitService extends JFrame implements
     private boolean lockLocalSave() {
         // TODO: Implement lockLocalSave()
         return false;
-    }
-
-    /**
-     * Cast the response from the server to a new client status.
-     *
-     * @param responseContainer response from the server
-     * @param token the access token used to call the server
-     * @return new client status based on response
-     */
-    private ClientStatusPojo castToClientStatus(@NonNull TypingProfileContainerResponse responseContainer, @NonNull String token) {
-        TypingProfileResponse response = responseContainer.getTypingProfile();
-        if (response == null) return null;
-
-        return new ClientStatusPojo(
-                new TypingProfilePojo(response.get_id(), response.getMachine(), response.getUser(),
-                        response.getTensorFlowModel(),
-                        response.getThreshold(),
-                        castToChallengeStrategy(response.getChallengeStrategies()),
-                response.getEndpoint()),
-                AuthConstants.AUTHENTICATED,
-                castToSecurityConstant(response.isLocked()),
-                token,
-                responseContainer.getPhoneNumber(),
-                System.currentTimeMillis());
-    }
-
-    /**
-     * Get computer's MAC address as a string representation.
-     *
-     * @return string representation of MAC
-     */
-    private String getMAC() {
-        try {
-            byte[] mac = NetworkInterface.getByInetAddress(InetAddress.getLocalHost()).getHardwareAddress();
-            return new String(mac);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * Casts the string representations of challenge strategies from the server to the correct IChallengeStrategy impl.
-     *
-     * @param challengeStrategies array of string representations of challenge strategies from the server
-     * @return array of accepted IChallengeStrategy impl
-     */
-    private IChallengeStrategy[] castToChallengeStrategy(@NonNull String[] challengeStrategies) {
-        if (challengeStrategies.length == 0) return null;
-
-        List<IChallengeStrategy> acceptedStrategies = new ArrayList<>();
-        for (int i = 0; i < challengeStrategies.length; i++) {
-            if (strategies.containsKey(challengeStrategies[i])) {
-                acceptedStrategies.add(strategies.get(challengeStrategies[i]));
-            }
-        }
-        return acceptedStrategies.toArray(new IChallengeStrategy[acceptedStrategies.size()]);
-    }
-
-    /**
-     * Cast the boolean representation of security constant to the correct enum object.
-     *
-     * @param isLocked boolean representation of security constant.
-     * @return the correct enum object
-     */
-    private SecurityConstants castToSecurityConstant(boolean isLocked) {
-        return (isLocked) ? SecurityConstants.LOCKED : SecurityConstants.UNLOCKED;
     }
 }

@@ -1,6 +1,5 @@
 package com.biokey.client.models.pojo;
 
-import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import lombok.Data;
 import lombok.NonNull;
 
@@ -16,7 +15,7 @@ public class TypingProfilePojo implements Serializable {
     @NonNull private final String userId;
     @NonNull private final String model;
     @NonNull private final float[] threshold;
-    @NonNull private IChallengeStrategy[] acceptedChallengeStrategies;
+    @NonNull private String[] acceptedChallengeStrategies;
     @NonNull private final String sqsEndpoint;
 
 }
