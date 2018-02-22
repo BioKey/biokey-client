@@ -3,7 +3,6 @@ package com.biokey.client.controllers.challenges;
 import java.io.Serializable;
 import java.security.SecureRandom;
 
-import com.biokey.client.constants.Credentials;
 import com.biokey.client.models.ClientStateModel;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;

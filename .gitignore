@@ -96,6 +96,6 @@ nbdist/
 *.project
 
 # Credentials
-./src/main/java/com.biokey.client/constants/Credentials.java
+./src/main/java/com.biokey.client/constants/CredConstants.java
 
 logs/
