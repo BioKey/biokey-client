@@ -45,6 +45,7 @@ local.properties
 .settings/
 .loadpath
 .recommenders
+**/.DS_Store
 
 # External tool builders
 .externalToolBuilders/
@@ -96,6 +97,6 @@ nbdist/
 *.project
 
 # Credentials
-./src/main/java/com.biokey.client/constants/CredConstants.java
+**/Credentials.java
 
 logs/
