@@ -5,7 +5,7 @@ import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
-import lombok.Getter;
+import org.apache.log4j.Logger;
 import org.jnativehook.GlobalScreen;
 import org.jnativehook.NativeHookException;
 import org.jnativehook.dispatcher.SwingDispatchService;
@@ -15,29 +15,30 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.swing.*;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Service that records user key strokes in the background and registers them to the client state.
  */
 public class KeyloggerDaemonService implements ClientStateModel.IClientStatusListener, NativeKeyListener {
 
+    private static Logger log = Logger.getLogger(KeyloggerDaemonService.class);
+
     private ClientStateController controller;
-    private ClientStateModel state;
+
+    private boolean isRunning = false;
 
     @Autowired
-    public KeyloggerDaemonService(ClientStateController controller, ClientStateModel state) {
+    public KeyloggerDaemonService(ClientStateController controller) {
         this.controller = controller;
-        this.state = state;
 
         // Get the logger for "org.jnativehook" and set the level to warning.
-        Logger logger = Logger.getLogger(GlobalScreen.class.getPackage().getName());
-        logger.setLevel(Level.WARNING);
+        java.util.logging.Logger jNativeHookLog = java.util.logging.Logger.getLogger(GlobalScreen.class.getPackage().getName());
+        jNativeHookLog.setLevel(Level.WARNING);
 
         GlobalScreen.setEventDispatcher(new SwingDispatchService());
 
         // Don't forget to disable the parent handlers.
-        logger.setUseParentHandlers(false);
+        jNativeHookLog.setUseParentHandlers(false);
     }
 
     /**
@@ -45,41 +46,26 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      * The status will contain a flag for whether the daemon should be running.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-
-        // TODO: needs more thought on different cases - think I'm happy with this logic. Can't think of anything else that it would be.
-        /*
-         * If the client becomes authenticated, start logging keystrokes.
-         * If the client becomes unauthenticated, stop logging keystrokes.
-         */
-
-        if(oldStatus.getAuthStatus() != newStatus.getAuthStatus()){
-            if(newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
-            else stop();
-        }
-
+        if (newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
+        else stop();
     }
 
     /**
      * Start running the daemon.
-     *
-     * @return true if daemon successfully started
      */
-    private boolean start() {
+    private void start() {
+        if (isRunning) return;
         try {
             GlobalScreen.registerNativeHook();
             GlobalScreen.addNativeKeyListener(this);
-            return true;
-        }
-        catch (NativeHookException ex) {
+            isRunning = true;
+        } catch (NativeHookException e) {
             stop();
             JOptionPane.showMessageDialog(null, "There was a problem registering the native hook.", "Alert", JOptionPane.WARNING_MESSAGE);
-            System.err.println("There was a problem registering the native hook.");
-            System.err.println(ex.getMessage());
+            log.error("There was an exception registering the native hook.", e);
+        } catch (Exception e) {
+            log.error("There was an unknown exception when registering the native hook.", e);
         }
-        catch (Exception ex) {
-            System.err.println(ex.getMessage());
-        }
-        return false;
     }
 
     /**
@@ -87,50 +73,44 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      *
      * @return true if daemon successfully stopped
      */
-    private boolean stop() {
+    private void stop() {
+        if (!isRunning) return;
         try {
             GlobalScreen.removeNativeKeyListener(this);
             GlobalScreen.unregisterNativeHook();
-            return true;
+            isRunning = false;
         } catch (NativeHookException e) {
-            e.printStackTrace();
+            log.error("There was an exception deregistering the native hook.", e);
         }
-        return false;
     }
 
     /**
-     * Register keystrokes with the client state.
-     */
-    private void send() {
-        return;
-    }
-
-
-    /**
-     * Unused
+     * Unused.
+     *
      * @param nativeKeyEvent unused
      */
     @Override
     public void nativeKeyTyped(NativeKeyEvent nativeKeyEvent) {
-        //do nothing
-
+        // Do nothing.
     }
 
     /**
-     * Enqueue the "up" part of a keystroke
+     * Enqueue the "up" part of a keystroke.
+     *
      * @param nativeKeyEvent the key event
      */
     @Override
     public void nativeKeyPressed(NativeKeyEvent nativeKeyEvent) {
-        controller.enqueueKeyStroke(new KeyStrokePojo(nativeKeyEvent.getKeyChar(),true,System.currentTimeMillis()));
+        controller.enqueueKeyStroke(new KeyStrokePojo(nativeKeyEvent.getKeyChar(),true, System.currentTimeMillis()));
     }
 
     /**
-     * Enqueue the "up" part of a keystroke
+     * Enqueue the "up" part of a keystroke.
+     *
      * @param nativeKeyEvent the key event
      */
     @Override
     public void nativeKeyReleased(NativeKeyEvent nativeKeyEvent) {
-        controller.enqueueKeyStroke(new KeyStrokePojo(nativeKeyEvent.getKeyChar(),false,System.currentTimeMillis()));
+        controller.enqueueKeyStroke(new KeyStrokePojo(nativeKeyEvent.getKeyChar(),false, System.currentTimeMillis()));
     }
 }

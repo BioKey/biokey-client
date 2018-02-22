@@ -35,8 +35,8 @@ public class ServiceProvider {
 
     @Bean
     @Autowired
-    public KeyloggerDaemonService keyloggerDaemonService(ClientStateController clientStateController, ClientStateModel clientStateModel) {
-        return new KeyloggerDaemonService(clientStateController, clientStateModel);
+    public KeyloggerDaemonService keyloggerDaemonService(ClientStateController clientStateController) {
+        return new KeyloggerDaemonService(clientStateController);
     }
 
     @Bean
@@ -58,7 +58,7 @@ public class ServiceProvider {
         Set<ClientStateModel.IClientStatusListener> serviceStatusListeners = new HashSet<>();
         serviceStatusListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView));
         serviceStatusListeners.add(analysisEngineService(clientStateController, clientStateModel));
-        serviceStatusListeners.add(keyloggerDaemonService(clientStateController, clientStateModel));
+        serviceStatusListeners.add(keyloggerDaemonService(clientStateController));
         serviceStatusListeners.add(lockerService(clientStateController, clientStateModel));
         serviceStatusListeners.add(serverListenerService(clientStateController, clientStateModel));
         serviceStatusListeners.add(clientStateController);

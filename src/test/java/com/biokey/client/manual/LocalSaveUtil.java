@@ -36,7 +36,7 @@ public class LocalSaveUtil extends JFrame {
     private JButton saveButton;
     private JButton retrieveButton;
     private JButton clearButton;
-    private JLabel informationLabel;
+    private JTextArea informationTextArea;
     private JPanel saveUtilPanel;
 
     private LocalSaveUtil() {
@@ -47,18 +47,16 @@ public class LocalSaveUtil extends JFrame {
         saveButton.addActionListener((ActionEvent aE) -> onSave());
 
         clearButton.addActionListener((ActionEvent aE) -> onClear());
-
-        // TODO: show the label
     }
 
     private void onRetrieve() {
-        informationLabel.setText("");
+        informationTextArea.setText("");
         ClientStateModel fromMemory;
         try {
             byte[] stateBytes = prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, new byte[0]);
             fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
         } catch (Exception e) {
-            informationLabel.setText("Could not retrieve from Preferences. " + e.toString());
+            informationTextArea.setText("Could not retrieve from Preferences. " + e.toString());
             return;
         }
 
@@ -114,11 +112,11 @@ public class LocalSaveUtil extends JFrame {
         catch (Exception e) { accessTokenTextField.setText(""); }
 
         fromMemory.releaseAccessToModel();
-        informationLabel.setText("Successfully retrieved.");
+        informationTextArea.setText("Successfully retrieved.");
     }
 
     private void onSave() {
-        informationLabel.setText("");
+        informationTextArea.setText("");
         ClientStateModel fromMemory = new ClientStateModel();
         fromMemory.obtainAccessToModel();
         try {
@@ -143,16 +141,16 @@ public class LocalSaveUtil extends JFrame {
             fromMemory.enqueueStatus(newStatus);
             byte[] stateBytes = SerializationUtils.serialize(fromMemory);
             prefs.putByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, stateBytes);
-            informationLabel.setText("Successfully saved.");
+            informationTextArea.setText("Successfully saved.");
         } catch (Exception e) {
-            informationLabel.setText("Could not save to Preferences. " + e.toString());
+            informationTextArea.setText("Could not save to Preferences. " + e.toString());
         } finally {
             fromMemory.releaseAccessToModel();
         }
     }
 
     private void onClear() {
-        informationLabel.setText("");
+        informationTextArea.setText("");
         try {
             prefs.clear();
             idTextField.setText("");
@@ -168,17 +166,20 @@ public class LocalSaveUtil extends JFrame {
             phoneNumberTextField.setText("");
             timestampTextField.setText("");
             syncStatusTextField.setText("");
-            informationLabel.setText("Successfully cleared.");
+            informationTextArea.setText("Successfully cleared.");
         } catch (BackingStoreException e) {
-            informationLabel.setText("Could not clear. " + e.toString());
+            informationTextArea.setText("Could not clear. " + e.toString());
         }
     }
 
     public static void main( String[] args ) {
-        JFrame frame = new JFrame("Local Save Utility");
-        frame.setContentPane(new LocalSaveUtil().saveUtilPanel);
+        LocalSaveUtil frame = new LocalSaveUtil();
+        frame.setTitle("Local Save Utility");
+        frame.setContentPane(frame.saveUtilPanel);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
+
+        frame.onRetrieve();
     }
 }
