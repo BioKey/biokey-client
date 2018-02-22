@@ -3,6 +3,7 @@ package com.biokey.client.controllers.challenges;
 import java.io.Serializable;
 import java.security.SecureRandom;
 
+import com.biokey.client.constants.Credentials;
 import com.biokey.client.models.ClientStateModel;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
@@ -11,16 +12,10 @@ import lombok.Getter;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import static com.biokey.client.constants.AppConstants.FROM_PHONE_NUMBER;
-
 public class TextMessageStrategy implements IChallengeStrategy, Serializable {
 
     private static Logger log = Logger.getLogger(TextMessageStrategy.class);
     private static final long serialVersionUID = 1001;
-
-    // TODO: take these out!
-    private static final String ACCOUNT_SID = "";
-    private static final String AUTH_TOKEN = "";
 
     @Getter private boolean initialized = false;
     private ClientStateModel state;
@@ -33,7 +28,7 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
 
     public void init() {
         if (initialized) return;
-        Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
+        Twilio.init(Credentials.TWILIO_ACCOUNT_SID, Credentials.TWILIO_AUTH_TOKEN);
         initialized = true;
     }
 
@@ -50,7 +45,7 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
                 return false;
             }
             // Send password to the user's phone number.
-            Message.creator(new PhoneNumber(state.getCurrentStatus().getPhoneNumber()), new PhoneNumber(FROM_PHONE_NUMBER), challenge).create();
+            Message.creator(new PhoneNumber(state.getCurrentStatus().getPhoneNumber()), new PhoneNumber(Credentials.TWILIO_FROM_PHONE_NUMBER), challenge).create();
         } catch(Exception e) {
             log.error("Twilio failed to send message. Perhaps TO or FROM phone number is incorrect.", e);
             return false;

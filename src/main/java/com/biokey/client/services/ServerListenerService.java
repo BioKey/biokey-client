@@ -1,5 +1,6 @@
 package com.biokey.client.services;
 
+import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.model.Message;
 import com.biokey.client.constants.AppConstants;
@@ -38,7 +39,7 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
         // TODO: Implement status changed
-        // start();
+        start();
     }
 
     /**
@@ -72,7 +73,7 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
 
     /**
      * Read any available server messages and register changes to the client state.
-     * Scheduled as a task on the timer.
+     * Scheduled as a TimerTask.
      */
     private class DequeueTask extends TimerTask {
 

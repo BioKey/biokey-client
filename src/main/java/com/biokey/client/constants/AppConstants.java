@@ -11,7 +11,6 @@ public class AppConstants {
     public static final String CLIENT_STATE_PREFERENCES_ID = "client_state";
     public static final int KEYSTROKE_WINDOW_SIZE_PER_SAVE = 1000;
     public static final int TIME_BETWEEN_HEARTBEATS = 5000;
-    public static final String FROM_PHONE_NUMBER = "+16473602026";
     public static final int MAX_CHALLENGE_ATTEMPTS = 3;
     public static final int SQS_LISTENER_PERIOD = 3000;
 }

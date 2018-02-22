@@ -95,4 +95,7 @@ nbdist/
 *.classpath
 *.project
 
+# Credentials
+./src/main/java/com/biokey/client/constants/Credentials.java
+
 logs/
