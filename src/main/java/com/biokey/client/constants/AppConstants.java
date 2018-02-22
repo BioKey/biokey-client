@@ -13,4 +13,5 @@ public class AppConstants {
     public static final int TIME_BETWEEN_HEARTBEATS = 5000;
     public static final String FROM_PHONE_NUMBER = "+16473602026";
     public static final int MAX_CHALLENGE_ATTEMPTS = 3;
+    public static final int SQS_LISTENER_PERIOD = 3000;
 }
