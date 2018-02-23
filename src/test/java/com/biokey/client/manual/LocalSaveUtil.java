@@ -13,6 +13,7 @@ import org.apache.commons.lang.SerializationUtils;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -53,8 +54,7 @@ public class LocalSaveUtil extends JFrame {
         informationTextArea.setText("");
         ClientStateModel fromMemory;
         try {
-            byte[] stateBytes = prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, new byte[0]);
-            fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
+            fromMemory = ClientInitService.retrieveFromPreferences();
         } catch (Exception e) {
             informationTextArea.setText("Could not retrieve from Preferences. " + e.toString());
             clearTextFields();
@@ -118,7 +118,7 @@ public class LocalSaveUtil extends JFrame {
 
     private void onSave() {
         informationTextArea.setText("");
-        ClientStateModel fromMemory = new ClientStateModel();
+        ClientStateModel fromMemory = new ClientStateModel(Executors.newCachedThreadPool());
         fromMemory.obtainAccessToModel();
         try {
             @SuppressWarnings("unchecked")
@@ -140,8 +140,7 @@ public class LocalSaveUtil extends JFrame {
                     Long.parseLong("0" + timestampTextField.getText()));
 
             fromMemory.enqueueStatus(newStatus);
-            byte[] stateBytes = SerializationUtils.serialize(fromMemory);
-            prefs.putByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, stateBytes);
+            ClientInitService.saveToPreferences(fromMemory);
             informationTextArea.setText("Successfully saved.");
         } catch (Exception e) {
             informationTextArea.setText("Could not save to Preferences. " + e.toString());

@@ -10,6 +10,8 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.views.frames.FakeAnalysisFrameView;
+import com.biokey.client.views.frames.TrayFrameView;
+import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,6 +25,7 @@ import java.awt.event.ActionEvent;
 public class AnalysisEngineService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientKeyListener {
 
     private ClientStateController controller;
+    private AnalysisResultTrayPanelView analysisResultTrayPanelView;
 
     // TODO: delete once the fake is no longer needed.
     private FakeAnalysisFrameView frame = new FakeAnalysisFrameView();
@@ -30,13 +33,19 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
     private boolean isRunning = false;
 
     @Autowired
-    public AnalysisEngineService(ClientStateController controller) {
+    public AnalysisEngineService(ClientStateController controller, TrayFrameView trayFrameView,
+                                 AnalysisResultTrayPanelView analysisResultTrayPanelView) {
         this.controller = controller;
+        this.analysisResultTrayPanelView = analysisResultTrayPanelView;
+
+        trayFrameView.addPanel(analysisResultTrayPanelView.getAnalysisResultTrayPanel());
 
         // TODO: delete once the fake is no longer needed.
         frame.enqueueButton.addActionListener((ActionEvent aE) -> {
             try {
-                controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), Float.parseFloat(frame.analysisResultTextField.getText())));
+                float newAnalysisResult = Float.parseFloat(frame.analysisResultTextField.getText());
+                controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), newAnalysisResult));
+                analysisResultTrayPanelView.setAnalysisResultText(newAnalysisResult);
             } catch (Exception e) {
                 frame.informationLabel.setText("Invalid analysis result.");
             }

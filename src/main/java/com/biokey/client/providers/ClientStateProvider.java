@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+import java.util.concurrent.Executors;
+
 
 /**
  * Configuration class that provides the singleton instances relating to the client state.
@@ -25,6 +27,6 @@ public class ClientStateProvider {
 
     @Bean
     public ClientStateModel clientStateModel() {
-        return new ClientStateModel();
+        return new ClientStateModel(Executors.newFixedThreadPool(5));
     }
 }

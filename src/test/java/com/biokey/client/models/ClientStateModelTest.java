@@ -16,6 +16,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -65,7 +66,7 @@ public class ClientStateModelTest {
 
     @Before
     public void initUnderTest() {
-        underTest = new ClientStateModel();
+        underTest = new ClientStateModel(Executors.newCachedThreadPool());
         underTest.setStatusListeners(STATUS_LISTENER_SET);
         underTest.setKeyQueueListeners(KEY_LISTENER_SET);
         underTest.setAnalysisResultQueueListeners(ANALYSIS_LISTENER_SET);
@@ -399,7 +400,7 @@ public class ClientStateModelTest {
 
     @Test
     public void GIVEN_newModel_WHEN_loadStateFromMemory_THEN_changesReflected() {
-        ClientStateModel newModel = new ClientStateModel();
+        ClientStateModel newModel = new ClientStateModel(Executors.newCachedThreadPool());
         try {
             newModel.obtainAccessToStatus();
             newModel.getCurrentStatus();

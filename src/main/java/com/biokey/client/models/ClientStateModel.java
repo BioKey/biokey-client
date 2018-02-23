@@ -4,7 +4,6 @@ import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.KeyStrokesPojo;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -14,6 +13,7 @@ import java.security.AccessControlException;
 import java.util.Deque;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -62,6 +62,7 @@ public class ClientStateModel implements Serializable {
     private boolean retrievedStatusBeforeEnqueue = false;
     private final ReentrantLock analysisResultLock = new ReentrantLock(true);
     private final ReentrantLock keyStrokesLock = new ReentrantLock(true);
+    private final transient ExecutorService executor;
 
     @Setter @NonNull
     private transient Set<IClientStatusListener> statusListeners;
@@ -71,6 +72,10 @@ public class ClientStateModel implements Serializable {
 
     @Setter @NonNull
     private transient Set<IClientAnalysisListener> analysisResultQueueListeners;
+
+    public ClientStateModel(ExecutorService executor) {
+        this.executor = executor;
+    }
 
     /**
      * Obtain access to status. If a thread is not holding this lock, it can not get or modify the status.
@@ -360,8 +365,7 @@ public class ClientStateModel implements Serializable {
      */
     public void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
         for (IClientStatusListener listener : statusListeners) {
-             Runnable r = (Runnable & Serializable) () -> listener.statusChanged(oldStatus, newStatus);
-             r.run();
+             executor.execute(() -> listener.statusChanged(oldStatus, newStatus));
         }
     }
 
@@ -372,8 +376,7 @@ public class ClientStateModel implements Serializable {
      */
     public void notifyKeyQueueChange(KeyStrokePojo newKey) {
         for (IClientKeyListener listener : keyQueueListeners) {
-            Runnable r = (Runnable & Serializable) () -> listener.keystrokeQueueChanged(newKey);
-            r.run();
+            executor.execute(() -> listener.keystrokeQueueChanged(newKey));
         }
     }
 
@@ -384,8 +387,7 @@ public class ClientStateModel implements Serializable {
      */
     public void notifyAnalysisResultQueueChange(AnalysisResultPojo newResult) {
         for (IClientAnalysisListener listener : analysisResultQueueListeners) {
-            Runnable r = (Runnable & Serializable) () -> listener.analysisResultQueueChanged(newResult);
-            r.run();
+            executor.execute(() -> listener.analysisResultQueueChanged(newResult));
         }
     }
 

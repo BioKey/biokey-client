@@ -12,6 +12,7 @@ import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.response.LoginResponse;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
 import com.biokey.client.views.frames.LockFrameView;
+import com.biokey.client.views.frames.TrayFrameView;
 import com.biokey.client.views.panels.LoginPanelView;
 import lombok.NonNull;
 import org.apache.commons.lang.SerializationUtils;
@@ -38,9 +39,10 @@ public class ClientInitService implements
     private ClientStateController controller;
     private ClientStateModel state;
     private LockFrameView lockFrameView;
-    private LoginPanelView view;
+    private LoginPanelView loginPanelView;
+    private TrayFrameView trayFrameView;
 
-    private Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
+    private static Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;
 
     private Timer heartbeatTimer = new Timer();
@@ -48,27 +50,28 @@ public class ClientInitService implements
 
     @Autowired
     public ClientInitService(ClientStateController controller, ClientStateModel state,
-                             LockFrameView lockFrameView, LoginPanelView view)  {
+                             LockFrameView lockFrameView, LoginPanelView loginPanelView, TrayFrameView trayFrameView)  {
 
         this.controller = controller;
         this.state = state;
         this.lockFrameView = lockFrameView;
-        this.view = view;
+        this.loginPanelView = loginPanelView;
+        this.trayFrameView = trayFrameView;
 
-        // Add action to login view on submit.
-        view.addSubmitAction((ActionEvent e) -> {
+        // Add action to login loginPanelView on submit.
+        loginPanelView.addSubmitAction((ActionEvent e) -> {
             // Disable submit.
-            view.setEnableSubmit(false);
+            loginPanelView.setEnableSubmit(false);
 
             // Send login request to the server.
-            controller.sendLoginRequest(view.getEmail(), view.getPassword(),
+            controller.sendLoginRequest(loginPanelView.getEmail(), loginPanelView.getPassword(),
                     (ResponseEntity<LoginResponse> response) -> {
                         // Check if the response was good.
                         if (response == null || !response.getStatusCode().is2xxSuccessful() || response.getBody().getToken() == null) {
                             log.debug("Login failed and received response " + response);
                             // On failed login, show message to user that login failed.
-                            view.setEnableSubmit(true);
-                            view.setInformationText("Login failed. Please try again.");
+                            loginPanelView.setEnableSubmit(true);
+                            loginPanelView.setInformationText("Login failed. Please try again.");
                             return;
                         }
 
@@ -77,8 +80,8 @@ public class ClientInitService implements
                         String mac = PojoHelper.getMAC();
                         if (mac == null) {
                             log.debug("Could not retrieve MAC address.");
-                            view.setEnableSubmit(true);
-                            view.setInformationText("Login failed. Could not retrieve MAC address. Please try again.");
+                            loginPanelView.setEnableSubmit(true);
+                            loginPanelView.setInformationText("Login failed. Could not retrieve MAC address. Please try again.");
                         } else retrieveStatusFromServer(mac, response.getBody().getToken());
                     });
         });
@@ -97,10 +100,16 @@ public class ClientInitService implements
         SecurityConstants oldLockedStatus = (oldStatus == null) ? null : oldStatus.getSecurityStatus();
         SecurityConstants newLockedStatus = (newStatus == null) ? null : newStatus.getSecurityStatus();
 
-        // Second, logic for the heartbeat.
+        // Second, logic for the heartbeat and tray icon.
         if (oldAuthStatus != newAuthStatus){
-            if (newAuthStatus == AuthConstants.AUTHENTICATED) startHeartbeat();
-            else stopHeartbeat();
+            if (newAuthStatus == AuthConstants.AUTHENTICATED) {
+                startHeartbeat();
+                trayFrameView.setTrayIcon(true);
+            }
+            else {
+                stopHeartbeat();
+                trayFrameView.setTrayIcon(false);
+            }
         }
 
         // Third, logic to login.
@@ -126,6 +135,7 @@ public class ClientInitService implements
      */
     public void keystrokeQueueChanged(KeyStrokePojo newKey) {
         if (++newKeyCount >= AppConstants.KEYSTROKE_WINDOW_SIZE_PER_SAVE) {
+            newKeyCount = 0;
             saveClientState();
         }
     }
@@ -148,8 +158,11 @@ public class ClientInitService implements
         // Ensure no saves are currently happening.
         state.obtainAccessToModel();
         try {
-            byte[] stateBytes = prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, new byte[0]);
-            fromMemory = (ClientStateModel) SerializationUtils.deserialize(stateBytes);
+            fromMemory = retrieveFromPreferences();
+            if (fromMemory == null) {
+                loginWithoutModel();
+                return;
+            }
         } catch (Exception e) {
             log.debug("Could not retrieve initial client state from preferences", e);
             loginWithoutModel();
@@ -169,24 +182,59 @@ public class ClientInitService implements
     }
 
     /**
+     * Retrieve model from preferences.
+     *
+     * @return model retrieved from preferences
+     */
+    public static ClientStateModel retrieveFromPreferences() {
+        // Get data about the size to retrieve.
+        int blocks = prefs.getInt(AppConstants.CLIENT_STATE_PREFERENCES_ID + ".blocks", 0);
+        int totalSize = (blocks - 1) * Preferences.MAX_VALUE_LENGTH * 3 / 4 +
+                prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID + "." + (blocks - 1), new byte[0]).length;
+
+        // Retrieve from Preferences.
+        byte[] stateByteArray = new byte[totalSize];
+        for (int i = 0; i < blocks; i++) {
+            byte[] block = prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID + "." + i, new byte[0]);
+            System.arraycopy(block, 0, stateByteArray, i * Preferences.MAX_VALUE_LENGTH * 3 / 4, block.length);
+        }
+
+        // Cast to ClientStateModel.
+        return (ClientStateModel) SerializationUtils.deserialize(stateByteArray);
+    }
+
+    /**
      * Called when the status of the client changes. Saves the entire state to Preferences.
      */
     public void saveClientState() {
         Runnable r = () -> {
             state.obtainAccessToModel();
             try {
-                byte[] stateBytes = SerializationUtils.serialize(state);
-                prefs.putByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID, stateBytes);
+                saveToPreferences(state);
                 // TODO: lockLocalSave()
-                log.debug("Saved client state to file");
-            }
-            catch (Exception e) {
-                log.debug("Could not save client state to file", e);
+                log.debug("Saved client state to file.");
+            } catch (Exception e) {
+                log.debug("Could not save client state to file.", e);
             } finally {
                 state.releaseAccessToModel();
             }
         };
         r.run();
+    }
+
+    /**
+     * Save model to preferences.
+     *
+     * @param state the model to save to preferences
+     */
+    public static void saveToPreferences(ClientStateModel state) {
+        byte[] stateBytes = SerializationUtils.serialize(state);
+        int blocks = 0;
+        while (blocks * Preferences.MAX_VALUE_LENGTH * 3 / 4 < stateBytes.length) {
+            prefs.putByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID + "." + blocks,
+                    Arrays.copyOfRange(stateBytes, blocks++ * Preferences.MAX_VALUE_LENGTH * 3 / 4, blocks * Preferences.MAX_VALUE_LENGTH * 3 / 4));
+        }
+        prefs.putInt(AppConstants.CLIENT_STATE_PREFERENCES_ID + ".blocks", blocks);
     }
 
     /**
@@ -256,9 +304,9 @@ public class ClientInitService implements
         // First, clear any client data that may have been corrupted.
         clearClientData();
 
-        // Initiate the view.
-        view.setEnableSubmit(true);
-        lockFrameView.addPanel(view.getLoginPanel());
+        // Initiate the loginPanelView.
+        loginPanelView.setEnableSubmit(true);
+        lockFrameView.addPanel(loginPanelView.getLoginPanel());
         lockFrameView.lock();
     }
 
@@ -323,14 +371,14 @@ public class ClientInitService implements
                 if (response == null || !response.getStatusCode().is2xxSuccessful()) {
                     log.debug("Error occurred when retrieving typing profile " + response);
                     // On failed retrieval, show message to user that it failed.
-                    view.setEnableSubmit(true);
-                    view.setInformationText("Login failed. Please try again.");
+                    loginPanelView.setEnableSubmit(true);
+                    loginPanelView.setInformationText("Login failed. Please try again.");
                 }
 
                 log.debug("Successfully retrieved typing profile: " + response);
                 // If this succeeded, we can remove the frame.
                 lockFrameView.unlock();
-                lockFrameView.hidePanel(view.getLoginPanel());
+                lockFrameView.hidePanel(loginPanelView.getLoginPanel());
 
                 // Enqueue the response as the new status.
                 ClientStatusPojo newStatus = PojoHelper.castToClientStatus(response.getBody(), token);

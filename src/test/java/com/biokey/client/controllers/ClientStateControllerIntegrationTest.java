@@ -55,7 +55,7 @@ public class ClientStateControllerIntegrationTest {
     private static final KeyStrokePojo OLD_KEY_STROKE_POJO = new KeyStrokePojo('t', true, 0);
 
     @Spy
-    private static ClientStateModel state = new ClientStateModel();
+    private static ClientStateModel state = new ClientStateModel(Executors.newCachedThreadPool());
     private static ClientStateModel initialState;
 
     @Spy
@@ -84,7 +84,7 @@ public class ClientStateControllerIntegrationTest {
 
         try {
             // Set up initial state.
-            initialState = new ClientStateModel();
+            initialState = new ClientStateModel(Executors.newCachedThreadPool());
             initialState.obtainAccessToModel();
             initialState.enqueueStatus(CLIENT_STATUS_POJO);
 
@@ -247,7 +247,7 @@ public class ClientStateControllerIntegrationTest {
 
     @Test
     public void GIVEN_newModel_WHEN_passStateToModel_THEN_success() {
-        ClientStateModel newModel = new ClientStateModel();
+        ClientStateModel newModel = new ClientStateModel(Executors.newCachedThreadPool());
         try {
             newModel.obtainAccessToStatus();
             newModel.getCurrentStatus();
