@@ -1,14 +1,13 @@
 package com.biokey.client.manual;
 
-import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.services.ClientInitService;
-import org.apache.commons.lang.SerializationUtils;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -32,6 +31,7 @@ public class LocalSaveUtil extends JFrame {
     private JTextField securityStatusTextField;
     private JTextField accessTokenTextField;
     private JTextField phoneNumberTextField;
+    private JTextField googleAuthKeyTextField;
     private JTextField timestampTextField;
     private JTextField syncStatusTextField;
     private JButton saveButton;
@@ -39,6 +39,7 @@ public class LocalSaveUtil extends JFrame {
     private JButton clearButton;
     private JTextArea informationTextArea;
     private JPanel saveUtilPanel;
+
 
     private LocalSaveUtil() {
         // Retrieve button reads from memory and puts the result into the text fields.
@@ -84,8 +85,7 @@ public class LocalSaveUtil extends JFrame {
         try {
             StringBuilder sb = new StringBuilder();
             for (String challenge : fromMemory.getCurrentStatus().getProfile().getAcceptedChallengeStrategies()) {
-                sb.append(challenge);
-                sb.append(", ");
+                sb.append(challenge).append(", ");
             }
             sb.delete(sb.length() - 2, sb.length()); // Delete the last comma.
             challengesTextField.setText(sb.toString()); }
@@ -105,6 +105,9 @@ public class LocalSaveUtil extends JFrame {
 
         try { phoneNumberTextField.setText(fromMemory.getCurrentStatus().getPhoneNumber()); }
         catch (Exception e) { phoneNumberTextField.setText(""); }
+
+        try { googleAuthKeyTextField.setText(fromMemory.getCurrentStatus().getGoogleAuthKey()); }
+        catch (Exception e) { googleAuthKeyTextField.setText(""); }
 
         try { timestampTextField.setText(Long.toString(fromMemory.getCurrentStatus().getTimeStamp())); }
         catch (Exception e) { timestampTextField.setText(""); }
@@ -137,6 +140,7 @@ public class LocalSaveUtil extends JFrame {
                     SecurityConstants.valueOf(securityStatusTextField.getText()),
                     accessTokenTextField.getText(),
                     phoneNumberTextField.getText(),
+                    googleAuthKeyTextField.getText(),
                     Long.parseLong("0" + timestampTextField.getText()));
 
             fromMemory.enqueueStatus(newStatus);

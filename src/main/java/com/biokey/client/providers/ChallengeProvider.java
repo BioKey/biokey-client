@@ -1,5 +1,6 @@
 package com.biokey.client.providers;
 
+import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.controllers.challenges.GoogleAuthStrategy;
 import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.controllers.challenges.TextMessageStrategy;
@@ -24,10 +25,11 @@ import java.util.Map;
 public class ChallengeProvider {
     @Bean
     @Autowired
-    public GoogleAuthStrategy googleAuthStrategy(ClientStateModel clientStateModel,
-                                                 ServerRequestExecutorHelper serverRequestExecutorHelper,
-                                                 GoogleAuthFrameView googleAuthFrameView) {
-        return new GoogleAuthStrategy(clientStateModel, serverRequestExecutorHelper, googleAuthFrameView);
+    public GoogleAuthStrategy googleAuthStrategy(
+            ClientStateModel clientStateModel, ClientStateController clientStateController,
+            ServerRequestExecutorHelper serverRequestExecutorHelper, GoogleAuthFrameView googleAuthFrameView) {
+
+        return new GoogleAuthStrategy(clientStateModel, clientStateController, serverRequestExecutorHelper, googleAuthFrameView);
     }
 
     @Bean
@@ -38,13 +40,16 @@ public class ChallengeProvider {
 
     @Bean
     @Autowired
-    public Map<String, IChallengeStrategy> allSupportedAuthStrategies(ClientStateModel clientStateModel,
-                                                                      ServerRequestExecutorHelper serverRequestExecutorHelper,
-                                                                      GoogleAuthFrameView googleAuthFrameView) {
+    public Map<String, IChallengeStrategy> allSupportedAuthStrategies(
+            ClientStateModel clientStateModel, ClientStateController clientStateController,
+            ServerRequestExecutorHelper serverRequestExecutorHelper, GoogleAuthFrameView googleAuthFrameView) {
+
+        GoogleAuthStrategy googleAuthStrategy = googleAuthStrategy(clientStateModel, clientStateController, serverRequestExecutorHelper, googleAuthFrameView);
+        TextMessageStrategy textMessageStrategy = textMessageStrategy(clientStateModel);
+
         Map<String, IChallengeStrategy> strategies = new HashMap<>();
-        strategies.put(googleAuthStrategy(clientStateModel, serverRequestExecutorHelper, googleAuthFrameView).getServerRepresentation(),
-                googleAuthStrategy(clientStateModel, serverRequestExecutorHelper, googleAuthFrameView));
-        strategies.put(textMessageStrategy(clientStateModel).getServerRepresentation(), textMessageStrategy(clientStateModel));
+        strategies.put(googleAuthStrategy.getServerRepresentation(), googleAuthStrategy);
+        strategies.put(textMessageStrategy.getServerRepresentation(), textMessageStrategy);
 
         return strategies;
     }

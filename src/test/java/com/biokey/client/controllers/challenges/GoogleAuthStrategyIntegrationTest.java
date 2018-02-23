@@ -1,9 +1,15 @@
 package com.biokey.client.controllers.challenges;
 
+import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
+import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
+import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.views.frames.GoogleAuthFrameView;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,14 +22,27 @@ import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class GoogleAuthStrategyIntegrationTest {
-    @Spy
+
+    private final ClientStatusPojo CLIENT_STATUS_POJO_NO_KEY =
+            new ClientStatusPojo(
+                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
+                    AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
+                    "", "", "", 0);
+    private final ClientStatusPojo CLIENT_STATUS_POJO_WITH_KEY =
+            new ClientStatusPojo(
+                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
+                    AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
+                    "", "", "hello", 0);
+    private final int TIMEOUT = 2000;
+
     private ClientStateModel state;
+    private ClientStateController controller;
+
+    @Spy
     private final ServerRequestExecutorHelper helper = new ServerRequestExecutorHelper(Executors.newCachedThreadPool());
     @Mock
     private GoogleAuthFrameView view;
@@ -32,28 +51,86 @@ public class GoogleAuthStrategyIntegrationTest {
 
     @Before
     public void init() {
-        underTest = new GoogleAuthStrategy(state, helper, view);
+        state = new ClientStateModel(Executors.newCachedThreadPool());
+        controller = spy(new ClientStateController(state, helper));
+        underTest = new GoogleAuthStrategy(state, controller, helper, view);
+        doNothing().when(view).displayImage(any(byte[].class), any());
     }
 
     @Test
-    public void GIVEN_na_WHEN_init_THEN_initialized() {
-        doNothing().when(state).setGKey(any());
-        doNothing().when(view).displayImage(any(byte[].class), any());
+    public void GIVEN_withKey_WHEN_init_THEN_notInitialized() {
+        state.obtainAccessToModel();
+        state.enqueueStatus(CLIENT_STATUS_POJO_WITH_KEY);
+
         underTest.init();
 
-        verify(state).setGKey(any());
-        verify(view, timeout(1000).times(1)).displayImage(any(byte[].class), any());
+        verify(controller, never()).setGoogleAuthKey(any());
+        verify(helper, never()).submitGetRequest(any(), any(), any(), any());
+        assertTrue("strategy should not be initialized", !underTest.isInitialized());
+    }
+
+    @Test
+    public void GIVEN_noStatus_WHEN_init_THEN_notInitialized() {
+        state.obtainAccessToModel();
+        state.clear();
+
+        underTest.init();
+
+        verify(controller, never()).setGoogleAuthKey(any());
+        verify(helper, never()).submitGetRequest(any(), any(), any(), any());
+        assertTrue("strategy should not be initialized", !underTest.isInitialized());
+    }
+
+    @Test
+    public void GIVEN_noKey_WHEN_init_THEN_initialized() {
+        state.obtainAccessToModel();
+        state.enqueueStatus(CLIENT_STATUS_POJO_NO_KEY);
+
+        underTest.init();
+
+        verify(controller, timeout(TIMEOUT).times(1)).setGoogleAuthKey(any());
+        verify(view, timeout(TIMEOUT).times(1)).displayImage(any(byte[].class), any());
         assertTrue("strategy should be initialized", underTest.isInitialized());
     }
 
     @Test
+    public void GIVEN_notInitialized_WHEN_checkChallenge_THEN_false() {
+        state.obtainAccessToModel();
+        state.enqueueStatus(CLIENT_STATUS_POJO_WITH_KEY);
+
+        assertTrue("not initialized should not pass check challenge", !underTest.checkChallenge("1"));
+    }
+
+    @Test
+    public void GIVEN_noStatus_WHEN_checkChallenge_THEN_false() {
+        GIVEN_noKey_WHEN_init_THEN_initialized();
+
+        state.obtainAccessToModel();
+        state.clear();
+        assertTrue("no status should not pass check challenge", !underTest.checkChallenge("1"));
+    }
+
+    @Test
+    public void GIVEN_noKey_WHEN_checkChallenge_THEN_false() {
+        GIVEN_noKey_WHEN_init_THEN_initialized();
+
+        state.obtainAccessToModel();
+        state.enqueueStatus(CLIENT_STATUS_POJO_NO_KEY);
+        assertTrue("no key should not pass check challenge", !underTest.checkChallenge("1"));
+    }
+
+    @Test
     public void GIVEN_initialized_WHEN_checkChallenge_THEN_success() {
-        doNothing().when(state).setGKey(any());
+        state.obtainAccessToModel();
+        state.enqueueStatus(CLIENT_STATUS_POJO_NO_KEY);
+
         underTest.init();
 
         // Capture the key generated.
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(state).setGKey(captor.capture());
+        verify(controller, timeout(TIMEOUT).times(1)).setGoogleAuthKey(captor.capture());
+        verify(view, timeout(TIMEOUT).times(1)).displayImage(any(byte[].class), any());
+        assertTrue("strategy should be initialized", underTest.isInitialized());
 
         GoogleAuthenticator gAuth = new GoogleAuthenticator();
         assertTrue("challenge should match key generated attempt",
@@ -63,8 +140,8 @@ public class GoogleAuthStrategyIntegrationTest {
 
     @Test
     public void GIVEN_alphaString_WHEN_checkChallenge_THEN_false() {
-        doNothing().when(state).setGKey(any());
-        underTest.init();
+        GIVEN_noKey_WHEN_init_THEN_initialized();
+
         assertTrue("alphabetical letters should not pass check challenge", !underTest.checkChallenge("hi"));
     }
 }

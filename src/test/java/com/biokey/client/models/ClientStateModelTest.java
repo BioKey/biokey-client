@@ -39,12 +39,12 @@ public class ClientStateModelTest {
             new ClientStatusPojo(
                     new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    "", "", 0);
+                    "", "", "", 0);
     private final ClientStatusPojo OTHER_CLIENT_STATUS_POJO =
             new ClientStatusPojo(
                     new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    "", "", 0);
+                    "", "", "", 0);
 
     private final AnalysisResultPojo ANALYSIS_RESULT_POJO = new AnalysisResultPojo(1, 0);
     private final AnalysisResultPojo OTHER_ANALYSIS_RESULT_POJO = new AnalysisResultPojo(1, 0);

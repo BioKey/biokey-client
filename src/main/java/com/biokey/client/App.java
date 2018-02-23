@@ -1,6 +1,7 @@
 package com.biokey.client;
 
 import com.biokey.client.constants.Credentials;
+import com.biokey.client.controllers.challenges.GoogleAuthStrategy;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.providers.AppProvider;
 import com.biokey.client.services.ClientInitService;
@@ -49,7 +50,5 @@ public class App {
         // Retrieve client state and load into program to get all services running.
         ClientInitService clientInitService = springContext.getBean(ClientInitService.class);
         clientInitService.retrieveClientState();
-
-        springContext.getBean(TrayFrameView.class);
     }
 }

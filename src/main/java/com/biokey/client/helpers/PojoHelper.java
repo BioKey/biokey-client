@@ -41,7 +41,8 @@ public class PojoHelper {
                 AuthConstants.AUTHENTICATED,
                 castToSecurityConstant(response.isLocked()),
                 token,
-                responseContainer.getPhoneNumber(),
+                (responseContainer.getPhoneNumber() == null) ? "" : responseContainer.getPhoneNumber(),
+                (responseContainer.getGoogleAuthKey() == null) ? "" : responseContainer.getGoogleAuthKey(),
                 System.currentTimeMillis());
     }
 
