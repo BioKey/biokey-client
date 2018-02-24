@@ -5,14 +5,15 @@ import lombok.Data;
 import lombok.NonNull;
 
 @Data
-public class TypingProfileContainerResponse {
+public class UserContainerResponse {
 
-    @JsonProperty("typingProfile")
-    @NonNull private final TypingProfileResponse typingProfile;
+    @JsonProperty("changeType")
+    @NonNull private final String changeType;
 
     @JsonProperty("phoneNumber")
     private final String phoneNumber;
 
     @JsonProperty("googleAuthKey")
     private final String googleAuthKey;
+
 }

@@ -1,20 +1,25 @@
 package com.biokey.client.services;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.retry.PredefinedRetryPolicies;
-import com.amazonaws.retry.RetryPolicy;
+import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.biokey.client.constants.AppConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.models.response.TypingProfileContainerResponse;
+import com.biokey.client.models.response.UserContainerResponse;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.AmazonSQSException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -32,11 +37,13 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
                     .withClientConfiguration(new ClientConfiguration().withRetryPolicy(PredefinedRetryPolicies.NO_RETRY_POLICY))
                     .withRegion(Regions.US_EAST_2).build();
     private Timer timer = new Timer(true);
+    private ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
     public ServerListenerService(ClientStateController controller, ClientStateModel state) {
         this.controller = controller;
         this.state = state;
+        mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
     }
 
     /**
@@ -84,10 +91,12 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
     private class DequeueTask extends TimerTask {
         public void run() {
             try {
-                List<Message> messages = sqs.receiveMessage(queueUrl).getMessages();
+                System.out.println("Getting messages...");
+                ReceiveMessageRequest req = new ReceiveMessageRequest(queueUrl).withMessageAttributeNames("All");
+                List<Message> messages = sqs.receiveMessage(req).getMessages();
+                System.out.println("Size: " + messages.size());
                 messages.forEach(message -> {
-                    System.out.println("Message read!");
-                    System.out.println(message);
+                    log(message);
                     process(message);
                 });
             }
@@ -99,8 +108,64 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
             }
         }
 
+        private void log (Message message) {
+            System.out.println("Message read!\nBody:");
+            System.out.print(message.getBody());
+            System.out.println("\nAttributes:");
+            message.getMessageAttributes().forEach((att, val) -> System.out.println(att + ": " + val.getStringValue()));
+        }
+
+        /**
+         * Read the message information and update the state accordingly.
+         *
+         * @param message The most recent message retrieved from the SQS server.
+         */
         private void process (Message message) {
-            // TODO: message processing logic
+            try {
+                String changeType = message.getMessageAttributes().get("ChangeType").getStringValue();
+                if (changeType.equals("TypingProfile")) {
+                    System.out.println("Change detected to the TypingProfile!");
+                    String dirtyMessage = message.getBody();
+                    String cleanMessage = cleanJson(dirtyMessage);
+                    TypingProfileContainerResponse res = mapper.readValue(cleanMessage, TypingProfileContainerResponse.class);
+                    // TODO: Save the received information
+                    // ...
+                }
+                else if (changeType.equals("User")) {
+                    System.out.println("Change detected to the User!");
+                    String dirtyMessage = message.getBody();
+                    String cleanMessage = cleanJson(dirtyMessage);
+                    UserContainerResponse res = mapper.readValue(cleanMessage, UserContainerResponse.class);
+                    System.out.println(res.getChangeType());
+                    // TODO: Save the received information
+                    // ...
+                }
+            }
+            catch (NullPointerException e) {
+                System.out.println("Attribute missing. Discarding message.");
+            }
+            catch (IOException e) {
+                System.out.println(e);
+                System.out.println("There was an error reading the message.");
+            }
+
+            // Delete the message
+            String messageHandle = message.getReceiptHandle();
+            sqs.deleteMessage(new DeleteMessageRequest(queueUrl, messageHandle));
+        }
+
+        /**
+         * Converts JSON to a parse-able format.
+         *
+         * @param json  The un-escaped JSON
+         * @return      The escaped JSON
+         */
+        private String cleanJson (String json) {
+            json = json.replace("\\", "");
+            json = json.replace("”", "\"");
+            json = json.replace("\"{", "{");
+            json = json.replace("}\"", "}");
+            return json;
         }
     }
 }
