@@ -34,7 +34,7 @@ public class ClientStateControllerIntegrationTest {
     // Tests rely on fake data to be hardcoded from the database.
 
     private CountDownLatch testCompleteFlag;
-    private final int TEST_TIMEOUT = 1000;
+    private final int TEST_TIMEOUT = 2000;
 
     private static final ClientStateModel.IClientStatusListener STATUS_LISTENER = (ClientStatusPojo oldStatus, ClientStatusPojo newStatus) -> {};
     private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
@@ -50,12 +50,12 @@ public class ClientStateControllerIntegrationTest {
             new ClientStatusPojo(
                     new TypingProfilePojo(TYPING_PROFILE_ID, MAC,"","",new float[] {}, new String[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    ACCESS_TOKEN, "", 0);
+                    ACCESS_TOKEN, "", "", 0);
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, Integer.MAX_VALUE);
     private static final KeyStrokePojo OLD_KEY_STROKE_POJO = new KeyStrokePojo('t', true, 0);
 
     @Spy
-    private static ClientStateModel state = new ClientStateModel();
+    private static ClientStateModel state = new ClientStateModel(Executors.newCachedThreadPool());
     private static ClientStateModel initialState;
 
     @Spy
@@ -84,7 +84,7 @@ public class ClientStateControllerIntegrationTest {
 
         try {
             // Set up initial state.
-            initialState = new ClientStateModel();
+            initialState = new ClientStateModel(Executors.newCachedThreadPool());
             initialState.obtainAccessToModel();
             initialState.enqueueStatus(CLIENT_STATUS_POJO);
 
@@ -117,8 +117,8 @@ public class ClientStateControllerIntegrationTest {
 
         underTest.sendKeyStrokes();
         verify(serverRequestExecutorHelper).submitPostRequest(any(), any(), any(), any(), any());
-        verify(state, timeout(500).times(2)).releaseAccessToModel();
-        verify(state, timeout(500).times(1)).dequeueSyncedKeyStrokes();
+        verify(state, timeout(TEST_TIMEOUT).times(2)).releaseAccessToModel();
+        verify(state, timeout(TEST_TIMEOUT).times(1)).dequeueSyncedKeyStrokes();
     }
 
     @Test
@@ -149,7 +149,6 @@ public class ClientStateControllerIntegrationTest {
     public void GIVEN_realCallToServer_WHEN_retrieveStatusFromServer_THEN_success() {
         underTest.retrieveStatusFromServer(MAC, ACCESS_TOKEN, (ResponseEntity<TypingProfileContainerResponse> response) -> {
             assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
-            System.out.println(response.getBody());
             testCompleteFlag.countDown();
         });
 
@@ -162,7 +161,6 @@ public class ClientStateControllerIntegrationTest {
     public void GIVEN_realCallToServerWithUnknownMAC_WHEN_retrieveStatusFromServer_THEN_success() {
         underTest.retrieveStatusFromServer(UNKNOWN_MAC, ACCESS_TOKEN, (ResponseEntity<TypingProfileContainerResponse> response) -> {
             assertTrue("should have received 200 response", response.getStatusCodeValue() == 200);
-            System.out.println(response.getBody());
             testCompleteFlag.countDown();
         });
 
@@ -247,7 +245,7 @@ public class ClientStateControllerIntegrationTest {
 
     @Test
     public void GIVEN_newModel_WHEN_passStateToModel_THEN_success() {
-        ClientStateModel newModel = new ClientStateModel();
+        ClientStateModel newModel = new ClientStateModel(Executors.newCachedThreadPool());
         try {
             newModel.obtainAccessToStatus();
             newModel.getCurrentStatus();
@@ -285,6 +283,17 @@ public class ClientStateControllerIntegrationTest {
         assertTrue("authStatus should be unauthenticated",
                 underTest.createStatusWithAuth(CLIENT_STATUS_POJO, AuthConstants.UNAUTHENTICATED)
                         .getAuthStatus().equals(AuthConstants.UNAUTHENTICATED));
+    }
+
+    @Test
+    public void GIVEN_googleAuthKey_WHEN_setGoogleAuthKey_THEN_success() {
+        underTest.setGoogleAuthKey(MAC);
+        try {
+            state.obtainAccessToStatus();
+            assertTrue("google auth key should be in model", state.getCurrentStatus().getGoogleAuthKey().equals(MAC));
+        } finally {
+            state.releaseAccessToStatus();
+        }
     }
 
 }

@@ -19,8 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriTemplate;
 
 import java.util.Deque;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import static com.biokey.client.constants.AppConstants.KEYSTROKE_TIME_INTERVAL_PER_WINDOW;
 
@@ -61,7 +59,7 @@ public class ClientStateController implements
             }
 
             serverRequestExecutorHelper.submitPostRequest(
-                    new UriTemplate(SERVER_NAME + HEARTBEAT_ENDPOINT).expand(id).toString(),
+                    new UriTemplate(SERVER_NAME + HEARTBEAT_POST_API_ENDPOINT).expand(id).toString(),
                     RequestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
                     "",
                     String.class,
@@ -160,7 +158,7 @@ public class ClientStateController implements
         try {
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
-                    new UriTemplate(SERVER_NAME + POST_TYPING_PROFILE_ENDPOINT).expand(mac).toString(),
+                    new UriTemplate(SERVER_NAME + TYPING_PROFILE_POST_API_ENDPOINT).expand(mac).toString(),
                     RequestBuilderHelper.headerMapWithToken(accessToken),
                     "{}", // TODO: make helper function for better form
                     TypingProfileContainerResponse.class,
@@ -219,6 +217,22 @@ public class ClientStateController implements
             state.notifyKeyQueueChange(keyStroke);
         } finally {
             state.releaseAccessToKeyStrokes();
+        }
+    }
+
+    /**
+     * Modify the model to include the new analysis result.
+     *
+     * @param analysisResult the analysis result to enqueue
+     */
+    public void enqueueAnalysisResult(@NonNull AnalysisResultPojo analysisResult) {
+        // First, make sure to get the lock.
+        state.obtainAccessToAnalysisResult();
+        try {
+            state.enqueueAnalysisResult(analysisResult);
+            state.notifyAnalysisResultQueueChange(analysisResult);
+        } finally {
+            state.obtainAccessToAnalysisResult();
         }
     }
 
@@ -293,7 +307,32 @@ public class ClientStateController implements
      */
     public ClientStatusPojo createStatusWithAuth(@NonNull ClientStatusPojo currentStatus, @NonNull AuthConstants newAuth) {
         return new ClientStatusPojo(currentStatus.getProfile(), newAuth, currentStatus.getSecurityStatus(),
-                currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), System.currentTimeMillis());
+                currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), currentStatus.getGoogleAuthKey(),
+                System.currentTimeMillis());
+    }
+
+    /**
+     * Modify the model with the new google Auth key.
+     *
+     * @param googleAuthKey the new google Auth key
+     */
+    public void setGoogleAuthKey(@NonNull String googleAuthKey) {
+        state.obtainAccessToStatus();
+        try {
+            // Check if there is a current status.
+            ClientStatusPojo currentStatus = state.getCurrentStatus();
+            if (currentStatus == null) {
+                log.error("Set google auth key called but no model was found.");
+                return;
+            }
+
+            // Enqueue but do not notify because no listeners will need to know about this change.
+            state.enqueueStatus(new ClientStatusPojo(currentStatus.getProfile(), currentStatus.getAuthStatus(),
+                    currentStatus.getSecurityStatus(), currentStatus.getAccessToken(),
+                    currentStatus.getPhoneNumber(), googleAuthKey, System.currentTimeMillis()));
+        } finally {
+            state.releaseAccessToStatus();
+        }
     }
 
     /**

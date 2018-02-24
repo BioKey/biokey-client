@@ -13,7 +13,7 @@ public class GoogleAuthFrameView {
 
         JFrame frame = new JFrame("Google Auth QR Code");
         frame.setContentPane(googleAuthPanel);
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
     }

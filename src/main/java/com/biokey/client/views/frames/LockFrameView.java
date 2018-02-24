@@ -47,6 +47,9 @@ public class LockFrameView {
      */
     public void addPanel(JPanel panel) {
         lockFrame.getContentPane().add(panel);
+        lockFrame.getContentPane().revalidate();
+        lockFrame.pack();
+        lockFrame.setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
     }
 
     /**

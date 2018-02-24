@@ -1,8 +1,11 @@
 package com.biokey.client;
 
+import com.biokey.client.constants.Credentials;
+import com.biokey.client.controllers.challenges.GoogleAuthStrategy;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.providers.AppProvider;
 import com.biokey.client.services.ClientInitService;
+import com.biokey.client.views.frames.TrayFrameView;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -21,7 +24,7 @@ public class App {
 
         ClientStateModel model = springContext.getBean(ClientStateModel.class);
 
-        //Set AWS credentials
+        // Set AWS credentials.
         Properties properties = System.getProperties();
         properties.setProperty("aws.accessKeyId", Credentials.AWS_ACCESS_KEY_ID);
         properties.setProperty("aws.secretKey", Credentials.AWS_SECRET_ACCESS_KEY);

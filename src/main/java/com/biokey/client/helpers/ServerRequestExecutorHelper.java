@@ -4,9 +4,11 @@ import lombok.NonNull;
 import org.apache.log4j.Logger;
 import org.springframework.http.*;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.ConnectException;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -56,8 +58,12 @@ public class ServerRequestExecutorHelper {
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
                 response = rt.exchange(url, HttpMethod.GET, requestEntity, responseTemplate);
-            } catch (RestClientException e) {
-                log.error("Exception when trying HTTP GET Request for: " + url, e);
+            } catch (ResourceAccessException e) {
+                log.debug("Client probably offline. Could not connect when trying HTTP POST Request for: " + url, e);
+                response = null;
+            } catch (HttpStatusCodeException e) {
+                log.debug("Exception when trying HTTP GET Request for: " + url, e);
+                response = (e.getStatusCode() == null) ? null : new ResponseEntity<>(e.getStatusCode());
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);
@@ -90,8 +96,12 @@ public class ServerRequestExecutorHelper {
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
                 response = rt.postForEntity(url, requestEntity, responseTemplate);
-            } catch (RestClientException e) {
-                log.error("Exception when trying HTTP POST Request for: " + url, e);
+            } catch (ResourceAccessException e) {
+                log.debug("Client probably offline. Could not connect when trying HTTP POST Request for: " + url, e);
+                response = null;
+            } catch (HttpStatusCodeException e) {
+                log.debug("Exception when trying HTTP POST Request for: " + url, e);
+                response = (e.getStatusCode() == null) ? null : new ResponseEntity<>(e.getStatusCode());
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);
@@ -124,8 +134,12 @@ public class ServerRequestExecutorHelper {
             try {
                 // Try getting a response in the form of responseTemplate from server represented by url.
                 response = rt.exchange(url, HttpMethod.PUT, requestEntity, responseTemplate);
-            } catch (RestClientException e) {
-                log.error("Exception when trying HTTP PUT Request for: " + url, e);
+            } catch (ResourceAccessException e) {
+                log.debug("Client probably offline. Could not connect when trying HTTP POST Request for: " + url, e);
+                response = null;
+            } catch (HttpStatusCodeException e) {
+                log.debug("Exception when trying HTTP PUT Request for: " + url, e);
+                response = (e.getStatusCode() == null) ? null : new ResponseEntity<>(e.getStatusCode());
             } finally {
                 // Even if there was an exception, handle the response.
                 handler.handleResponse(response);

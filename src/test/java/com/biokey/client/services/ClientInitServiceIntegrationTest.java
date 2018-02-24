@@ -34,7 +34,7 @@ public class ClientInitServiceIntegrationTest {
             new ClientStatusPojo(
                     new TypingProfilePojo("", "","","",new float[] {}, new String[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    "HELLO","", 777
+                    "HELLO","", "", 777
             );
 
     private static ClientStateModel state;

@@ -2,6 +2,8 @@ package com.biokey.client.providers;
 
 import com.biokey.client.views.frames.GoogleAuthFrameView;
 import com.biokey.client.views.frames.LockFrameView;
+import com.biokey.client.views.frames.TrayFrameView;
+import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
 import com.biokey.client.views.panels.GoogleAuthPanelView;
 import com.biokey.client.views.panels.LoginPanelView;
 import com.biokey.client.views.panels.TextMessagePanelView;
@@ -24,6 +26,11 @@ public class ViewProvider {
     }
 
     @Bean
+    public TrayFrameView trayMenu() {
+        return new TrayFrameView();
+    }
+
+    @Bean
     public LoginPanelView loginPanelView() {
         return new LoginPanelView();
     }
@@ -36,5 +43,10 @@ public class ViewProvider {
     @Bean
     public TextMessagePanelView textMessagePanelView() {
         return new TextMessagePanelView();
+    }
+
+    @Bean
+    public AnalysisResultTrayPanelView analysisResultTrayPanelView() {
+        return new AnalysisResultTrayPanelView();
     }
 }

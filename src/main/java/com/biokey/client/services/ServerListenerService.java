@@ -1,7 +1,10 @@
 package com.biokey.client.services;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.retry.PredefinedRetryPolicies;
+import com.amazonaws.retry.RetryPolicy;
 import com.amazonaws.services.sqs.model.Message;
 import com.biokey.client.constants.AppConstants;
 import com.biokey.client.controllers.ClientStateController;
@@ -24,7 +27,10 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
     private ClientStateController controller;
     private ClientStateModel state;
     private String queueUrl;
-    private AmazonSQS sqs = AmazonSQSClientBuilder.standard().withRegion(Regions.US_EAST_2).build();
+    private AmazonSQS sqs =
+            AmazonSQSClientBuilder.standard()
+                    .withClientConfiguration(new ClientConfiguration().withRetryPolicy(PredefinedRetryPolicies.NO_RETRY_POLICY))
+                    .withRegion(Regions.US_EAST_2).build();
     private Timer timer = new Timer(true);
 
     @Autowired
@@ -51,7 +57,7 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
         try {
             state.obtainAccessToStatus();
             queueUrl = state.getCurrentStatus().getProfile().getSqsEndpoint();
-            timer.scheduleAtFixedRate(new DequeueTask(), 0, AppConstants.SQS_LISTENER_PERIOD);
+            timer.schedule(new DequeueTask(), AppConstants.SQS_LISTENER_PERIOD);
             state.releaseAccessToStatus();
             return true;
         } catch (IllegalStateException e) {
@@ -76,7 +82,6 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
      * Scheduled as a TimerTask.
      */
     private class DequeueTask extends TimerTask {
-
         public void run() {
             try {
                 List<Message> messages = sqs.receiveMessage(queueUrl).getMessages();
@@ -89,8 +94,9 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
             catch (AmazonSQSException e){
                 System.out.println("SQS Error");
                 System.out.println(e);
+            } finally {
+                timer.schedule(new DequeueTask(), AppConstants.SQS_LISTENER_PERIOD);
             }
-            return;
         }
 
         private void process (Message message) {
