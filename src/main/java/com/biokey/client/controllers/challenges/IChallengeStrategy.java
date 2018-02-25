@@ -19,6 +19,13 @@ public interface IChallengeStrategy extends Serializable {
     void init();
 
     /**
+     * Get whether this challenge strategy has been initialized.
+     *
+     * @return true if the challenge strategy is initialized
+     */
+    boolean isInitialized();
+
+    /**
      * Ask the challenge strategy to issue the challenge.
      *
      * @return true if the challenge was successfully issued
@@ -33,7 +40,12 @@ public interface IChallengeStrategy extends Serializable {
     boolean checkChallenge(String attempt);
 
     /**
-     * Return the string representation that is consistent with the server.
+     * @return the string representation that is consistent with the server.
      */
     String getServerRepresentation();
+
+    /**
+     * @return the string representation of any custom information the challenge should expose to the user.
+     */
+    String getCustomInformationText();
 }

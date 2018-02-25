@@ -1,26 +1,106 @@
 package com.biokey.client.services;
 
+import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.controllers.challenges.IChallengeStrategy;
+import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.views.frames.LockFrameView;
+import com.biokey.client.views.panels.LockedPanelView;
+import com.biokey.client.views.panels.challenges.ChallengeOptionPanelView;
+import com.biokey.client.views.panels.challenges.ChallengePanelView;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.awt.event.ActionEvent;
+import java.util.Map;
+
+import static com.biokey.client.constants.AppConstants.DEFAULT_THRESHOLD;
+import static com.biokey.client.constants.AppConstants.MAX_CHALLENGE_ATTEMPTS;
 
 /**
  * Service that responds to changes in client status and locks or unlocks the OS accordingly.
  */
 public class ChallengeService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientAnalysisListener {
 
+    private static Logger log = Logger.getLogger(ChallengeService.class);
+
     private ClientStateController controller;
     private ClientStateModel state;
+    private LockFrameView lockFrame;
+    private ChallengeOptionPanelView optionView;
+    private LockedPanelView lockPanel;
+    private Map<String, IChallengeStrategy> strategies;
+    private Map<IChallengeStrategy, ChallengePanelView> strategyViewPairs;
+
+    private int remainingAttempts = MAX_CHALLENGE_ATTEMPTS;
 
     @Autowired
-    public ChallengeService(ClientStateController controller, ClientStateModel state) {
+    public ChallengeService(
+            ClientStateController controller, ClientStateModel state,
+            LockFrameView lockFrameView, ChallengeOptionPanelView challengeOptionPanelView, LockedPanelView lockPanel,
+            Map<String, IChallengeStrategy> strategies, Map<IChallengeStrategy, ChallengePanelView> strategyViewPairs) {
+
         this.controller = controller;
         this.state = state;
+        this.strategies = strategies;
+        this.strategyViewPairs = strategyViewPairs;
+        this.lockFrame = lockFrameView;
+        this.optionView = challengeOptionPanelView;
+        this.lockPanel = lockPanel;
+
+        // Define relationship between strategy and view.
+        for (IChallengeStrategy strategy : strategyViewPairs.keySet()) {
+            ChallengePanelView view = strategyViewPairs.get(strategy);
+
+            // Add the following actions.
+            view.addSendAction((ActionEvent aE) -> {
+                if (remainingAttempts <= 0) return;
+                view.setEnableSend(false);
+                view.setEnableResend(true);
+                strategy.issueChallenge();
+            });
+            view.addResendAction((ActionEvent aE) -> {
+                if (remainingAttempts <= 0) return;
+                strategy.issueChallenge();
+            });
+            view.addSubmitAction((ActionEvent aE) -> {
+                state.obtainAccessToStatus();
+                try {
+                    ClientStatusPojo currentStatus = state.getCurrentStatus();
+                    if (currentStatus == null) {
+                        // If for some reason it is null, there is a big problem, let another service handle it.
+                        log.error("No model detected in the middle of challenge.");
+                        return;
+                    }
+
+                    // Clear code and decrement attempts.
+                    remainingAttempts--;
+
+                    // Check if attempt was good.
+                    if (strategy.checkChallenge(view.getCode())) {
+                        // Passed, enqueue UNLOCKED status.
+                        controller.enqueueStatus(controller.createStatusWithSecurity(currentStatus, SecurityConstants.UNLOCKED));
+                    } else if (remainingAttempts <= 0) {
+                        // Failed too many times, enqueue LOCKED status.
+                        controller.enqueueStatus(controller.createStatusWithSecurity(currentStatus, SecurityConstants.LOCKED));
+                    } else {
+                        // Failed, so let the user know.
+                        view.setInformationText("Hmmm... not what we were expecting. You have " + remainingAttempts + " attempts left.");
+                    }
+                } finally {
+                    view.clearCode();
+                    state.releaseAccessToStatus();
+                }
+            });
+            view.addAltAction((ActionEvent aE) -> {
+                lockFrameView.removeAllPanels();
+                lockFrameView.addPanel(optionView.getChallengeOptionPanel());
+            });
+        }
     }
 
     /**
@@ -28,26 +108,28 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
      * to challenge the user and a flag for whether the locker should lock or unlock.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+        SecurityConstants oldLockedStatus = (oldStatus == null) ? null : oldStatus.getSecurityStatus();
+        SecurityConstants newLockedStatus = (newStatus == null) ? null : newStatus.getSecurityStatus();
 
-        // TODO: needs more thought on different cases
-        /*
-         * If the client has been newly challenged, issue a challenge.
-         * If the client has failed the challenge, lock the OS.
-         * If the client state is newly 'unlocked', unlock the OS.
-         */
-        /*
-        if(oldStatus.getSecurityStatus() != newStatus.getSecurityStatus()) {
-            if(newStatus.getSecurityStatus() == SecurityConstants.CHALLENGE) {
-                issueChallenges();
-            }
-            if(newStatus.getSecurityStatus() == SecurityConstants.LOCKED) {
-                lock();
-            }
-            if(newStatus.getSecurityStatus() == SecurityConstants.UNLOCKED) {
-                unlock();
+        // First, init the challenge services.
+        if (newStatus != null) {
+            IChallengeStrategy[] challengeStrategies =
+                    PojoHelper.castToChallengeStrategy(strategies, newStatus.getProfile().getAcceptedChallengeStrategies());
+            if (challengeStrategies != null) {
+                for (IChallengeStrategy strategy : challengeStrategies) strategy.init();
             }
         }
-        */
+
+        // Second, check if we should show or hide challenge panels.
+        if (oldLockedStatus != newLockedStatus && newLockedStatus == SecurityConstants.CHALLENGE) issueChallenges();
+        else if (oldLockedStatus != newLockedStatus && newLockedStatus != null) hideChallenges();
+
+        // Third, check if we should lock.
+        if (oldLockedStatus != newLockedStatus && newLockedStatus == SecurityConstants.UNLOCKED) lockFrame.unlock();
+        else if (oldLockedStatus != newLockedStatus && newLockedStatus != null) {
+            lockFrame.lock();
+            if (newLockedStatus == SecurityConstants.LOCKED) lockFrame.addPanel(lockPanel.getLockedPanel());
+        }
     }
 
     /**
@@ -55,26 +137,88 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
      * client's authentication, and the locker will decide whether a state change is necessary.
      */
     public void analysisResultQueueChanged(AnalysisResultPojo newResult) {
-        //TODO: Implement analysisResultQueueChanged()
-        return;
+        state.obtainAccessToStatus();
+        try {
+            // Check first if the result and model is present.
+            if (newResult == null || state.getCurrentStatus() == null) return;
+
+            // Get the threshold.
+            float[] thresholds = state.getCurrentStatus().getProfile().getThreshold();
+            float threshold = (thresholds.length > 0) ? thresholds[0] : DEFAULT_THRESHOLD;
+
+            // If newResult does not meet the threshold then issueChallenges.
+            // TODO: How the threshold works is largely up to the analysis engine.
+            if (newResult.getProbability() < threshold) {
+                state.obtainAccessToStatus();
+                try {
+                    ClientStatusPojo currentStatus = state.getCurrentStatus();
+                    if (currentStatus == null) {
+                        // If for some reason it is null, there is a big problem, let another service handle it.
+                        log.error("No model detected when analysis is being run.");
+                        return;
+                    }
+                    controller.enqueueStatus(controller.createStatusWithSecurity(currentStatus, SecurityConstants.CHALLENGE));
+                } finally {
+                    state.releaseAccessToStatus();
+                }
+            }
+        } finally {
+            state.releaseAccessToStatus();
+        }
     }
 
     /**
      * Issues the challenges based on accepted strategies and notify client state of the result.
      */
     private void issueChallenges() {
-        // TODO: set visible, show user the phone number...
-        /**
-        view.addSendAction((ActionEvent aE) -> {
-            try {
-                password = sendPassword();
-            } catch (IChallengeStrategy.ChallengeException e) {
-                log.error("Text Message Challenge: send message failed.", e);
-                this.view.setInformationText("Failed to send text message. Please contact administrator.");
+        // First clear the optionView and add it to the lock frame.
+        optionView.clearOptions();
+        lockFrame.addPanel(optionView.getChallengeOptionPanel());
+
+        // Reset the number of attempts.
+        remainingAttempts = MAX_CHALLENGE_ATTEMPTS;
+
+        state.obtainAccessToStatus();
+        try {
+            IChallengeStrategy[] challengeStrategies =
+                    PojoHelper.castToChallengeStrategy(strategies, state.getCurrentStatus().getProfile().getAcceptedChallengeStrategies());
+            if (challengeStrategies != null) {
+                for (IChallengeStrategy strategy : challengeStrategies) {
+                    // Reset every strategy's view.
+                    strategyViewReset(strategy);
+
+                    // Add each strategy as an option to the option view.
+                    optionView.addOption(strategy.getServerRepresentation(), (ActionEvent aE) -> {
+                        // If the strategy was clicked, then hide the option view and show the strategy specific view.
+                        lockFrame.removePanel(optionView.getChallengeOptionPanel());
+                        lockFrame.addPanel(strategyViewPairs.get(strategy).getChallengePanel());
+                    });
+                }
             }
-        });
-         */
-        return;
+        } finally {
+            state.releaseAccessToStatus();
+        }
     }
 
+    /**
+     * Hides the challenges.
+     */
+    private void hideChallenges() {
+        lockFrame.removeAllPanels();
+    }
+
+    /**
+     * Reset the view associated with a strategy.
+     *
+     * @param strategy the strategy whose view is reset
+     */
+    private void strategyViewReset(IChallengeStrategy strategy) {
+        ChallengePanelView view = strategyViewPairs.get(strategy);
+        view.setEnableSend(true);
+        view.setEnableResend(false);
+        view.setEnableAlt(true);
+        view.setEnableSubmit(true);
+        view.setInformationText(strategy.getCustomInformationText());
+        view.clearCode();
+    }
 }

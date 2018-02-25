@@ -22,7 +22,7 @@ public class TextMessageStrategyTest {
             new ClientStatusPojo(
                     new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
-                    "", "+16476688628", "", 0);
+                    "", "", "", 0);
 
     @Mock
     private ClientStateModel state;

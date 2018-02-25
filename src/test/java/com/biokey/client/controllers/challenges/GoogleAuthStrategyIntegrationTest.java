@@ -7,9 +7,8 @@ import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
-import com.biokey.client.views.frames.GoogleAuthFrameView;
+import com.biokey.client.views.frames.GoogleAuthQRFrameView;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,7 +44,7 @@ public class GoogleAuthStrategyIntegrationTest {
     @Spy
     private final ServerRequestExecutorHelper helper = new ServerRequestExecutorHelper(Executors.newCachedThreadPool());
     @Mock
-    private GoogleAuthFrameView view;
+    private GoogleAuthQRFrameView view;
 
     private GoogleAuthStrategy underTest;
 
@@ -129,8 +128,6 @@ public class GoogleAuthStrategyIntegrationTest {
         // Capture the key generated.
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(controller, timeout(TIMEOUT).times(1)).setGoogleAuthKey(captor.capture());
-        verify(view, timeout(TIMEOUT).times(1)).displayImage(any(byte[].class), any());
-        assertTrue("strategy should be initialized", underTest.isInitialized());
 
         GoogleAuthenticator gAuth = new GoogleAuthenticator();
         assertTrue("challenge should match key generated attempt",

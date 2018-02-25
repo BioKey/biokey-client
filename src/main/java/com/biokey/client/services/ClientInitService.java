@@ -228,6 +228,13 @@ public class ClientInitService implements
      * @param state the model to save to preferences
      */
     public static void saveToPreferences(ClientStateModel state) {
+        // Clear save to Preferences.
+        try {
+            prefs.clear();
+        } catch (BackingStoreException e) {
+            log.error("Caught BackingStoreException when trying to clear saved Preferences", e);
+        }
+
         byte[] stateBytes = SerializationUtils.serialize(state);
         int blocks = 0;
         while (blocks * Preferences.MAX_VALUE_LENGTH * 3 / 4 < stateBytes.length) {
@@ -248,7 +255,7 @@ public class ClientInitService implements
                 sendHeartBeat();
             }
         };
-        heartbeatTimer.schedule(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS);
+        heartbeatTimer.scheduleAtFixedRate(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS, AppConstants.TIME_BETWEEN_HEARTBEATS);
     }
 
     /**
@@ -331,6 +338,7 @@ public class ClientInitService implements
                             }
                         };
                         loginTimer.schedule(callNextLogin, AppConstants.TIME_BETWEEN_HEARTBEATS);
+                        return;
                     }
 
                     // If there is another error then just send user to login.
@@ -378,7 +386,7 @@ public class ClientInitService implements
                 log.debug("Successfully retrieved typing profile: " + response);
                 // If this succeeded, we can remove the frame.
                 lockFrameView.unlock();
-                lockFrameView.hidePanel(loginPanelView.getLoginPanel());
+                lockFrameView.removePanel(loginPanelView.getLoginPanel());
 
                 // Enqueue the response as the new status.
                 ClientStatusPojo newStatus = PojoHelper.castToClientStatus(response.getBody(), token);
@@ -420,7 +428,7 @@ public class ClientInitService implements
      * @return true if the lock was successfully completed
      */
     private boolean lockLocalSave() {
-        // TODO: Implement lockLocalSave()
+        // TODO: Implement lockLocalSave(), prevent non-admin user from killing this process and prevent local file deletion.
         return false;
     }
 }

@@ -286,6 +286,13 @@ public class ClientStateControllerIntegrationTest {
     }
 
     @Test
+    public void GIVEN_securityStatus_WHEN_createStatusWithSecurity_THEN_success() {
+        assertTrue("securityStatus should be challenge",
+                underTest.createStatusWithSecurity(CLIENT_STATUS_POJO, SecurityConstants.CHALLENGE)
+                        .getSecurityStatus().equals(SecurityConstants.CHALLENGE));
+    }
+
+    @Test
     public void GIVEN_googleAuthKey_WHEN_setGoogleAuthKey_THEN_success() {
         underTest.setGoogleAuthKey(MAC);
         try {

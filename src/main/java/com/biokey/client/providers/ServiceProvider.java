@@ -1,26 +1,37 @@
 package com.biokey.client.providers;
 
 import com.biokey.client.controllers.ClientStateController;
+import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.services.*;
 import com.biokey.client.views.frames.LockFrameView;
 import com.biokey.client.views.frames.TrayFrameView;
 import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
+import com.biokey.client.views.panels.LockedPanelView;
+import com.biokey.client.views.panels.challenges.ChallengeOptionPanelView;
+import com.biokey.client.views.panels.challenges.ChallengePanelView;
 import com.biokey.client.views.panels.LoginPanelView;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+import javax.annotation.Resource;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Configuration class that provides the singleton instances of the services that are BioKey client's backbone.
  */
 @Configuration
-@Import({ClientStateProvider.class, ViewProvider.class})
+@Import({ClientStateProvider.class, ViewProvider.class, ChallengeProvider.class})
 public class ServiceProvider {
+
+    @Resource(name="allSupportedStrategies")
+    private Map<String, IChallengeStrategy> allSupportedStrategies;
+    @Resource(name="strategyViewPairs")
+    private Map<IChallengeStrategy, ChallengePanelView> strategyViewPairs;
 
     @Bean
     @Autowired
@@ -48,8 +59,12 @@ public class ServiceProvider {
 
     @Bean
     @Autowired
-    public ChallengeService lockerService(ClientStateController clientStateController, ClientStateModel clientStateModel) {
-        return new ChallengeService(clientStateController, clientStateModel);
+    public ChallengeService challengeService(
+            ClientStateController clientStateController, ClientStateModel clientStateModel,
+            LockFrameView lockFrameView, ChallengeOptionPanelView challengeOptionPanelView, LockedPanelView lockedPanelView) {
+
+        return new ChallengeService(clientStateController, clientStateModel,
+                lockFrameView, challengeOptionPanelView, lockedPanelView, allSupportedStrategies, strategyViewPairs);
     }
 
     @Bean
@@ -61,15 +76,16 @@ public class ServiceProvider {
     @Bean
     @Autowired
     public Set<ClientStateModel.IClientStatusListener> statusListeners(
-            ClientStateController clientStateController, ClientStateModel clientStateModel, LockFrameView lockFrameView,
-            LoginPanelView loginPanelView, TrayFrameView trayFrameView, AnalysisResultTrayPanelView analysisResultTrayPanelView) {
+            ClientInitService clientInitService, AnalysisEngineService analysisEngineService,
+            KeyloggerDaemonService keyloggerDaemonService, ChallengeService challengeService,
+            ServerListenerService serverListenerService, ClientStateController clientStateController) {
 
         Set<ClientStateModel.IClientStatusListener> serviceStatusListeners = new HashSet<>();
-        serviceStatusListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView, trayFrameView));
-        serviceStatusListeners.add(analysisEngineService(clientStateController, trayFrameView, analysisResultTrayPanelView));
-        serviceStatusListeners.add(keyloggerDaemonService(clientStateController));
-        serviceStatusListeners.add(lockerService(clientStateController, clientStateModel));
-        serviceStatusListeners.add(serverListenerService(clientStateController, clientStateModel));
+        serviceStatusListeners.add(clientInitService);
+        serviceStatusListeners.add(analysisEngineService);
+        serviceStatusListeners.add(keyloggerDaemonService);
+        serviceStatusListeners.add(challengeService);
+        serviceStatusListeners.add(serverListenerService);
         serviceStatusListeners.add(clientStateController);
 
         return serviceStatusListeners;
@@ -78,12 +94,12 @@ public class ServiceProvider {
     @Bean
     @Autowired
     public Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners(
-            ClientStateController clientStateController, ClientStateModel clientStateModel,
-            LockFrameView lockFrameView, LoginPanelView loginPanelView, TrayFrameView trayFrameView) {
+            ClientInitService clientInitService, ChallengeService challengeService,
+            ClientStateController clientStateController) {
 
         Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners = new HashSet<>();
-        analysisQueueListeners.add(lockerService(clientStateController, clientStateModel));
-        analysisQueueListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView, trayFrameView));
+        analysisQueueListeners.add(challengeService);
+        analysisQueueListeners.add(clientInitService);
         analysisQueueListeners.add(clientStateController);
 
         return analysisQueueListeners;
@@ -92,12 +108,12 @@ public class ServiceProvider {
     @Bean
     @Autowired
     public Set<ClientStateModel.IClientKeyListener> keyQueueListeners(
-            ClientStateController clientStateController, ClientStateModel clientStateModel, LockFrameView lockFrameView,
-            LoginPanelView loginPanelView, TrayFrameView trayFrameView, AnalysisResultTrayPanelView analysisResultTrayPanelView) {
+            ClientInitService clientInitService, AnalysisEngineService analysisEngineService,
+            ClientStateController clientStateController) {
 
         Set<ClientStateModel.IClientKeyListener> keyQueueListeners = new HashSet<>();
-        keyQueueListeners.add(analysisEngineService(clientStateController, trayFrameView, analysisResultTrayPanelView));
-        keyQueueListeners.add(clientInitService(clientStateController, clientStateModel, lockFrameView, loginPanelView, trayFrameView));
+        keyQueueListeners.add(analysisEngineService);
+        keyQueueListeners.add(clientInitService);
         keyQueueListeners.add(clientStateController);
 
         return keyQueueListeners;

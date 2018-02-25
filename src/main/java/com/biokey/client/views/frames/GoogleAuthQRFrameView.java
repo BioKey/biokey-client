@@ -2,7 +2,7 @@ package com.biokey.client.views.frames;
 
 import javax.swing.*;
 
-public class GoogleAuthFrameView {
+public class GoogleAuthQRFrameView {
 
     private JLabel imageLabel;
     private JPanel googleAuthPanel;

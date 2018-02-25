@@ -71,7 +71,8 @@ public class PojoHelper {
 
         List<IChallengeStrategy> acceptedStrategies = new ArrayList<>();
         for (String strategy : challengeStrategies) {
-            if (strategies.containsKey(strategy)) {
+            // Check if strategy is in the master list and not yet in the accepted list.
+            if (strategies.containsKey(strategy) && !acceptedStrategies.contains(strategies.get(strategy))) {
                 acceptedStrategies.add(strategies.get(strategy));
             }
         }

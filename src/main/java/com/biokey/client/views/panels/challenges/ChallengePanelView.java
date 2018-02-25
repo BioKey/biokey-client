@@ -1,82 +1,79 @@
-package com.biokey.client.views.panels;
+package com.biokey.client.views.panels.challenges;
 
-import lombok.Getter;
-
-import javax.swing.*;
+import javax.swing.JPanel;
 import java.awt.event.ActionListener;
 
-public class GoogleAuthPanelView {
+public interface ChallengePanelView {
 
-    private JTextField code;
-    private JButton submitButton;
-    private JButton resendButton;
-    private JButton altButton;
-    private JLabel informationLabel;
-
-    @Getter private JPanel googleAuthPanel;
-
+    /**
+     * Getter method for the panel.
+     *
+     * @return the panel
+     */
+    JPanel getChallengePanel();
 
     /**
      * Getter method for the string representation of the user's typed code.
      * @return the string representation of the user's typed code
      */
-    public String getCode() {
-        return code.getText();
-    }
+    String getCode();
+
+    /**
+     * Setter method to add a new action listener to the send button.
+     * @param l the action listener added to the send button
+     */
+    void addSendAction(ActionListener l);
 
     /**
      * Setter method to add a new action listener to the submit button.
      * @param l the action listener added to the submit button
      */
-    public void addSubmitAction(ActionListener l) {
-        submitButton.addActionListener(l);
-    }
+    void addSubmitAction(ActionListener l);
 
     /**
      * Setter method to add a new action listener to the resend button.
      * @param l the action listener added to the resend button
      */
-    public void addResendAction(ActionListener l) {
-        resendButton.addActionListener(l);
-    }
+    void addResendAction(ActionListener l);
 
     /**
      * Setter method to add a new action listener to the alt strategy button.
      * @param l the action listener added to the alt strategy button
      */
-    public void addAltAction(ActionListener l) {
-        altButton.addActionListener(l);
-    }
+    void addAltAction(ActionListener l);
+
+    /**
+     * Setter method to change the enabled status of the send button.
+     * @param enable true if the button should be enabled
+     */
+    void setEnableSend(boolean enable);
 
     /**
      * Setter method to change the enabled status of the submit button.
      * @param enable true if the button should be enabled
      */
-    public void setEnableSubmit(boolean enable) {
-        submitButton.setEnabled(enable);
-    }
+    void setEnableSubmit(boolean enable);
 
     /**
      * Setter method to change the enabled status of the resend button.
      * @param enable true if the button should be enabled
      */
-    public void setEnableResend(boolean enable) {
-        resendButton.setEnabled(enable);
-    }
+    void setEnableResend(boolean enable);
 
     /**
      * Setter method to change the enabled status of the alt strategy button.
      * @param enable true if the button should be enabled
      */
-    public void setEnableAlt(boolean enable) {
-        altButton.setEnabled(enable);
-    }
+    void setEnableAlt(boolean enable);
 
     /**
      * Setter method to display text to the user.
      * @param newInfo the new text to display
      */
-    public void setInformationText(String newInfo) {
-        informationLabel.setText(newInfo);
-    }
+    void setInformationText(String newInfo);
+
+    /**
+     * Clears the code.
+     */
+    void clearCode();
 }

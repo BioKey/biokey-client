@@ -57,7 +57,7 @@ public class LocalSaveUtil extends JFrame {
         try {
             fromMemory = ClientInitService.retrieveFromPreferences();
         } catch (Exception e) {
-            informationTextArea.setText("Could not retrieve from Preferences. " + e.toString());
+            informationTextArea.setText("Could not retrieve from Preferences. Have you logged in before?\n" + e.toString());
             clearTextFields();
             return;
         }
