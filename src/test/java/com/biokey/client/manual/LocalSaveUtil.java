@@ -8,6 +8,7 @@ import com.biokey.client.models.pojo.ClientStatusPojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.services.ClientInitService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -39,6 +40,7 @@ public class LocalSaveUtil extends JFrame {
     private JButton clearButton;
     private JTextArea informationTextArea;
     private JPanel saveUtilPanel;
+    private JTextArea jsonTextArea;
 
 
     private LocalSaveUtil() {
@@ -63,6 +65,10 @@ public class LocalSaveUtil extends JFrame {
         }
 
         fromMemory.obtainAccessToModel();
+
+        try { jsonTextArea.setText(new ObjectMapper().writeValueAsString(fromMemory)); }
+        catch (Exception e) { jsonTextArea.setText(""); }
+
         try { idTextField.setText(fromMemory.getCurrentStatus().getProfile().getId()); }
         catch (Exception e) { idTextField.setText(""); }
 
