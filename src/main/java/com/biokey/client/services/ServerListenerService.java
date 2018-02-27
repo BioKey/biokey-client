@@ -40,6 +40,7 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
                     .withRegion(Regions.US_EAST_2).build();
     private Timer timer = new Timer(true);
     private ObjectMapper mapper = new ObjectMapper();
+    private boolean isStarted = false;
 
     @Autowired
     public ServerListenerService(ClientStateController controller, ClientStateModel c_state) {
@@ -53,8 +54,8 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
      * The status will contain a flag for whether the service should be running.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-        // TODO: Implement status changed
-        start();
+        if (newStatus != null) start();
+        else stop();
     }
 
     /**
@@ -63,11 +64,13 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
      * @return true if server listener successfully started
      */
     private boolean start() {
+        if (isStarted) return true;
         try {
             clientState.obtainAccessToStatus();
             queueUrl = clientState.getCurrentStatus().getProfile().getSqsEndpoint();
             timer.schedule(new DequeueTask(), AppConstants.SQS_LISTENER_PERIOD);
             clientState.releaseAccessToStatus();
+            isStarted = true;
             return true;
         } catch (IllegalStateException e) {
             System.out.println("Timer error");
@@ -83,6 +86,8 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
      */
     private boolean stop() {
         timer.cancel();
+        timer = new Timer();
+        isStarted = false;
         return true;
     }
 
