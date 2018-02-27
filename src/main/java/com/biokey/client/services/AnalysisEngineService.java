@@ -46,6 +46,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 float newAnalysisResult = Float.parseFloat(frame.analysisResultTextField.getText());
                 controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), newAnalysisResult));
                 analysisResultTrayPanelView.setAnalysisResultText(newAnalysisResult);
+                frame.analysisResultTextField.setText("");
             } catch (Exception e) {
                 frame.informationLabel.setText("Invalid analysis result.");
             }
@@ -60,7 +61,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      * on the analysis model to run through the typing profile.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-        if (newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
+        if (newStatus != null && newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
         else stop();
     }
 
@@ -94,16 +95,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      */
     private void analyze() {
         if (!isRunning) return;
-        Runnable r = () -> {
-            // TODO: delete once the fake is no longer needed.
-            try {
-                frame.informationLabel.setText("analyze() was called.");
-                Thread.sleep(500);
-            } catch (Exception e) {
-                frame.informationLabel.setText("");
-            }
-            frame.informationLabel.setText("");
-        };
-        r.run();
+        // TODO: delete once the fake is no longer needed.
+        frame.informationLabel.setText("analyze() was called.");
     }
 }

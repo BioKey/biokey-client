@@ -6,9 +6,8 @@ import com.biokey.client.controllers.challenges.IChallengeStrategy;
 import com.biokey.client.controllers.challenges.TextMessageStrategy;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
-import com.biokey.client.views.frames.GoogleAuthFrameView;
-import com.biokey.client.views.panels.GoogleAuthPanelView;
-import com.biokey.client.views.panels.TextMessagePanelView;
+import com.biokey.client.views.frames.GoogleAuthQRFrameView;
+import com.biokey.client.views.panels.challenges.ChallengePanelView;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,9 +26,9 @@ public class ChallengeProvider {
     @Autowired
     public GoogleAuthStrategy googleAuthStrategy(
             ClientStateModel clientStateModel, ClientStateController clientStateController,
-            ServerRequestExecutorHelper serverRequestExecutorHelper, GoogleAuthFrameView googleAuthFrameView) {
+            ServerRequestExecutorHelper serverRequestExecutorHelper, GoogleAuthQRFrameView googleAuthQRFrameView) {
 
-        return new GoogleAuthStrategy(clientStateModel, clientStateController, serverRequestExecutorHelper, googleAuthFrameView);
+        return new GoogleAuthStrategy(clientStateModel, clientStateController, serverRequestExecutorHelper, googleAuthQRFrameView);
     }
 
     @Bean
@@ -38,20 +37,28 @@ public class ChallengeProvider {
         return new TextMessageStrategy(clientStateModel);
     }
 
-    @Bean
+    @Bean(name="allSupportedStrategies")
     @Autowired
-    public Map<String, IChallengeStrategy> allSupportedAuthStrategies(
-            ClientStateModel clientStateModel, ClientStateController clientStateController,
-            ServerRequestExecutorHelper serverRequestExecutorHelper, GoogleAuthFrameView googleAuthFrameView) {
-
-        GoogleAuthStrategy googleAuthStrategy = googleAuthStrategy(clientStateModel, clientStateController, serverRequestExecutorHelper, googleAuthFrameView);
-        TextMessageStrategy textMessageStrategy = textMessageStrategy(clientStateModel);
-
+    public Map<String, IChallengeStrategy> allSupportedStrategies(GoogleAuthStrategy googleAuthStrategy,
+                                                                  TextMessageStrategy textMessageStrategy) {
         Map<String, IChallengeStrategy> strategies = new HashMap<>();
         strategies.put(googleAuthStrategy.getServerRepresentation(), googleAuthStrategy);
         strategies.put(textMessageStrategy.getServerRepresentation(), textMessageStrategy);
 
         return strategies;
+    }
+
+    @Bean(name="strategyViewPairs")
+    @Autowired
+    public Map<IChallengeStrategy, ChallengePanelView> strategyViewPairs(
+            GoogleAuthStrategy googleAuthStrategy, TextMessageStrategy textMessageStrategy,
+            ChallengePanelView googleAuthPanelView, ChallengePanelView textMessagePanelView) {
+
+        Map<IChallengeStrategy, ChallengePanelView> pairs = new HashMap<>();
+        pairs.put(googleAuthStrategy, googleAuthPanelView);
+        pairs.put(textMessageStrategy, textMessagePanelView);
+
+        return pairs;
     }
 
 }

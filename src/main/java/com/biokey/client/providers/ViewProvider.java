@@ -1,12 +1,15 @@
 package com.biokey.client.providers;
 
-import com.biokey.client.views.frames.GoogleAuthFrameView;
+import com.biokey.client.views.frames.GoogleAuthQRFrameView;
 import com.biokey.client.views.frames.LockFrameView;
 import com.biokey.client.views.frames.TrayFrameView;
 import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
-import com.biokey.client.views.panels.GoogleAuthPanelView;
+import com.biokey.client.views.panels.LockedPanelView;
+import com.biokey.client.views.panels.challenges.ChallengeOptionPanelView;
+import com.biokey.client.views.panels.challenges.ChallengePanelView;
 import com.biokey.client.views.panels.LoginPanelView;
-import com.biokey.client.views.panels.TextMessagePanelView;
+import com.biokey.client.views.panels.challenges.GoogleAuthChallengePanelView;
+import com.biokey.client.views.panels.challenges.TextMessageChallengePanelView;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,8 +24,8 @@ public class ViewProvider {
     }
 
     @Bean
-    public GoogleAuthFrameView googleAuthFrameView() {
-        return new GoogleAuthFrameView();
+    public GoogleAuthQRFrameView googleAuthFrameView() {
+        return new GoogleAuthQRFrameView();
     }
 
     @Bean
@@ -36,17 +39,27 @@ public class ViewProvider {
     }
 
     @Bean
-    public GoogleAuthPanelView googleAuthPanelView() {
-        return new GoogleAuthPanelView();
+    public ChallengePanelView googleAuthPanelView() {
+        return new GoogleAuthChallengePanelView();
     }
 
     @Bean
-    public TextMessagePanelView textMessagePanelView() {
-        return new TextMessagePanelView();
+    public ChallengePanelView textMessagePanelView() {
+        return new TextMessageChallengePanelView();
     }
 
     @Bean
     public AnalysisResultTrayPanelView analysisResultTrayPanelView() {
         return new AnalysisResultTrayPanelView();
+    }
+
+    @Bean
+    public ChallengeOptionPanelView challengeOptionPanelView() {
+        return new ChallengeOptionPanelView();
+    }
+
+    @Bean
+    public LockedPanelView lockedPanelView() {
+        return new LockedPanelView();
     }
 }

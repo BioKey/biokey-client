@@ -33,6 +33,8 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
     }
 
     public boolean issueChallenge() {
+        if (!initialized) return false;
+
         // Generate the password
         SecureRandom random = new SecureRandom();
         challenge = Integer.toString(random.nextInt(1000000));
@@ -57,6 +59,7 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
     }
 
     public boolean checkChallenge(String attempt) {
+        if (!initialized) return false;
         boolean passed = (challenge != null) && challenge.equals(attempt);
         challenge = null;
         return passed;
@@ -64,5 +67,16 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
 
     public String getServerRepresentation() {
         return "TextMessage";
+    }
+
+    public String getCustomInformationText() {
+        state.obtainAccessToStatus();
+        try {
+            if (state.getCurrentStatus() == null)  return "No Phone Number on record.";
+            else return "Phone Number on record is: " + state.getCurrentStatus().getPhoneNumber() +
+                        ". If this is incorrect please contact your administrator.";
+        } finally {
+            state.releaseAccessToStatus();
+        }
     }
 }

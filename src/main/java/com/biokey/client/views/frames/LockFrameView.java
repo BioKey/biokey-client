@@ -47,23 +47,32 @@ public class LockFrameView {
      */
     public void addPanel(JPanel panel) {
         lockFrame.getContentPane().add(panel);
-        lockFrame.getContentPane().revalidate();
-        lockFrame.pack();
-        lockFrame.setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
+        revalidateContentPane();
     }
 
     /**
      * Remove the panel from the view.
      * @param panel panel to hide
      */
-    public void hidePanel(JPanel panel) {
-        lockFrame.getContentPane().add(panel);
+    public void removePanel(JPanel panel) {
+        lockFrame.getContentPane().remove(panel);
+        revalidateContentPane();
     }
 
     /**
      * Remove all panels from the view.
      */
-    public void hideAllPanels() {
+    public void removeAllPanels() {
         lockFrame.getContentPane().removeAll();
+        revalidateContentPane();
+    }
+
+    /**
+     * Revalidate content pane, repack, and make sure size is still maximized.
+     */
+    private void revalidateContentPane() {
+        lockFrame.getContentPane().revalidate();
+        lockFrame.pack();
+        lockFrame.setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
     }
 }

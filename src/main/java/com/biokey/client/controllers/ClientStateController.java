@@ -1,6 +1,7 @@
 package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
@@ -232,7 +233,7 @@ public class ClientStateController implements
             state.enqueueAnalysisResult(analysisResult);
             state.notifyAnalysisResultQueueChange(analysisResult);
         } finally {
-            state.obtainAccessToAnalysisResult();
+            state.releaseAccessToAnalysisResult();
         }
     }
 
@@ -312,6 +313,18 @@ public class ClientStateController implements
     }
 
     /**
+     * Returns a new status with the securityStatus set to the new securityStatus.
+     *
+     * @param currentStatus the current status
+     * @param newSecurity the new securityStatus
+     */
+    public ClientStatusPojo createStatusWithSecurity(@NonNull ClientStatusPojo currentStatus, @NonNull SecurityConstants newSecurity) {
+        return new ClientStatusPojo(currentStatus.getProfile(), currentStatus.getAuthStatus(), newSecurity,
+                currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), currentStatus.getGoogleAuthKey(),
+                System.currentTimeMillis());
+    }
+
+    /**
      * Modify the model with the new google Auth key.
      *
      * @param googleAuthKey the new google Auth key
@@ -326,8 +339,7 @@ public class ClientStateController implements
                 return;
             }
 
-            // Enqueue but do not notify because no listeners will need to know about this change.
-            state.enqueueStatus(new ClientStatusPojo(currentStatus.getProfile(), currentStatus.getAuthStatus(),
+            enqueueStatus(new ClientStatusPojo(currentStatus.getProfile(), currentStatus.getAuthStatus(),
                     currentStatus.getSecurityStatus(), currentStatus.getAccessToken(),
                     currentStatus.getPhoneNumber(), googleAuthKey, System.currentTimeMillis()));
         } finally {

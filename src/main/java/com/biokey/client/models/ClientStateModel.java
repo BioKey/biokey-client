@@ -390,7 +390,7 @@ public class ClientStateModel implements Serializable {
      */
     public void notifyModelChange() {
         notifyStatusChange(null, currentStatus);
-        notifyKeyQueueChange(allKeyStrokes.peekLast());
-        notifyAnalysisResultQueueChange(unsyncedAnalysisResults.peekLast());
+        // notifyKeyQueueChange(allKeyStrokes.peekLast());
+        // notifyAnalysisResultQueueChange(unsyncedAnalysisResults.peekLast());
     }
 }
