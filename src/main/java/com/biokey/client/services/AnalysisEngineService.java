@@ -24,8 +24,8 @@ import java.awt.event.ActionEvent;
  */
 public class AnalysisEngineService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientKeyListener {
 
-    private ClientStateController controller;
-    private AnalysisResultTrayPanelView analysisResultTrayPanelView;
+    private final ClientStateController controller;
+    private final AnalysisResultTrayPanelView analysisResultTrayPanelView;
 
     // TODO: delete once the fake is no longer needed.
     private FakeAnalysisFrameView frame = new FakeAnalysisFrameView();

@@ -28,13 +28,13 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
 
     private static Logger log = Logger.getLogger(ChallengeService.class);
 
-    private ClientStateController controller;
-    private ClientStateModel state;
-    private LockFrameView lockFrame;
-    private ChallengeOptionPanelView optionView;
-    private LockedPanelView lockPanel;
-    private Map<String, IChallengeStrategy> strategies;
-    private Map<IChallengeStrategy, ChallengePanelView> strategyViewPairs;
+    private final ClientStateController controller;
+    private final ClientStateModel state;
+    private final LockFrameView lockFrame;
+    private final ChallengeOptionPanelView optionView;
+    private final LockedPanelView lockPanel;
+    private final Map<String, IChallengeStrategy> strategies;
+    private final Map<IChallengeStrategy, ChallengePanelView> strategyViewPairs;
 
     private int remainingAttempts = MAX_CHALLENGE_ATTEMPTS;
 
@@ -117,6 +117,7 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
                     PojoHelper.castToChallengeStrategy(strategies, newStatus.getProfile().getAcceptedChallengeStrategies());
             if (challengeStrategies != null) {
                 for (IChallengeStrategy strategy : challengeStrategies) strategy.init();
+                if (challengeStrategies.length == 0) log.warn("Administrator has not set up any ways to authenticate.");
             }
         }
 
@@ -183,6 +184,9 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
             IChallengeStrategy[] challengeStrategies =
                     PojoHelper.castToChallengeStrategy(strategies, state.getCurrentStatus().getProfile().getAcceptedChallengeStrategies());
             if (challengeStrategies != null) {
+                // Warn if there aren't any challenge strategies.
+                if (challengeStrategies.length == 0) log.warn("Administrator has not set up any ways to authenticate.");
+
                 for (IChallengeStrategy strategy : challengeStrategies) {
                     // Reset every strategy's view.
                     strategyViewReset(strategy);
