@@ -184,6 +184,8 @@ public class LocalSaveUtil extends JFrame {
         phoneNumberTextField.setText("");
         timestampTextField.setText("");
         syncStatusTextField.setText("");
+        googleAuthKeyTextField.setText("");
+        jsonTextArea.setText("");
     }
 
     public static void main( String[] args ) {
