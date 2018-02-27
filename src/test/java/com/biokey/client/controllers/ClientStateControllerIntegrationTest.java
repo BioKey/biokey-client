@@ -2,6 +2,7 @@ package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
+import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.*;
@@ -230,7 +231,7 @@ public class ClientStateControllerIntegrationTest {
 
     @Test
     public void GIVEN_newStatus_WHEN_enqueueStatus_THEN_success() {
-        underTest.enqueueStatus(underTest.createStatusWithAuth(CLIENT_STATUS_POJO, AuthConstants.UNAUTHENTICATED));
+        underTest.enqueueStatus(PojoHelper.createStatus(CLIENT_STATUS_POJO, AuthConstants.UNAUTHENTICATED));
 
         try {
             state.obtainAccessToStatus();
@@ -276,20 +277,6 @@ public class ClientStateControllerIntegrationTest {
     public void GIVEN_na_WHEN_clearModel_THEN_na() {
         // Covered in ClientStateModelTest
         underTest.clearModel();
-    }
-
-    @Test
-    public void GIVEN_authStatus_WHEN_createStatusWithAuth_THEN_success() {
-        assertTrue("authStatus should be unauthenticated",
-                underTest.createStatusWithAuth(CLIENT_STATUS_POJO, AuthConstants.UNAUTHENTICATED)
-                        .getAuthStatus().equals(AuthConstants.UNAUTHENTICATED));
-    }
-
-    @Test
-    public void GIVEN_securityStatus_WHEN_createStatusWithSecurity_THEN_success() {
-        assertTrue("securityStatus should be challenge",
-                underTest.createStatusWithSecurity(CLIENT_STATUS_POJO, SecurityConstants.CHALLENGE)
-                        .getSecurityStatus().equals(SecurityConstants.CHALLENGE));
     }
 
     @Test

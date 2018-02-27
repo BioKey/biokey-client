@@ -1,6 +1,5 @@
 package com.biokey.client.services;
 
-import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.controllers.challenges.IChallengeStrategy;
@@ -83,10 +82,10 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
                     // Check if attempt was good.
                     if (strategy.checkChallenge(view.getCode())) {
                         // Passed, enqueue UNLOCKED status.
-                        controller.enqueueStatus(controller.createStatusWithSecurity(currentStatus, SecurityConstants.UNLOCKED));
+                        controller.enqueueStatus(PojoHelper.createStatus(currentStatus, SecurityConstants.UNLOCKED));
                     } else if (remainingAttempts <= 0) {
                         // Failed too many times, enqueue LOCKED status.
-                        controller.enqueueStatus(controller.createStatusWithSecurity(currentStatus, SecurityConstants.LOCKED));
+                        controller.enqueueStatus(PojoHelper.createStatus(currentStatus, SecurityConstants.LOCKED));
                     } else {
                         // Failed, so let the user know.
                         view.setInformationText("Hmmm... not what we were expecting. You have " + remainingAttempts + " attempts left.");
@@ -158,7 +157,7 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
                         log.error("No model detected when analysis is being run.");
                         return;
                     }
-                    controller.enqueueStatus(controller.createStatusWithSecurity(currentStatus, SecurityConstants.CHALLENGE));
+                    controller.enqueueStatus(PojoHelper.createStatus(currentStatus, SecurityConstants.CHALLENGE));
                 } finally {
                     state.releaseAccessToStatus();
                 }

@@ -1,10 +1,7 @@
 package com.biokey.client.services;
 
 import com.biokey.client.constants.AuthConstants;
-import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
-import com.biokey.client.helpers.RequestBuilderHelper;
-import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
@@ -12,7 +9,6 @@ import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.views.frames.FakeAnalysisFrameView;
 import com.biokey.client.views.frames.TrayFrameView;
 import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
-import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.swing.*;

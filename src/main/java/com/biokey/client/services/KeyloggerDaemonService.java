@@ -70,8 +70,6 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
 
     /**
      * Stop running the daemon.
-     *
-     * @return true if daemon successfully stopped
      */
     private void stop() {
         if (!isRunning) return;

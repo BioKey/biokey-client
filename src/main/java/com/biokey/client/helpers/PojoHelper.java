@@ -29,6 +29,19 @@ public class PojoHelper {
      */
     public static ClientStatusPojo castToClientStatus(@NonNull TypingProfileContainerResponse responseContainer,
                                                       @NonNull String token) {
+        return castToClientStatus(responseContainer, token, AuthConstants.AUTHENTICATED);
+    }
+
+    /**
+     * Cast the response from the server to a new client status.
+     *
+     * @param responseContainer response from the server
+     * @param token the access token used to call the server
+     * @param authStatus the new auth status
+     * @return new client status based on response
+     */
+    public static ClientStatusPojo castToClientStatus(@NonNull TypingProfileContainerResponse responseContainer,
+                                                      @NonNull String token, @NonNull AuthConstants authStatus) {
         TypingProfileResponse response = responseContainer.getTypingProfile();
         if (response == null) return null;
 
@@ -38,7 +51,7 @@ public class PojoHelper {
                         response.getThreshold(),
                         response.getChallengeStrategies(),
                         response.getEndpoint()),
-                AuthConstants.AUTHENTICATED,
+                authStatus,
                 castToSecurityConstant(response.isLocked()),
                 token,
                 (responseContainer.getPhoneNumber() == null) ? "" : responseContainer.getPhoneNumber(),
@@ -126,5 +139,43 @@ public class PojoHelper {
      */
     public static SecurityConstants castToSecurityConstant(boolean isLocked) {
         return (isLocked) ? SecurityConstants.LOCKED : SecurityConstants.UNLOCKED;
+    }
+
+    /**
+     * Returns a new status with the authStatus set to the new authStatus.
+     *
+     * @param currentStatus the current status
+     * @param newAuth the new authStatus
+     */
+    public static ClientStatusPojo createStatus(@NonNull ClientStatusPojo currentStatus, @NonNull AuthConstants newAuth) {
+        return new ClientStatusPojo(currentStatus.getProfile(), newAuth, currentStatus.getSecurityStatus(),
+                currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), currentStatus.getGoogleAuthKey(),
+                System.currentTimeMillis());
+    }
+
+    /**
+     * Returns a new status with the securityStatus set to the new securityStatus.
+     *
+     * @param currentStatus the current status
+     * @param newSecurity the new securityStatus
+     */
+    public static ClientStatusPojo createStatus(@NonNull ClientStatusPojo currentStatus, @NonNull SecurityConstants newSecurity) {
+        return new ClientStatusPojo(currentStatus.getProfile(), currentStatus.getAuthStatus(), newSecurity,
+                currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), currentStatus.getGoogleAuthKey(),
+                System.currentTimeMillis());
+    }
+
+    /**
+     * Returns a new status with new phone number and google authentication key.
+     *
+     * @param currentStatus the current status
+     * @param phoneNumber the new phone number
+     * @param googleAuthKey the new Google authentication key
+     */
+    public static ClientStatusPojo createStatus(@NonNull ClientStatusPojo currentStatus, String phoneNumber, String googleAuthKey) {
+        String notNullPhoneNumber = (phoneNumber == null) ? "" : phoneNumber;
+        String notNullAuthKey = (googleAuthKey == null) ? "" : googleAuthKey;
+        return new ClientStatusPojo(currentStatus.getProfile(), currentStatus.getAuthStatus(), currentStatus.getSecurityStatus(),
+                currentStatus.getAccessToken(), notNullPhoneNumber, notNullAuthKey, System.currentTimeMillis());
     }
 }

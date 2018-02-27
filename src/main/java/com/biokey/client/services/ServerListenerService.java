@@ -7,15 +7,16 @@ import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.biokey.client.constants.AppConstants;
-import com.biokey.client.constants.SecurityConstants;
+import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.controllers.ClientStateController;
+import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
-import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
 import com.biokey.client.models.response.UserContainerResponse;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
@@ -31,21 +32,22 @@ import java.util.TimerTask;
  */
 public class ServerListenerService implements ClientStateModel.IClientStatusListener {
 
-    private ClientStateController controller;
-    private ClientStateModel clientState;
-    private String queueUrl;
-    private AmazonSQS sqs =
+    private static Logger log = Logger.getLogger(ChallengeService.class);
+
+    private final ClientStateController controller;
+    private final ClientStateModel clientState;
+    private final AmazonSQS sqs =
             AmazonSQSClientBuilder.standard()
                     .withClientConfiguration(new ClientConfiguration().withRetryPolicy(PredefinedRetryPolicies.NO_RETRY_POLICY))
                     .withRegion(Regions.US_EAST_2).build();
+    private final ObjectMapper mapper = new ObjectMapper();
     private Timer timer = new Timer(true);
-    private ObjectMapper mapper = new ObjectMapper();
     private boolean isStarted = false;
 
     @Autowired
-    public ServerListenerService(ClientStateController controller, ClientStateModel c_state) {
+    public ServerListenerService(ClientStateController controller, ClientStateModel clientStateModel) {
         this.controller = controller;
-        this.clientState = c_state;
+        this.clientState = clientStateModel;
         mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
     }
 
@@ -60,65 +62,61 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
 
     /**
      * Start running the server listener.
-     *
-     * @return true if server listener successfully started
      */
-    private boolean start() {
-        if (isStarted) return true;
+    private void start() {
+        if (isStarted) return;
+        clientState.obtainAccessToStatus();
         try {
-            clientState.obtainAccessToStatus();
-            queueUrl = clientState.getCurrentStatus().getProfile().getSqsEndpoint();
-            timer.schedule(new DequeueTask(), AppConstants.SQS_LISTENER_PERIOD);
-            clientState.releaseAccessToStatus();
+            if (clientState.getCurrentStatus() == null) {
+                // If for some reason it is null, there is a big problem, let another service handle it.
+                log.error("No model detected when starting server listener.");
+                return;
+            }
+            timer.schedule(new DequeueTask(clientState.getCurrentStatus().getProfile().getSqsEndpoint()), AppConstants.SQS_LISTENER_PERIOD);
             isStarted = true;
-            return true;
-        } catch (IllegalStateException e) {
-            System.out.println("Timer error");
-            System.out.println(e);
-            return false;
+        } finally {
+            clientState.releaseAccessToStatus();
         }
     }
 
     /**
      * Stop running the server listener.
-     *
-     * @return true if server listener successfully stopped
      */
-    private boolean stop() {
+    private void stop() {
         timer.cancel();
         timer = new Timer();
         isStarted = false;
-        return true;
     }
 
     /**
-     * Read any available server messages and register changes to the client state.
-     * Scheduled as a TimerTask.
+     * Read any available server messages and register changes to the client state. Scheduled as a TimerTask.
      */
     private class DequeueTask extends TimerTask {
+
+        private final String queueUrl;
+
+        public DequeueTask(String queueUrl) {
+            this.queueUrl = queueUrl;
+        }
+
         public void run() {
             try {
-                System.out.println("Getting messages...");
                 ReceiveMessageRequest req = new ReceiveMessageRequest(queueUrl).withMessageAttributeNames("All");
                 List<Message> messages = sqs.receiveMessage(req).getMessages();
-                System.out.println("Size: " + messages.size());
                 messages.forEach(message -> {
                     log(message);
                     process(message);
                 });
             }
             catch (AmazonSQSException e){
-                System.out.println("SQS Error");
-                System.out.println(e);
+                log.warn("SQS Error", e);
             } finally {
-                timer.schedule(new DequeueTask(), AppConstants.SQS_LISTENER_PERIOD);
+                timer.schedule(new DequeueTask(queueUrl), AppConstants.SQS_LISTENER_PERIOD);
             }
         }
 
-        private void log (Message message) {
-            System.out.println("Message read!\nBody:");
-            System.out.print(message.getBody());
-            System.out.println("\nAttributes:");
+        private void log(Message message) {
+            log.debug("Message read!\nBody: " + message.getBody() + "\nAttributes:\n");
             message.getMessageAttributes().forEach((att, val) -> System.out.println(att + ": " + val.getStringValue()));
         }
 
@@ -127,51 +125,46 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
          *
          * @param message The most recent message retrieved from the SQS server.
          */
-        private void process (Message message) {
+        private void process(Message message) {
+            clientState.obtainAccessToStatus();
+            ClientStatusPojo currentStatus = clientState.getCurrentStatus();
+            if (currentStatus == null) {
+                // If for some reason it is null, there is a big problem, let another service handle it.
+                log.error("No model detected when starting server listener.");
+                return;
+            }
             try {
                 String changeType = message.getMessageAttributes().get("ChangeType").getStringValue();
+
+                // If any part of the message is null, send directly to catch block.
                 if (changeType.equals("TypingProfile")) {
-                    System.out.println("Change detected to the TypingProfile!");
+                    String cleanMessage = cleanJson(message.getBody());
 
-                    // Clean JSON
-                    String dirtyMessage = message.getBody();
-                    String cleanMessage = cleanJson(dirtyMessage);
-
-                    // Read JSON, enqueue message
+                    // Read JSON, enqueue status.
                     TypingProfileContainerResponse res = mapper.readValue(cleanMessage, TypingProfileContainerResponse.class);
-                    clientState.obtainAccessToModel();
-                    clientState.enqueueStatus(constructStatus(res));
-                    clientState.releaseAccessToModel();
+                    controller.enqueueStatus(
+                            PojoHelper.castToClientStatus(res, currentStatus.getAccessToken(), currentStatus.getAuthStatus()));
                 }
                 else if (changeType.equals("User")) {
-                    System.out.println("Change detected to the User!");
+                    String cleanMessage = cleanJson(message.getBody());
 
-                    // Clean JSON, enqueue message if necessary
-                    String dirtyMessage = message.getBody();
-                    String cleanMessage = cleanJson(dirtyMessage);
-
-                    //Read JSON
+                    // Read JSON, enqueue status.
                     UserContainerResponse res = mapper.readValue(cleanMessage, UserContainerResponse.class);
+                    ClientStatusPojo newStatus = PojoHelper.createStatus(currentStatus, res.getPhoneNumber(), res.getGoogleAuthKey());
                     if (res.getChangeType().equals("LOGOUT")) {
-                        clientState.obtainAccessToStatus();
-                        clientState.enqueueStatus(lockStatus(clientState.getCurrentStatus()));
-                        clientState.releaseAccessToStatus();
+                        newStatus = PojoHelper.createStatus(newStatus, AuthConstants.UNAUTHENTICATED);
                     }
-                    else System.out.println("Inconsequential change. Discarding message.");
+                    controller.enqueueStatus(newStatus);
                 }
             }
-            catch (NullPointerException e) {
-                System.out.println(e);
-                System.out.println("There was an error reading the message.");
+            catch (NullPointerException | IOException e) {
+                log.warn("There was an error reading the message.", e);
+            } finally {
+                clientState.releaseAccessToStatus();
+                // Delete the message.
+                String messageHandle = message.getReceiptHandle();
+                sqs.deleteMessage(new DeleteMessageRequest(queueUrl, messageHandle));
             }
-            catch (IOException e) {
-                System.out.println(e);
-                System.out.println("There was an error reading the message.");
-            }
-
-            // Delete the message
-            String messageHandle = message.getReceiptHandle();
-            sqs.deleteMessage(new DeleteMessageRequest(queueUrl, messageHandle));
         }
 
         /**
@@ -186,55 +179,6 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
             json = json.replace("\"{", "{");
             json = json.replace("}\"", "}");
             return json;
-        }
-
-        /**
-         * Constructs a new status from a given server message.
-         *
-         * @param res  The message received from the server
-         * @return     The new status to be enqueued
-         */
-        private ClientStatusPojo constructStatus (TypingProfileContainerResponse res) {
-            SecurityConstants newLockState;
-            if (res.getTypingProfile().isLocked()) newLockState = SecurityConstants.LOCKED;
-            else newLockState = SecurityConstants.UNLOCKED;
-            return new ClientStatusPojo(
-                    new TypingProfilePojo(
-                            res.getTypingProfile().get_id(),
-                            res.getTypingProfile().getMachine(),
-                            res.getTypingProfile().getUser(),
-                            res.getTypingProfile().getTensorFlowModel(),
-                            res.getTypingProfile().getThreshold(),
-                            res.getTypingProfile().getChallengeStrategies(),
-                            res.getTypingProfile().getEndpoint()
-                    ),
-                    clientState.getCurrentStatus().getAuthStatus(),
-                    newLockState,
-                    clientState.getCurrentStatus().getAccessToken(),
-                    res.getPhoneNumber(),
-                    res.getGoogleAuthKey(),
-                    System.currentTimeMillis()
-            );
-        }
-
-        /**
-         * Locks the current state.
-         *
-         * @return  The current state with 'securityStatus' set to LOCKED.
-         */
-        private ClientStatusPojo lockStatus (ClientStatusPojo currentStatus) {
-            //If the client is already locked, don't need to do anything
-            if (clientState.getCurrentStatus().getSecurityStatus() == SecurityConstants.LOCKED) return clientState.getCurrentStatus();
-            else
-                return new ClientStatusPojo (
-                        currentStatus.getProfile(),
-                        currentStatus.getAuthStatus(),
-                        SecurityConstants.LOCKED,
-                        currentStatus.getAccessToken(),
-                        currentStatus.getPhoneNumber(),
-                        currentStatus.getGoogleAuthKey(),
-                        System.currentTimeMillis()
-                );
         }
     }
 }

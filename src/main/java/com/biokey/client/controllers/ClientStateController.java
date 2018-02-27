@@ -1,8 +1,8 @@
 package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
-import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.SyncStatusConstants;
+import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
@@ -268,7 +268,7 @@ public class ClientStateController implements
             // Make sure that the loaded state is unauthenticated.
             ClientStatusPojo currentStatus = fromMemory.getCurrentStatus();
             if (currentStatus != null && currentStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) {
-                ClientStatusPojo unAuthenticatedStatus = createStatusWithAuth(currentStatus, AuthConstants.UNAUTHENTICATED);
+                ClientStatusPojo unAuthenticatedStatus = PojoHelper.createStatus(currentStatus, AuthConstants.UNAUTHENTICATED);
                 state.enqueueStatus(unAuthenticatedStatus);
             }
 
@@ -298,30 +298,6 @@ public class ClientStateController implements
         } finally {
             state.releaseAccessToModel();
         }
-    }
-
-    /**
-     * Returns a new status with the authStatus set to the new authStatus.
-     *
-     * @param currentStatus the current status
-     * @param newAuth the new authStatus
-     */
-    public ClientStatusPojo createStatusWithAuth(@NonNull ClientStatusPojo currentStatus, @NonNull AuthConstants newAuth) {
-        return new ClientStatusPojo(currentStatus.getProfile(), newAuth, currentStatus.getSecurityStatus(),
-                currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), currentStatus.getGoogleAuthKey(),
-                System.currentTimeMillis());
-    }
-
-    /**
-     * Returns a new status with the securityStatus set to the new securityStatus.
-     *
-     * @param currentStatus the current status
-     * @param newSecurity the new securityStatus
-     */
-    public ClientStatusPojo createStatusWithSecurity(@NonNull ClientStatusPojo currentStatus, @NonNull SecurityConstants newSecurity) {
-        return new ClientStatusPojo(currentStatus.getProfile(), currentStatus.getAuthStatus(), newSecurity,
-                currentStatus.getAccessToken(), currentStatus.getPhoneNumber(), currentStatus.getGoogleAuthKey(),
-                System.currentTimeMillis());
     }
 
     /**

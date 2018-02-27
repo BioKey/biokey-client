@@ -285,13 +285,13 @@ public class ClientInitService implements
 
                         // If error is 401, then client is no longer authenticated.
                         if (response.getStatusCodeValue() == 401) {
-                            controller.enqueueStatus(controller.createStatusWithAuth(
+                            controller.enqueueStatus(PojoHelper.createStatus(
                                     state.getCurrentStatus(), AuthConstants.UNAUTHENTICATED));
                             return;
                         }
 
                         // If error is something else unknown, then client is no longer authenticated.
-                        controller.enqueueStatus(controller.createStatusWithAuth(
+                        controller.enqueueStatus(PojoHelper.createStatus(
                                 state.getCurrentStatus(), AuthConstants.UNAUTHENTICATED));
 
                     } else log.debug("Heartbeat succeeded and received response: " + response);
@@ -343,6 +343,7 @@ public class ClientInitService implements
 
                     // If there is another error then just send user to login.
                     loginWithoutModel();
+                    return;
                 }
 
                 // Check if there is a current status.
@@ -356,7 +357,7 @@ public class ClientInitService implements
                 // If response was good then enqueue new status.
                 log.debug("User successfully authenticated and received response: " + response);
                 if (!(currentStatus.getAuthStatus() == AuthConstants.AUTHENTICATED)) {
-                    controller.enqueueStatus(controller.createStatusWithAuth(currentStatus, AuthConstants.AUTHENTICATED));
+                    controller.enqueueStatus(PojoHelper.createStatus(currentStatus, AuthConstants.AUTHENTICATED));
                 }
             } finally {
                 state.releaseAccessToStatus();
