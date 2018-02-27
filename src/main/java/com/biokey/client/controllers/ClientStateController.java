@@ -36,8 +36,8 @@ public class ClientStateController implements
 
     private static Logger log = Logger.getLogger(ClientStateController.class);
 
-    private ClientStateModel state;
-    private ServerRequestExecutorHelper serverRequestExecutorHelper;
+    private final ClientStateModel state;
+    private final ServerRequestExecutorHelper serverRequestExecutorHelper;
 
     @Autowired
     public ClientStateController(ClientStateModel state,

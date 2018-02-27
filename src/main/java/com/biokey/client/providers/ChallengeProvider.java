@@ -24,7 +24,7 @@ import java.util.Map;
 public class ChallengeProvider {
     @Bean
     @Autowired
-    public GoogleAuthStrategy googleAuthStrategy(
+    public IChallengeStrategy googleAuthStrategy(
             ClientStateModel clientStateModel, ClientStateController clientStateController,
             ServerRequestExecutorHelper serverRequestExecutorHelper, GoogleAuthQRFrameView googleAuthQRFrameView) {
 
@@ -33,14 +33,14 @@ public class ChallengeProvider {
 
     @Bean
     @Autowired
-    public TextMessageStrategy textMessageStrategy(ClientStateModel clientStateModel) {
+    public IChallengeStrategy textMessageStrategy(ClientStateModel clientStateModel) {
         return new TextMessageStrategy(clientStateModel);
     }
 
     @Bean(name="allSupportedStrategies")
     @Autowired
-    public Map<String, IChallengeStrategy> allSupportedStrategies(GoogleAuthStrategy googleAuthStrategy,
-                                                                  TextMessageStrategy textMessageStrategy) {
+    public Map<String, IChallengeStrategy> allSupportedStrategies(IChallengeStrategy googleAuthStrategy,
+                                                                  IChallengeStrategy textMessageStrategy) {
         Map<String, IChallengeStrategy> strategies = new HashMap<>();
         strategies.put(googleAuthStrategy.getServerRepresentation(), googleAuthStrategy);
         strategies.put(textMessageStrategy.getServerRepresentation(), textMessageStrategy);
@@ -51,7 +51,7 @@ public class ChallengeProvider {
     @Bean(name="strategyViewPairs")
     @Autowired
     public Map<IChallengeStrategy, ChallengePanelView> strategyViewPairs(
-            GoogleAuthStrategy googleAuthStrategy, TextMessageStrategy textMessageStrategy,
+            IChallengeStrategy googleAuthStrategy, IChallengeStrategy textMessageStrategy,
             ChallengePanelView googleAuthPanelView, ChallengePanelView textMessagePanelView) {
 
         Map<IChallengeStrategy, ChallengePanelView> pairs = new HashMap<>();

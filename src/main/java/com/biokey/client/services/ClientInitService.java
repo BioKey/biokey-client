@@ -36,11 +36,11 @@ public class ClientInitService implements
 
     private static Logger log = Logger.getLogger(ClientInitService.class);
 
-    private ClientStateController controller;
-    private ClientStateModel state;
-    private LockFrameView lockFrameView;
-    private LoginPanelView loginPanelView;
-    private TrayFrameView trayFrameView;
+    private final ClientStateController controller;
+    private final ClientStateModel state;
+    private final LockFrameView lockFrameView;
+    private final LoginPanelView loginPanelView;
+    private final TrayFrameView trayFrameView;
 
     private static Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;

@@ -23,7 +23,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
 
     private static Logger log = Logger.getLogger(KeyloggerDaemonService.class);
 
-    private ClientStateController controller;
+    private final ClientStateController controller;
 
     private boolean isRunning = false;
 
