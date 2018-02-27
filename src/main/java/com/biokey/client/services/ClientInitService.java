@@ -381,6 +381,7 @@ public class ClientInitService implements
                     // On failed retrieval, show message to user that it failed.
                     loginPanelView.setEnableSubmit(true);
                     loginPanelView.setInformationText("Login failed. Please try again.");
+                    return;
                 }
 
                 log.debug("Successfully retrieved typing profile: " + response);

@@ -7,7 +7,7 @@ import lombok.NonNull;
 @Data
 public class TypingProfileContainerResponse {
 
-    @JsonProperty("update")
+    @JsonProperty("typingProfile")
     @NonNull private final TypingProfileResponse typingProfile;
 
     @JsonProperty("phoneNumber")

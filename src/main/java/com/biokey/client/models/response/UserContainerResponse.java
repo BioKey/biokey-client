@@ -7,7 +7,7 @@ import lombok.NonNull;
 @Data
 public class UserContainerResponse {
 
-    @JsonProperty("changeType")
+    @JsonProperty("userChangeType")
     @NonNull private final String changeType;
 
     @JsonProperty("phoneNumber")
