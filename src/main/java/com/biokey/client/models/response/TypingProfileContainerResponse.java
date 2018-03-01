@@ -15,4 +15,7 @@ public class TypingProfileContainerResponse {
 
     @JsonProperty("googleAuthKey")
     private final String googleAuthKey;
+
+    @JsonProperty("timeStamp")
+    private final long timeStamp;
 }

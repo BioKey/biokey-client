@@ -78,7 +78,7 @@ public class ServiceProvider {
     public Set<ClientStateModel.IClientStatusListener> statusListeners(
             ClientInitService clientInitService, AnalysisEngineService analysisEngineService,
             KeyloggerDaemonService keyloggerDaemonService, ChallengeService challengeService,
-            ServerListenerService serverListenerService, ClientStateController clientStateController) {
+            ServerListenerService serverListenerService) {
 
         Set<ClientStateModel.IClientStatusListener> serviceStatusListeners = new HashSet<>();
         serviceStatusListeners.add(clientInitService);
@@ -86,35 +86,26 @@ public class ServiceProvider {
         serviceStatusListeners.add(keyloggerDaemonService);
         serviceStatusListeners.add(challengeService);
         serviceStatusListeners.add(serverListenerService);
-        serviceStatusListeners.add(clientStateController);
 
         return serviceStatusListeners;
     }
 
     @Bean
     @Autowired
-    public Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners(
-            ClientInitService clientInitService, ChallengeService challengeService,
-            ClientStateController clientStateController) {
-
+    public Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners(ClientInitService clientInitService, ChallengeService challengeService) {
         Set<ClientStateModel.IClientAnalysisListener> analysisQueueListeners = new HashSet<>();
         analysisQueueListeners.add(challengeService);
         analysisQueueListeners.add(clientInitService);
-        analysisQueueListeners.add(clientStateController);
 
         return analysisQueueListeners;
     }
 
     @Bean
     @Autowired
-    public Set<ClientStateModel.IClientKeyListener> keyQueueListeners(
-            ClientInitService clientInitService, AnalysisEngineService analysisEngineService,
-            ClientStateController clientStateController) {
-
+    public Set<ClientStateModel.IClientKeyListener> keyQueueListeners(ClientInitService clientInitService, AnalysisEngineService analysisEngineService) {
         Set<ClientStateModel.IClientKeyListener> keyQueueListeners = new HashSet<>();
         keyQueueListeners.add(analysisEngineService);
         keyQueueListeners.add(clientInitService);
-        keyQueueListeners.add(clientStateController);
 
         return keyQueueListeners;
     }

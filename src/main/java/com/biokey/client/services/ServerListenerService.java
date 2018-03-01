@@ -84,7 +84,7 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
      */
     private void stop() {
         timer.cancel();
-        timer = new Timer();
+        timer = new Timer(true);
         isStarted = false;
     }
 

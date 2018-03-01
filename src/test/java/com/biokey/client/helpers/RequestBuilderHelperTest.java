@@ -1,8 +1,9 @@
 package com.biokey.client.helpers;
 
 import com.biokey.client.constants.AppConstants;
-import com.biokey.client.models.pojo.KeyStrokePojo;
-import com.biokey.client.models.pojo.KeyStrokesPojo;
+import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
+import com.biokey.client.models.pojo.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.junit.BeforeClass;
@@ -12,6 +13,12 @@ import static org.junit.Assert.assertTrue;
 
 public class RequestBuilderHelperTest {
 
+    private static final ClientStatusPojo CLIENT_STATUS_POJO =
+            new ClientStatusPojo(
+                    new TypingProfilePojo("1", "2","3","4", new float[] {}, new String[] {},"5"),
+                    AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
+                    "6", "7", "8", 9);
+
     private static final String ACCESS_TOKEN = "ACCESS_TOKEN";
     private static final String TYPING_PROFILE_ID = "TYPING_PROFILE_ID";
     private static final String EMAIL = "EMAIL";
@@ -20,9 +27,12 @@ public class RequestBuilderHelperTest {
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, 1);
     private static final KeyStrokePojo OTHER_KEY_STROKE_POJO = new KeyStrokePojo('b', false, 2);
     private static final KeyStrokesPojo KEY_STROKES_POJO = new KeyStrokesPojo();
+    private static final AnalysisResultPojo ANALYSIS_RESULT_POJO = new AnalysisResultPojo(1, 0.1f);
 
     private static final String EXPECTED_KEY_STROKE_JSON = "{\"keystrokes\": [{\"character\":\"t\",\"keyDown\":true,\"timestamp\":1,\"typingProfile\":\"TYPING_PROFILE_ID\"},{\"character\":\"b\",\"keyDown\":false,\"timestamp\":2,\"typingProfile\":\"TYPING_PROFILE_ID\"}]}";
     private static final String EXPECTED_LOGIN_JSON = "{\"email\": \"EMAIL\", \"password\": \"PASSWORD\"}";
+    private static final String EXPECTED_CLIENT_STATUS_JSON = "{\"typingProfile\":{\"_id\":\"1\",\"user\":\"3\",\"machine\":\"2\",\"isLocked\":false,\"tensorFlowModel\":\"4\",\"endpoint\":\"5\",\"challengeStrategies\":[],\"threshold\":[],\"locked\":false},\"phoneNumber\":\"7\",\"googleAuthKey\":\"8\",\"timeStamp\":9}";
+    private static final String EXPECTED_ANALYSIS_RESULT_JSON = "{\"timeStamp\":1,\"probability\":0.1,\"typingProfile\":\"TYPING_PROFILE_ID\"}";
 
     @BeforeClass
     public static void loadData() {
@@ -52,4 +62,17 @@ public class RequestBuilderHelperTest {
         assertTrue("generated JSON does not match expected JSON",
                 RequestBuilderHelper.requestBodyToPostLogin(EMAIL, PASSWORD).equals(EXPECTED_LOGIN_JSON));
     }
+
+    @Test
+    public void GIVEN_input_WHEN_requestBodyToPostClientStatus_THEN_expectedResult() throws JsonProcessingException {
+        assertTrue("generated JSON does not match expected JSON",
+                RequestBuilderHelper.requestBodyToPostClientStatus(CLIENT_STATUS_POJO).equals(EXPECTED_CLIENT_STATUS_JSON));
+    }
+
+    @Test
+    public void GIVEN_input_WHEN_requestBodyToPostAnalysisResult_THEN_expectedResult() throws JsonProcessingException {
+        assertTrue("generated JSON does not match expected JSON",
+                RequestBuilderHelper.requestBodyToPostAnalysisResult(ANALYSIS_RESULT_POJO, TYPING_PROFILE_ID).equals(EXPECTED_ANALYSIS_RESULT_JSON));
+    }
+
 }

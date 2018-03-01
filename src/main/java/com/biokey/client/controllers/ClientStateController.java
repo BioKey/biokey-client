@@ -20,30 +20,44 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriTemplate;
 
 import java.util.Deque;
+import java.util.Timer;
+import java.util.TimerTask;
 
-import static com.biokey.client.constants.AppConstants.KEYSTROKE_TIME_INTERVAL_PER_WINDOW;
-
-import static com.biokey.client.constants.AppConstants.KEYSTROKE_WINDOW_SIZE_PER_REQUEST;
+import static com.biokey.client.constants.AppConstants.*;
 import static com.biokey.client.constants.UrlConstants.*;
 
 /**
  * Handles requests by services to make changes to the client data.
  */
-public class ClientStateController implements
-        ClientStateModel.IClientStatusListener,
-        ClientStateModel.IClientKeyListener,
-        ClientStateModel.IClientAnalysisListener {
+public class ClientStateController {
 
     private static Logger log = Logger.getLogger(ClientStateController.class);
 
     private final ClientStateModel state;
     private final ServerRequestExecutorHelper serverRequestExecutorHelper;
+    private final Timer timer = new Timer(true);
 
     @Autowired
     public ClientStateController(ClientStateModel state,
                                  ServerRequestExecutorHelper serverRequestExecutorHelper) {
         this.state = state;
         this.serverRequestExecutorHelper = serverRequestExecutorHelper;
+
+        // Schedule syncs with server.
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                sendClientStatus();
+
+                try {
+                    sendKeyStrokes();
+                } catch (UnsupportedOperationException e) {}
+
+                try {
+                    sendAnalysisResult();
+                } catch (UnsupportedOperationException e) {}
+            }
+        }, TIME_BETWEEN_SERVER_SYNCS, TIME_BETWEEN_SERVER_SYNCS);
     }
 
     /**
@@ -71,25 +85,30 @@ public class ClientStateController implements
     }
 
     /**
-     * Sends the server a request with all of the client keystrokes not yet known to server.
+     * Sends the server a request with the oldest client keystrokes not yet known to server.
      * Modifies the sync status for all keystrokes sent.
      *
      * @return true if the oldest keys were unsynced and an attempt to sync them was made
      */
-    public boolean sendKeyStrokes() throws JsonProcessingException {
+    public boolean sendKeyStrokes() {
+        // Check if we want to send keystrokes to server.
+        if (!SEND_KEYSTROKES_TO_SERVER) throw new UnsupportedOperationException();
+
         // First, make sure to get the lock.
         state.obtainAccessToModel();
         try {
             // Change the state of keystrokes to SYNCING.
             KeyStrokesPojo keysToSend = state.getOldestKeyStrokes();
-            if (state.getCurrentStatus() == null || keysToSend == null || !(keysToSend.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
+            ClientStatusPojo currentStatus = state.getCurrentStatus();
+            if (currentStatus == null || keysToSend == null ||
+                    !(keysToSend.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
             keysToSend.setSyncedWithServer(SyncStatusConstants.SYNCING);
 
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + KEYSTROKE_POST_API_ENDPOINT,
-                    RequestBuilderHelper.headerMapWithToken(state.getCurrentStatus().getAccessToken()),
-                    RequestBuilderHelper.requestBodyToPostKeystrokes(keysToSend, state.getCurrentStatus().getProfile().getId()),
+                    RequestBuilderHelper.headerMapWithToken(currentStatus.getAccessToken()),
+                    RequestBuilderHelper.requestBodyToPostKeystrokes(keysToSend, currentStatus.getProfile().getId()),
                     String.class,
                     (ResponseEntity<String> response) -> {
                         // First, make sure to get the lock.
@@ -114,9 +133,117 @@ public class ClientStateController implements
             return true;
         } catch (JsonProcessingException e) {
             log.error("Exception when trying to serialize keystrokes to JSON", e);
-            throw e;
+            return false;
         } finally {
             state.releaseAccessToModel();
+        }
+    }
+
+    /**
+     * Sends the server a request with the oldest status not yet known to server.
+     * Modifies the sync status for status sent.
+     *
+     * @return true if the status was unsynced and an attempt to sync them was made
+     */
+    public boolean sendClientStatus() {
+        // First, make sure to get the lock.
+        state.obtainAccessToStatus();
+        try {
+            // Change the state of status to SYNCING.
+            ClientStatusPojo oldStatus = state.getOldestStatus();
+            ClientStatusPojo currentStatus = state.getCurrentStatus();
+            if (currentStatus == null || oldStatus == null ||
+                    !(oldStatus.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
+            oldStatus.setSyncedWithServer(SyncStatusConstants.SYNCING);
+
+            // Make the request.
+            serverRequestExecutorHelper.submitPutRequest(
+                    new UriTemplate(SERVER_NAME + CLIENT_STATUS_PUT_API_ENDPOINT).expand(oldStatus.getProfile().getId()).toString(),
+                    RequestBuilderHelper.headerMapWithToken(currentStatus.getAccessToken()),
+                    RequestBuilderHelper.requestBodyToPostClientStatus(oldStatus),
+                    String.class,
+                    (ResponseEntity<String> response) -> {
+                        // First, make sure to get the lock.
+                        state.obtainAccessToModel();
+
+                        try {
+                            // Check if the response was good.
+                            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                                log.debug("Client status failed to sync with server and received response: " + response);
+                                oldStatus.setSyncedWithServer(SyncStatusConstants.UNSYNCED);
+                                return;
+                            }
+
+                            // If it was good then update the model.
+                            state.dequeueStatus();
+                            log.debug("Client Status successfully synced with server and received response: " + response);
+                        } finally {
+                            state.releaseAccessToModel();
+                        }
+                    });
+
+            return true;
+        } catch (JsonProcessingException e) {
+            log.error("Exception when trying to serialize client status to JSON", e);
+            return false;
+        } finally {
+            state.releaseAccessToStatus();
+        }
+    }
+
+    /**
+     * Sends the server a request with the oldest analysis result not yet known to server.
+     * Modifies the sync status for result sent.
+     *
+     * @return true if the result was unsynced and an attempt to sync them was made
+     */
+    public boolean sendAnalysisResult() {
+        // Impossible to test because server has not implemented the API endpoint.
+        // Check if we want to send results to server.
+        if (!SEND_ANALYSIS_TO_SERVER) throw new UnsupportedOperationException();
+
+        // First, make sure to get the lock.
+        state.obtainAccessToModel();
+        try {
+            // Change the state of status to SYNCING.
+            AnalysisResultPojo analysisResult = state.getOldestAnalysisResult();
+            ClientStatusPojo currentStatus = state.getCurrentStatus();
+            if (currentStatus == null || analysisResult == null ||
+                    !(analysisResult.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
+            analysisResult.setSyncedWithServer(SyncStatusConstants.SYNCING);
+
+            // Make the request.
+            serverRequestExecutorHelper.submitPostRequest(
+                    SERVER_NAME + ANALYSIS_RESULT_POST_API_ENDPOINT,
+                    RequestBuilderHelper.headerMapWithToken(currentStatus.getAccessToken()),
+                    RequestBuilderHelper.requestBodyToPostAnalysisResult(analysisResult, currentStatus.getProfile().getId()),
+                    String.class,
+                    (ResponseEntity<String> response) -> {
+                        // First, make sure to get the lock.
+                        state.obtainAccessToModel();
+
+                        try {
+                            // Check if the response was good.
+                            if (response == null || !response.getStatusCode().is2xxSuccessful()) {
+                                log.debug("Analysis result failed to sync with server and received response: " + response);
+                                analysisResult.setSyncedWithServer(SyncStatusConstants.UNSYNCED);
+                                return;
+                            }
+
+                            // If it was good then update the model.
+                            state.dequeueAnalysisResult();
+                            log.debug("Analysis result successfully synced with server and received response: " + response);
+                        } finally {
+                            state.releaseAccessToModel();
+                        }
+                    });
+
+            return true;
+        } catch (JsonProcessingException e) {
+            log.error("Exception when trying to serialize client status to JSON", e);
+            return false;
+        } finally {
+            state.obtainAccessToModel();
         }
     }
 
@@ -321,33 +448,6 @@ public class ClientStateController implements
         } finally {
             state.releaseAccessToStatus();
         }
-    }
-
-    /**
-     * Implementation of listener to the ClientStateModel's status.
-     * The controller will send server requests periodically.
-     */
-    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-        //TODO: Implement statusChanged()
-        return;
-    }
-
-    /**
-     * Implementation of listener to the ClientStateModel's keystroke queues.
-     * The controller will send server requests periodically.
-     */
-    public void keystrokeQueueChanged(KeyStrokePojo newKey) {
-        //TODO: Implement keystrokeQueueChanged()
-        return;
-    }
-
-    /**
-     * Implementation of listener to the ClientStateModel's analysis results queue.
-     * The controller will send server requests periodically.
-     */
-    public void analysisResultQueueChanged(AnalysisResultPojo newResult) {
-        //TODO: Implement analysisResultQueueChanged()
-        return;
     }
 
 }

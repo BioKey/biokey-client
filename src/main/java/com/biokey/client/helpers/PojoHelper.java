@@ -56,7 +56,7 @@ public class PojoHelper {
                 token,
                 (responseContainer.getPhoneNumber() == null) ? "" : responseContainer.getPhoneNumber(),
                 (responseContainer.getGoogleAuthKey() == null) ? "" : responseContainer.getGoogleAuthKey(),
-                System.currentTimeMillis());
+                responseContainer.getTimeStamp());
     }
 
     /**

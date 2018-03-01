@@ -1,6 +1,5 @@
 package com.biokey.client.services;
 
-import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
@@ -25,6 +24,10 @@ import java.util.*;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
+import static com.biokey.client.constants.AppConstants.CLIENT_STATE_PREFERENCES_ID;
+import static com.biokey.client.constants.AppConstants.KEYSTROKE_WINDOW_SIZE_PER_SAVE;
+import static com.biokey.client.constants.AppConstants.TIME_BETWEEN_HEARTBEATS;
+
 /**
  * Service that retrieves the client state from the disk and OS and ensures that it has not been corrupted.
  * If the local data does not exist, then the service prompts the user to login and download the client state.
@@ -45,8 +48,8 @@ public class ClientInitService implements
     private static Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;
 
-    private Timer heartbeatTimer = new Timer();
-    private Timer loginTimer = new Timer();
+    private Timer heartbeatTimer = new Timer(true);
+    private Timer loginTimer = new Timer(true);
 
     @Autowired
     public ClientInitService(ClientStateController controller, ClientStateModel state,
@@ -134,7 +137,7 @@ public class ClientInitService implements
      * The service will save the client state periodically.
      */
     public void keystrokeQueueChanged(KeyStrokePojo newKey) {
-        if (++newKeyCount >= AppConstants.KEYSTROKE_WINDOW_SIZE_PER_SAVE) {
+        if (++newKeyCount >= KEYSTROKE_WINDOW_SIZE_PER_SAVE) {
             newKeyCount = 0;
             saveClientState();
         }
@@ -188,14 +191,14 @@ public class ClientInitService implements
      */
     public static ClientStateModel retrieveFromPreferences() {
         // Get data about the size to retrieve.
-        int blocks = prefs.getInt(AppConstants.CLIENT_STATE_PREFERENCES_ID + ".blocks", 0);
+        int blocks = prefs.getInt(CLIENT_STATE_PREFERENCES_ID + ".blocks", 0);
         int totalSize = (blocks - 1) * Preferences.MAX_VALUE_LENGTH * 3 / 4 +
-                prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID + "." + (blocks - 1), new byte[0]).length;
+                prefs.getByteArray(CLIENT_STATE_PREFERENCES_ID + "." + (blocks - 1), new byte[0]).length;
 
         // Retrieve from Preferences.
         byte[] stateByteArray = new byte[totalSize];
         for (int i = 0; i < blocks; i++) {
-            byte[] block = prefs.getByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID + "." + i, new byte[0]);
+            byte[] block = prefs.getByteArray(CLIENT_STATE_PREFERENCES_ID + "." + i, new byte[0]);
             System.arraycopy(block, 0, stateByteArray, i * Preferences.MAX_VALUE_LENGTH * 3 / 4, block.length);
         }
 
@@ -238,10 +241,10 @@ public class ClientInitService implements
         byte[] stateBytes = SerializationUtils.serialize(state);
         int blocks = 0;
         while (blocks * Preferences.MAX_VALUE_LENGTH * 3 / 4 < stateBytes.length) {
-            prefs.putByteArray(AppConstants.CLIENT_STATE_PREFERENCES_ID + "." + blocks,
+            prefs.putByteArray(CLIENT_STATE_PREFERENCES_ID + "." + blocks,
                     Arrays.copyOfRange(stateBytes, blocks++ * Preferences.MAX_VALUE_LENGTH * 3 / 4, blocks * Preferences.MAX_VALUE_LENGTH * 3 / 4));
         }
-        prefs.putInt(AppConstants.CLIENT_STATE_PREFERENCES_ID + ".blocks", blocks);
+        prefs.putInt(CLIENT_STATE_PREFERENCES_ID + ".blocks", blocks);
     }
 
     /**
@@ -255,7 +258,7 @@ public class ClientInitService implements
                 sendHeartBeat();
             }
         };
-        heartbeatTimer.scheduleAtFixedRate(callNextHeartbeat, AppConstants.TIME_BETWEEN_HEARTBEATS, AppConstants.TIME_BETWEEN_HEARTBEATS);
+        heartbeatTimer.scheduleAtFixedRate(callNextHeartbeat, TIME_BETWEEN_HEARTBEATS, TIME_BETWEEN_HEARTBEATS);
     }
 
     /**
@@ -263,7 +266,7 @@ public class ClientInitService implements
      */
     private void stopHeartbeat() {
         heartbeatTimer.cancel();
-        heartbeatTimer = new Timer();
+        heartbeatTimer = new Timer(true);
     }
 
     /**
@@ -337,7 +340,7 @@ public class ClientInitService implements
                                 loginWithModel();
                             }
                         };
-                        loginTimer.schedule(callNextLogin, AppConstants.TIME_BETWEEN_HEARTBEATS);
+                        loginTimer.schedule(callNextLogin, TIME_BETWEEN_HEARTBEATS);
                         return;
                     }
 
