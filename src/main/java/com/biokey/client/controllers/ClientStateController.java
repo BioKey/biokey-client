@@ -243,7 +243,7 @@ public class ClientStateController {
             log.error("Exception when trying to serialize client status to JSON", e);
             return false;
         } finally {
-            state.obtainAccessToModel();
+            state.releaseAccessToModel();
         }
     }
 

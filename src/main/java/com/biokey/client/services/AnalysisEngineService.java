@@ -42,7 +42,6 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 float newAnalysisResult = Float.parseFloat(frame.analysisResultTextField.getText());
                 controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), newAnalysisResult));
                 analysisResultTrayPanelView.setAnalysisResultText(newAnalysisResult);
-                frame.analysisResultTextField.setText("");
             } catch (Exception e) {
                 frame.informationLabel.setText("Invalid analysis result.");
             }
