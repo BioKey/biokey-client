@@ -315,7 +315,7 @@ public class ClientInitService implements
         clearClientData();
 
         // Initiate the loginPanelView.
-        loginPanelView.setEnableSubmit(true);
+        // loginPanelView.setEnableSubmit(true);
         lockFrameView.addPanel(loginPanelView.getLoginPanel());
         lockFrameView.lock();
     }

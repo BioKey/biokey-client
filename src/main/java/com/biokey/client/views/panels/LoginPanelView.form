@@ -109,14 +109,15 @@
               </grid>
             </constraints>
             <properties>
-              <background color="-1"/>
+              <background color="-16746497"/>
+              <borderPainted value="true"/>
               <contentAreaFilled value="false"/>
               <enabled value="false"/>
               <focusPainted value="true"/>
               <font name="Lato" size="15" style="1"/>
-              <foreground color="-6313542"/>
+              <foreground color="-16746497"/>
               <margin top="0" left="2" bottom="0" right="2"/>
-              <opaque value="true"/>
+              <opaque value="false"/>
               <rolloverEnabled value="false"/>
               <text value="Sign In"/>
             </properties>
