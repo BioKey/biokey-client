@@ -45,10 +45,10 @@ public class ServiceProvider {
     @Bean
     @Autowired
     public AnalysisEngineService analysisEngineService(
-            ClientStateController clientStateController, TrayFrameView trayFrameView,
+            ClientStateController clientStateController, ClientStateModel clientStateModel, TrayFrameView trayFrameView,
             AnalysisResultTrayPanelView analysisResultTrayPanelView) {
 
-        return new AnalysisEngineService(clientStateController, trayFrameView, analysisResultTrayPanelView);
+        return new AnalysisEngineService(clientStateController, clientStateModel, trayFrameView, analysisResultTrayPanelView);
     }
 
     @Bean

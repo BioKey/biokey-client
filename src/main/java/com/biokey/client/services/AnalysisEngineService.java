@@ -21,6 +21,7 @@ import java.awt.event.ActionEvent;
 public class AnalysisEngineService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientKeyListener {
 
     private final ClientStateController controller;
+    private final ClientStateModel state;
     private final AnalysisResultTrayPanelView analysisResultTrayPanelView;
 
     // TODO: delete once the fake is no longer needed.
@@ -29,9 +30,10 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
     private boolean isRunning = false;
 
     @Autowired
-    public AnalysisEngineService(ClientStateController controller, TrayFrameView trayFrameView,
+    public AnalysisEngineService(ClientStateController controller, ClientStateModel state, TrayFrameView trayFrameView,
                                  AnalysisResultTrayPanelView analysisResultTrayPanelView) {
         this.controller = controller;
+        this.state = state;
         this.analysisResultTrayPanelView = analysisResultTrayPanelView;
 
         trayFrameView.addPanel(analysisResultTrayPanelView.getAnalysisResultTrayPanel());

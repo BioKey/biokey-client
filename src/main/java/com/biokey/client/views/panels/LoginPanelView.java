@@ -3,7 +3,10 @@ package com.biokey.client.views.panels;
 import lombok.Getter;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 public class LoginPanelView {
 
@@ -13,6 +16,37 @@ public class LoginPanelView {
     private JLabel informationLabel;
 
     @Getter private JPanel loginPanel;
+
+    public LoginPanelView() {
+        super();
+        submitButton.setEnabled(false);
+        emailInput.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                updateButtonState();
+            }
+            @Override
+            public void keyPressed(KeyEvent e) {}
+            @Override
+            public void keyReleased(KeyEvent e) {}
+        });
+        passwordInput.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                updateButtonState();
+            }
+            @Override
+            public void keyPressed(KeyEvent e) {}
+            @Override
+            public void keyReleased(KeyEvent e) {}
+        });
+    }
+
+    private void updateButtonState() {
+        // TODO: Not quite right... Needs to perform after key event
+        boolean shouldEnable = getEmail().length() + 1 > 0 && getPassword().length() + 1 > 0;
+        submitButton.setEnabled(shouldEnable);
+    }
 
     /**
      * Getter method for the string representation of the user's typed email.

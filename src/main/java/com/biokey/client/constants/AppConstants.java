@@ -14,7 +14,7 @@ public class AppConstants {
     public static final int TIME_BETWEEN_SERVER_SYNCS = 5000;
     public static final int MAX_CHALLENGE_ATTEMPTS = 3;
     public static final int SQS_LISTENER_PERIOD = 3000;
-    public static final float DEFAULT_THRESHOLD = 0.8f;
+    public static final float DEFAULT_THRESHOLD = 0.5f;
     public static final boolean SEND_KEYSTROKES_TO_SERVER = false;
     public static final boolean SEND_ANALYSIS_TO_SERVER = false;
 }
