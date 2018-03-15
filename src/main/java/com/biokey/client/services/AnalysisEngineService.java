@@ -6,6 +6,7 @@ import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.models.pojo.GaussianFeaturePojo;
 import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.views.frames.FakeAnalysisFrameView;
 import com.biokey.client.views.frames.TrayFrameView;
@@ -46,16 +47,17 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         private long indexEnd;
         private double score;
 
-        public KeySequence(String sequence, long duration, long indexStart, long indexEnd) {
+        public KeySequence(String sequence, long duration, long indexStart, long indexEnd, double score) {
             this.sequence = sequence;
             this.duration = duration;
             this.indexStart = indexStart;
             this.indexEnd = indexEnd;
+            this.score = score;
             System.out.println(this);
         }
 
         public String toString() {
-            return sequence + "( " + duration + "ms, " + indexStart + " - " + indexEnd + " )";
+            return sequence + "( " + duration + "ms, " + indexStart + " - " + indexEnd + " ) | " + score;
         }
     }
 
@@ -140,10 +142,17 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 KeyDownEvent startKey = sequencesToFinish.pop();
                 runningSequence = startKey.getKey() + (runningSequence.length() == 0 ? "" : "-" + runningSequence);
                 long duration = finishTime - startKey.getDownTime();
-                completedSequences.add(new KeySequence(runningSequence, duration, startKey.getSeqNumber(), lastKey.getSeqNumber()));
+
+                state.obtainAccessToStatus();
+                GaussianFeaturePojo stats = state.getCurrentStatus().getProfile().getModel().getGaussianProfile().get(runningSequence);
+                state.releaseAccessToStatus();
+                if (stats != null) {
+                    double mean = stats.getMean();
+                    double stdev = stats.getStdev();
+                    double score = Math.exp(-Math.pow(Math.log(duration)-mean, 2)/(2*Math.pow(stdev, 2)));
+                    completedSequences.add(new KeySequence(runningSequence, duration, startKey.getSeqNumber(), lastKey.getSeqNumber(), score));
+                }
             }
-
-
         }
         analyze();
     }

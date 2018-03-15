@@ -15,7 +15,7 @@ public class RequestBuilderHelperTest {
 
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("1", "2","3","4", new float[] {}, new String[] {},"5"),
+                    new TypingProfilePojo("1", "2","3",null, new float[] {}, new String[] {},"5"),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "6", "7", "8", 9);
 

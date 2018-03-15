@@ -44,7 +44,6 @@ public class PojoHelper {
                                                       @NonNull String token, @NonNull AuthConstants authStatus) {
         TypingProfileResponse response = responseContainer.getTypingProfile();
         if (response == null) return null;
-
         return new ClientStatusPojo(
                 new TypingProfilePojo(response.get_id(), response.getMachine(), response.getUser(),
                         response.getTensorFlowModel(),
@@ -116,7 +115,6 @@ public class PojoHelper {
 
     /**
      * Method for first MAC address
-     * @param name
      * @return
      */
     private static String getFirstMAC(){

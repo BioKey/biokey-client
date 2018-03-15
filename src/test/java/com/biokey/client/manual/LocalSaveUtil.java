@@ -77,10 +77,10 @@ public class LocalSaveUtil extends JFrame {
 
         try { userIdTextField.setText(fromMemory.getCurrentStatus().getProfile().getUserId()); }
         catch (Exception e) { userIdTextField.setText(""); }
-
+        /*
         try { modelTextField.setText(fromMemory.getCurrentStatus().getProfile().getModel()); }
         catch (Exception e) { modelTextField.setText(""); }
-
+        */
         try {
             String thresholdString = Arrays.toString(fromMemory.getCurrentStatus().getProfile().getThreshold());
             // Make sure to remove the [] from string representation.
@@ -135,7 +135,7 @@ public class LocalSaveUtil extends JFrame {
                     idTextField.getText(),
                     machineIdTextField.getText(),
                     userIdTextField.getText(),
-                    modelTextField.getText(),
+                    /*modelTextField.getText()*/ null,
                     PojoHelper.castToThreshold(thresholdTextField.getText()),
                     PojoHelper.castToChallengeStrategyArray(challengesTextField.getText()),
                     sqsTextField.getText());

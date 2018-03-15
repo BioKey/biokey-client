@@ -28,12 +28,12 @@ public class GoogleAuthStrategyIntegrationTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO_NO_KEY =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "", 0);
     private final ClientStatusPojo CLIENT_STATUS_POJO_WITH_KEY =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "hello", 0);
     private final int TIMEOUT = 2000;

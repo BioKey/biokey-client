@@ -1,5 +1,6 @@
 package com.biokey.client.models.response;
 
+import com.biokey.client.models.pojo.EngineModelPojo;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -14,7 +15,7 @@ public class TypingProfileResponse {
     @JsonProperty("isLocked")
     private final boolean isLocked;
     @JsonProperty("tensorFlowModel")
-    private final String tensorFlowModel;
+    private final EngineModelPojo tensorFlowModel;
     @JsonProperty("endpoint")
     private final String endpoint;
     @JsonProperty("challengeStrategies")

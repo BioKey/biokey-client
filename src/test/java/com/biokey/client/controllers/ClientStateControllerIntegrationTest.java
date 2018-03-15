@@ -51,7 +51,7 @@ public class ClientStateControllerIntegrationTest {
     private static final String UNKNOWN_MAC = "!@#";
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo(TYPING_PROFILE_ID, MAC,"","",new float[] {}, new String[] {},""),
+                    new TypingProfilePojo(TYPING_PROFILE_ID, MAC,"",null,new float[] {}, new String[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     ACCESS_TOKEN, "", "", 0);
     private static final KeyStrokePojo KEY_STROKE_POJO = new KeyStrokePojo('t', true, Integer.MAX_VALUE);

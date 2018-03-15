@@ -37,12 +37,12 @@ public class ClientStateModelTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "", 0);
     private final ClientStatusPojo OTHER_CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", "", new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "", 0);
 
