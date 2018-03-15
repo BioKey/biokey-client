@@ -20,6 +20,4 @@ public class TypingProfileResponse {
     private final String endpoint;
     @JsonProperty("challengeStrategies")
     private final String[] challengeStrategies;
-    @JsonProperty("threshold")
-    private final float[] threshold;
 }

@@ -5,14 +5,13 @@ import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
-import com.biokey.client.models.pojo.KeyStrokePojo;
+import com.biokey.client.models.pojo.EngineModelPojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.services.ClientInitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
-import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
@@ -24,8 +23,6 @@ public class LocalSaveUtil extends JFrame {
     private JTextField idTextField;
     private JTextField machineIdTextField;
     private JTextField userIdTextField;
-    private JTextField modelTextField;
-    private JTextField thresholdTextField;
     private JTextField challengesTextField;
     private JTextField sqsTextField;
     private JTextField authStatusTextField;
@@ -77,16 +74,6 @@ public class LocalSaveUtil extends JFrame {
 
         try { userIdTextField.setText(fromMemory.getCurrentStatus().getProfile().getUserId()); }
         catch (Exception e) { userIdTextField.setText(""); }
-        /*
-        try { modelTextField.setText(fromMemory.getCurrentStatus().getProfile().getModel()); }
-        catch (Exception e) { modelTextField.setText(""); }
-        */
-        try {
-            String thresholdString = Arrays.toString(fromMemory.getCurrentStatus().getProfile().getThreshold());
-            // Make sure to remove the [] from string representation.
-            if (thresholdString.length() <= 2) thresholdTextField.setText("");
-            else thresholdTextField.setText(thresholdString.substring(1, thresholdString.length() - 1)); }
-        catch (Exception e) { thresholdTextField.setText(""); }
 
         try {
             StringBuilder sb = new StringBuilder();
@@ -135,8 +122,7 @@ public class LocalSaveUtil extends JFrame {
                     idTextField.getText(),
                     machineIdTextField.getText(),
                     userIdTextField.getText(),
-                    /*modelTextField.getText()*/ null,
-                    PojoHelper.castToThreshold(thresholdTextField.getText()),
+                    /*modelTextField.getText()*/ new EngineModelPojo(), // TODO: fix this to work with new model
                     PojoHelper.castToChallengeStrategyArray(challengesTextField.getText()),
                     sqsTextField.getText());
 
@@ -174,8 +160,6 @@ public class LocalSaveUtil extends JFrame {
         idTextField.setText("");
         machineIdTextField.setText("");
         userIdTextField.setText("");
-        modelTextField.setText("");
-        thresholdTextField.setText("");
         challengesTextField.setText("");
         sqsTextField.setText("");
         authStatusTextField.setText("");

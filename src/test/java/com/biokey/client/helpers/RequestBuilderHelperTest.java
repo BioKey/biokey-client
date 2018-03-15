@@ -15,7 +15,7 @@ public class RequestBuilderHelperTest {
 
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("1", "2","3",null, new float[] {}, new String[] {},"5"),
+                    new TypingProfilePojo("1", "2","3", new EngineModelPojo(), new String[] {},"5"),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "6", "7", "8", 9);
 
@@ -29,6 +29,7 @@ public class RequestBuilderHelperTest {
     private static final KeyStrokesPojo KEY_STROKES_POJO = new KeyStrokesPojo();
     private static final AnalysisResultPojo ANALYSIS_RESULT_POJO = new AnalysisResultPojo(1, 0.1f);
 
+    // TODO: not urgent but will need to update these expected
     private static final String EXPECTED_KEY_STROKE_JSON = "{\"keystrokes\": [{\"character\":\"t\",\"keyDown\":true,\"timestamp\":1,\"typingProfile\":\"TYPING_PROFILE_ID\"},{\"character\":\"b\",\"keyDown\":false,\"timestamp\":2,\"typingProfile\":\"TYPING_PROFILE_ID\"}]}";
     private static final String EXPECTED_LOGIN_JSON = "{\"email\": \"EMAIL\", \"password\": \"PASSWORD\"}";
     private static final String EXPECTED_CLIENT_STATUS_JSON = "{\"typingProfile\":{\"_id\":\"1\",\"user\":\"3\",\"machine\":\"2\",\"isLocked\":false,\"tensorFlowModel\":\"4\",\"endpoint\":\"5\",\"challengeStrategies\":[],\"threshold\":[],\"locked\":false},\"phoneNumber\":\"7\",\"googleAuthKey\":\"8\",\"timeStamp\":9}";

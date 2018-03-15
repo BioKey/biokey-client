@@ -2,10 +2,7 @@ package com.biokey.client.models;
 
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
-import com.biokey.client.models.pojo.AnalysisResultPojo;
-import com.biokey.client.models.pojo.ClientStatusPojo;
-import com.biokey.client.models.pojo.KeyStrokePojo;
-import com.biokey.client.models.pojo.TypingProfilePojo;
+import com.biokey.client.models.pojo.*;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,12 +34,12 @@ public class ClientStateModelTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", new EngineModelPojo(), new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "", 0);
     private final ClientStatusPojo OTHER_CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", new EngineModelPojo(), new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "", 0);
 
@@ -394,8 +391,8 @@ public class ClientStateModelTest {
         underTest.notifyAnalysisResultQueueChange(null);
         underTest.notifyModelChange();
         verify(STATUS_LISTENER, timeout(100).times(2)).statusChanged(any(), any());
-        verify(KEY_LISTENER, timeout(100).times(2)).keystrokeQueueChanged(any());
-        verify(ANALYSIS_LISTENER, timeout(100).times(2)).analysisResultQueueChanged(any());
+        verify(KEY_LISTENER, timeout(100).times(1)).keystrokeQueueChanged(any());
+        verify(ANALYSIS_LISTENER, timeout(100).times(1)).analysisResultQueueChanged(any());
     }
 
     @Test
