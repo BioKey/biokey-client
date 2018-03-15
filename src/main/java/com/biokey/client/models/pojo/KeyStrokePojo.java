@@ -15,7 +15,7 @@ public class KeyStrokePojo implements Serializable {
     private static final long serialVersionUID = 400;
 
     @JsonProperty("character")
-    private final char key;
+    private final int key;
     @JsonProperty("keyDown")
     private final boolean keyDown;
     @JsonProperty("timestamp")

