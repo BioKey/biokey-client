@@ -81,8 +81,7 @@ public class RequestBuilderHelper {
                         clientStatus.getSecurityStatus() != SecurityConstants.UNLOCKED,
                         typingProfile.getModel(),
                         typingProfile.getSqsEndpoint(),
-                        typingProfile.getAcceptedChallengeStrategies(),
-                        typingProfile.getThreshold()),
+                        typingProfile.getAcceptedChallengeStrategies()),
                 clientStatus.getPhoneNumber(),
                 clientStatus.getGoogleAuthKey(),
                 clientStatus.getTimeStamp());

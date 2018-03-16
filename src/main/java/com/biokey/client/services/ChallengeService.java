@@ -142,13 +142,9 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
             // Check first if the result and model is present.
             if (newResult == null || state.getCurrentStatus() == null) return;
 
-            // Get the threshold.
-            float[] thresholds = state.getCurrentStatus().getProfile().getThreshold();
-            float threshold = (thresholds.length > 0) ? thresholds[0] : DEFAULT_THRESHOLD;
-
             // If newResult does not meet the threshold then issueChallenges.
             // TODO: How the threshold works is largely up to the analysis engine.
-            if (newResult.getProbability() < threshold) {
+            if (newResult.getProbability() < DEFAULT_THRESHOLD) {
                 state.obtainAccessToStatus();
                 try {
                     ClientStatusPojo currentStatus = state.getCurrentStatus();

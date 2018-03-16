@@ -4,6 +4,7 @@ import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.models.pojo.EngineModelPojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +21,7 @@ public class TextMessageStrategyTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", new EngineModelPojo(), new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "", 0);
 

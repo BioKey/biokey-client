@@ -47,7 +47,6 @@ public class PojoHelper {
         return new ClientStatusPojo(
                 new TypingProfilePojo(response.get_id(), response.getMachine(), response.getUser(),
                         response.getTensorFlowModel(),
-                        response.getThreshold(),
                         response.getChallengeStrategies(),
                         response.getEndpoint()),
                 authStatus,
@@ -64,20 +63,19 @@ public class PojoHelper {
      * @return string representation of MAC
      */
     public static String getMAC(){
-        try{
-            String OSName=  System.getProperty("os.name");
-            if(OSName.contains("Windows")){
+        try {
+            String OSName = System.getProperty("os.name");
+            if (OSName.contains("Windows")) {
                 return (getMAC4Windows());
-            }
-            else{
-                String mac=getMAC4Linux("eth0");
-                if(mac==null){
-                    mac=getMAC4Linux("eth1");
-                    if(mac==null){
-                        mac=getMAC4Linux("eth2");
-                        if(mac==null){
-                            mac=getMAC4Linux("usb0");
-                            if(mac==null){
+            } else {
+                String mac = getMAC4Linux("eth0");
+                if (mac == null) {
+                    mac = getMAC4Linux("eth1");
+                    if (mac == null) {
+                        mac = getMAC4Linux("eth2");
+                        if (mac == null) {
+                            mac = getMAC4Linux("usb0");
+                            if (mac == null) {
                                 mac = getFirstMAC();
                             }
                         }
@@ -85,9 +83,8 @@ public class PojoHelper {
                 }
                 return mac;
             }
-        }
-        catch(Exception E){
-            System.err.println("System Mac Exp : "+E.getMessage());
+        } catch (Exception E) {
+            System.err.println("System Mac Exp : " + E.getMessage());
             return null;
         }
     }
@@ -102,13 +99,12 @@ public class PojoHelper {
             NetworkInterface network = NetworkInterface.getByName(name);
             byte[] mac = network.getHardwareAddress();
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < mac.length; i++){
+            for (int i = 0; i < mac.length; i++) {
                 sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
             }
             return (sb.toString());
-        }
-        catch (Exception E) {
-            System.err.println("System Linux MAC Exp : "+E.getMessage());
+        } catch (Exception E) {
+            System.err.println("System Linux MAC Exp : " + E.getMessage());
             return null;
         }
     }
@@ -122,37 +118,36 @@ public class PojoHelper {
             NetworkInterface network = NetworkInterface.getNetworkInterfaces().nextElement();
             byte[] mac = network.getHardwareAddress();
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < mac.length; i++){
+            for (int i = 0; i < mac.length; i++) {
                 sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
             }
             return (sb.toString());
-        }
-        catch (Exception E) {
-            System.err.println("System Index MAC Exp : "+E.getMessage());
+        } catch (Exception E) {
+            System.err.println("System Index MAC Exp : " + E.getMessage());
             return null;
         }
     }
 
     /**
      * Method for get Mac Address of Windows Machine
+     *
      * @return
      */
-    private static String getMAC4Windows(){
-        try{
-            InetAddress      addr     =InetAddress.getLocalHost();
-            NetworkInterface network  =NetworkInterface.getByInetAddress(addr);
+    private static String getMAC4Windows() {
+        try {
+            InetAddress addr = InetAddress.getLocalHost();
+            NetworkInterface network = NetworkInterface.getByInetAddress(addr);
 
             byte[] mac = network.getHardwareAddress();
 
             StringBuilder sb = new StringBuilder();
-            for(int i=0;i<mac.length;i++){
+            for (int i = 0; i < mac.length; i++) {
                 sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
             }
 
             return sb.toString();
-        }
-        catch(Exception E){
-            System.err.println("System Windows MAC Exp : "+E.getMessage());
+        } catch (Exception E) {
+            System.err.println("System Windows MAC Exp : " + E.getMessage());
             return null;
         }
     }
@@ -196,23 +191,6 @@ public class PojoHelper {
     public static String[] castToChallengeStrategyArray(@NonNull String challengeStrategies) {
         if (challengeStrategies.length() == 0) return new String[0];
         return challengeStrategies.split("\\s*,\\s*");
-    }
-
-    /**
-     * Casts the string representations of thresholds from the server to the correct float array.
-     *
-     * @param threshold comma delimited string representations of thresholds strategies from the server
-     * @return array of thresholds
-     */
-    public static float[] castToThreshold(@NonNull String threshold) {
-        if (threshold.length() == 0) return new float[0];
-
-        String[] thresholdStringArr = threshold.split("\\s*,\\s*");
-        float[] thresholdArr = new float[thresholdStringArr.length];
-        for (int i = 0; i < thresholdStringArr.length; i++) {
-            thresholdArr[i] = Float.parseFloat(thresholdStringArr[i]);
-        }
-        return thresholdArr;
     }
 
     /**

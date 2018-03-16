@@ -7,38 +7,49 @@ import java.awt.*;
  * Defines the view for the lock screen and provides functionality to lock/unlock and swap panels into the lock screen.
  */
 public class LockFrameView {
-
-    private JFrame lockFrame = new JFrame();
+    private JFrame[] lockFrames;
 
     /**
-     * Constructor sets up the view for the locked UX.
+     * Constructor sets up the vie3e3ew for the locked UX.
      */
     public LockFrameView() {
-        // TODO: Sankalp should reconfigure this frame to work with locking!
-        // TODO: Make sure to test for double screen, test disable special key presses (only allow alphanum), test...
-        // lockFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // https://stackoverflow.com/questions/32077449/whats-the-point-of-setdefaultcloseoperationwindowconstants-exit-on-close
-        lockFrame.setUndecorated(true);
-        lockFrame.pack();
-        // lockFrame.setAlwaysOnTop(true); // Pushes frame to the top.
-        lockFrame.setResizable(false); // Can't change the size of frame.
-        lockFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-        lockFrame.setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height); // Fullscreen based on screen size.
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice[] gs = ge.getScreenDevices();
+        this.lockFrames = new JFrame[gs.length];
+
+        for (int j = 0; j < gs.length; j++) {
+            GraphicsDevice gd = gs[j];
+            this.lockFrames[j] = new JFrame(gd.getDefaultConfiguration());
+
+//            this.lockFrames[j].setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+            this.lockFrames[j].setUndecorated(true);
+            this.lockFrames[j].pack();
+//            this.lockFrames[j].setAlwaysOnTop(true);
+            this.lockFrames[j].setResizable(false);
+            this.lockFrames[j].setExtendedState(JFrame.MAXIMIZED_BOTH);
+            this.lockFrames[j].setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
+
+            KeyDisabler stopper = new KeyDisabler(this.lockFrames[j]);
+            new Thread(stopper, "KeyDisabler").start();
+        }
     }
 
     /**
      * Tell this view to go into locked UX.
      */
     public void lock() {
-        // TODO: Sankalp please verify these functions work!
-        lockFrame.setVisible(true);
+        for (lockFrame : lockFrames) {
+            lockFrame.setVisible(true);
+        }
     }
 
     /**
      * Tell this view to exist locked UX.
      */
     public void unlock() {
-        // TODO: Sankalp please verify these functions work!
-        lockFrame.setVisible(false);
+        for (lockFrame : lockFrames) {
+            lockFrame.setVisible(false);
+        }
     }
 
     /**
@@ -46,8 +57,10 @@ public class LockFrameView {
      * @param panel panel to add to view
      */
     public void addPanel(JPanel panel) {
-        lockFrame.getContentPane().add(panel);
-        revalidateContentPane();
+        for (lockFrame : lockFrames) {
+            lockFrame.getContentPane().add(panel);
+            revalidateContentPane();
+        }
     }
 
     /**
@@ -55,24 +68,30 @@ public class LockFrameView {
      * @param panel panel to hide
      */
     public void removePanel(JPanel panel) {
-        lockFrame.getContentPane().remove(panel);
-        revalidateContentPane();
+        for (lockFrame : lockFrames) {
+            lockFrame.getContentPane().remove(panel);
+            revalidateContentPane();
+        }
     }
 
     /**
      * Remove all panels from the view.
      */
     public void removeAllPanels() {
-        lockFrame.getContentPane().removeAll();
-        revalidateContentPane();
+        for (lockFrame : lockFrames) {
+            lockFrame.getContentPane().removeAll();
+            revalidateContentPane();
+        }
     }
 
     /**
      * Revalidate content pane, repack, and make sure size is still maximized.
      */
     private void revalidateContentPane() {
-        lockFrame.getContentPane().revalidate();
-        lockFrame.pack();
-        lockFrame.setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
+        for (lockFrame : lockFrames) {
+            lockFrame.getContentPane().revalidate();
+            lockFrame.pack();
+            lockFrame.setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
+        }
     }
 }

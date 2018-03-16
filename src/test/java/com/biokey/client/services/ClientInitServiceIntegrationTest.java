@@ -3,10 +3,7 @@ package com.biokey.client.services;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.models.ClientStateModel;
-import com.biokey.client.models.pojo.AnalysisResultPojo;
-import com.biokey.client.models.pojo.ClientStatusPojo;
-import com.biokey.client.models.pojo.KeyStrokePojo;
-import com.biokey.client.models.pojo.TypingProfilePojo;
+import com.biokey.client.models.pojo.*;
 
 import com.biokey.client.providers.AppProvider;
 import org.junit.BeforeClass;
@@ -32,7 +29,7 @@ public class ClientInitServiceIntegrationTest {
     private static final Set<ClientStateModel.IClientAnalysisListener> ANALYSIS_LISTENER_SET = new HashSet<>();
     private static final ClientStatusPojo CLIENT_STATUS_POJO =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "","",null,new float[] {}, new String[] {},""),
+                    new TypingProfilePojo("", "","",new EngineModelPojo(), new String[] {},""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "HELLO","", "", 777
             );

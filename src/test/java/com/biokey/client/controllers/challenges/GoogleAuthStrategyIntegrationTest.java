@@ -6,6 +6,7 @@ import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
+import com.biokey.client.models.pojo.EngineModelPojo;
 import com.biokey.client.models.pojo.TypingProfilePojo;
 import com.biokey.client.views.frames.GoogleAuthQRFrameView;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
@@ -28,12 +29,12 @@ public class GoogleAuthStrategyIntegrationTest {
 
     private final ClientStatusPojo CLIENT_STATUS_POJO_NO_KEY =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", new EngineModelPojo(), new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "", 0);
     private final ClientStatusPojo CLIENT_STATUS_POJO_WITH_KEY =
             new ClientStatusPojo(
-                    new TypingProfilePojo("", "", "", null, new float[] {}, new String[] {}, ""),
+                    new TypingProfilePojo("", "", "", new EngineModelPojo(), new String[] {}, ""),
                     AuthConstants.AUTHENTICATED, SecurityConstants.UNLOCKED,
                     "", "", "hello", 0);
     private final int TIMEOUT = 2000;
