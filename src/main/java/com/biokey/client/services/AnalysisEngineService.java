@@ -103,7 +103,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             }
         }
 
-        public boolean sendInit(String payload) {
+        public boolean init(String payload) {
             try {
                 out.write("init: " + payload);
                 out.newLine();
@@ -120,7 +120,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         }
 
-        public double sendPrediction(String payload) {
+        public double predict(String payload) {
             if (!initialized) {
                 log.error("Model must be initialized before predictions can be made");
                 return -1;
@@ -189,8 +189,8 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         try {
             JSONParser parser = new JSONParser();
             JSONObject gaussian = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Downloads/ensemble.json"));
-            System.out.println(model.sendInit(gaussian.toJSONString()));
-            System.out.println(model.sendPrediction("jsdflks"));
+            System.out.println(model.init(gaussian.toJSONString()));
+            System.out.println(model.predict("{\"sfdlksdj\": 23"));
         }
         catch(Exception e) {
             e.printStackTrace();
