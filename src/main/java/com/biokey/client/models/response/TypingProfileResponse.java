@@ -1,10 +1,12 @@
 package com.biokey.client.models.response;
 
 import com.biokey.client.models.pojo.EngineModelPojo;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TypingProfileResponse {
     @JsonProperty("_id")
     private final String _id;

@@ -28,8 +28,9 @@ public class PojoHelper {
      * @return new client status based on response
      */
     public static ClientStatusPojo castToClientStatus(@NonNull TypingProfileContainerResponse responseContainer,
+                                                      ClientStatusPojo currentStatus,
                                                       @NonNull String token) {
-        return castToClientStatus(responseContainer, token, AuthConstants.AUTHENTICATED);
+        return castToClientStatus(responseContainer, currentStatus, token, AuthConstants.AUTHENTICATED);
     }
 
     /**
@@ -41,12 +42,13 @@ public class PojoHelper {
      * @return new client status based on response
      */
     public static ClientStatusPojo castToClientStatus(@NonNull TypingProfileContainerResponse responseContainer,
+                                                      ClientStatusPojo currentStatus,
                                                       @NonNull String token, @NonNull AuthConstants authStatus) {
         TypingProfileResponse response = responseContainer.getTypingProfile();
         if (response == null) return null;
         return new ClientStatusPojo(
                 new TypingProfilePojo(response.get_id(), response.getMachine(), response.getUser(),
-                        response.getTensorFlowModel(),
+                        (response.getTensorFlowModel() == null) ? (currentStatus == null ? null : currentStatus.getProfile().getModel()) : response.getTensorFlowModel(),
                         response.getChallengeStrategies(),
                         response.getEndpoint()),
                 authStatus,

@@ -42,7 +42,6 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
                     .withRegion(Regions.US_EAST_2).build();
     private final ObjectMapper mapper = new ObjectMapper();
     private Timer timer = new Timer(true);
-    private boolean isStarted = false;
 
     @Autowired
     public ServerListenerService(ClientStateController controller, ClientStateModel clientStateModel) {
@@ -64,7 +63,8 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
      * Start running the server listener.
      */
     private void start() {
-        if (isStarted) return;
+        timer.cancel();
+        timer = new Timer(true);
         clientState.obtainAccessToStatus();
         try {
             if (clientState.getCurrentStatus() == null) {
@@ -73,7 +73,6 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
                 return;
             }
             timer.schedule(new DequeueTask(clientState.getCurrentStatus().getProfile().getSqsEndpoint()), AppConstants.SQS_LISTENER_PERIOD);
-            isStarted = true;
         } finally {
             clientState.releaseAccessToStatus();
         }
@@ -85,7 +84,6 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
     private void stop() {
         timer.cancel();
         timer = new Timer(true);
-        isStarted = false;
     }
 
     /**
@@ -143,7 +141,7 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
                     // Read JSON, enqueue status.
                     TypingProfileContainerResponse res = mapper.readValue(cleanMessage, TypingProfileContainerResponse.class);
                     controller.enqueueStatus(
-                            PojoHelper.castToClientStatus(res, currentStatus.getAccessToken(), currentStatus.getAuthStatus()));
+                            PojoHelper.castToClientStatus(res, currentStatus, currentStatus.getAccessToken(), currentStatus.getAuthStatus()));
                 }
                 else if (changeType.equals("User")) {
                     String cleanMessage = cleanJson(message.getBody());

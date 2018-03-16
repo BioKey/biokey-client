@@ -394,8 +394,7 @@ public class ClientInitService implements
                 lockFrameView.removePanel(loginPanelView.getLoginPanel());
 
                 // Enqueue the response as the new status.
-                ClientStatusPojo newStatus = PojoHelper.castToClientStatus(response.getBody(), token);
-                state.getCurrentStatus(); // Superfluous call because we don't care what the old status was.
+                ClientStatusPojo newStatus = PojoHelper.castToClientStatus(response.getBody(), state.getCurrentStatus(), token);
                 controller.enqueueStatus(newStatus);
             } finally {
                 state.releaseAccessToStatus();

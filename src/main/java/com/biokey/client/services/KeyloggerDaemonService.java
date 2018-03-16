@@ -1,6 +1,7 @@
 package com.biokey.client.services;
 
 import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.ClientStatusPojo;
@@ -46,7 +47,8 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      * The status will contain a flag for whether the daemon should be running.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-        if (newStatus != null && newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
+        if (newStatus != null && newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED &&
+                newStatus.getSecurityStatus() == SecurityConstants.UNLOCKED) start();
         else stop();
     }
 
