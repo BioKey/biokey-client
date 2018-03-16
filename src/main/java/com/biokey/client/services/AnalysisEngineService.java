@@ -227,7 +227,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             JSONParser parser = new JSONParser();
             JSONObject gaussian = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Downloads/ensemble.json"));
             System.out.println(model.init(gaussian.toJSONString()));
-            System.out.println(model.predict("{\"sfdlksdj\": 23"));
+            System.out.println(model.predict("{\"sfdlksdj\": 23}"));
         }
         catch(Exception e) {
             e.printStackTrace();

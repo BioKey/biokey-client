@@ -29,8 +29,10 @@ public class LockFrameView {
             this.lockFrames[j].setExtendedState(JFrame.MAXIMIZED_BOTH);
             this.lockFrames[j].setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
 
+            /*
             KeyDisabler stopper = new KeyDisabler(this.lockFrames[j]);
             new Thread(stopper, "KeyDisabler").start();
+            */
         }
     }
 
@@ -38,7 +40,7 @@ public class LockFrameView {
      * Tell this view to go into locked UX.
      */
     public void lock() {
-        for (lockFrame : lockFrames) {
+        for (JFrame lockFrame : lockFrames) {
             lockFrame.setVisible(true);
         }
     }
@@ -47,7 +49,7 @@ public class LockFrameView {
      * Tell this view to exist locked UX.
      */
     public void unlock() {
-        for (lockFrame : lockFrames) {
+        for (JFrame lockFrame : lockFrames) {
             lockFrame.setVisible(false);
         }
     }
@@ -57,7 +59,7 @@ public class LockFrameView {
      * @param panel panel to add to view
      */
     public void addPanel(JPanel panel) {
-        for (lockFrame : lockFrames) {
+        for (JFrame lockFrame : lockFrames) {
             lockFrame.getContentPane().add(panel);
             revalidateContentPane();
         }
@@ -68,7 +70,7 @@ public class LockFrameView {
      * @param panel panel to hide
      */
     public void removePanel(JPanel panel) {
-        for (lockFrame : lockFrames) {
+        for (JFrame lockFrame : lockFrames) {
             lockFrame.getContentPane().remove(panel);
             revalidateContentPane();
         }
@@ -78,7 +80,7 @@ public class LockFrameView {
      * Remove all panels from the view.
      */
     public void removeAllPanels() {
-        for (lockFrame : lockFrames) {
+        for (JFrame lockFrame : lockFrames) {
             lockFrame.getContentPane().removeAll();
             revalidateContentPane();
         }
@@ -88,7 +90,7 @@ public class LockFrameView {
      * Revalidate content pane, repack, and make sure size is still maximized.
      */
     private void revalidateContentPane() {
-        for (lockFrame : lockFrames) {
+        for (JFrame lockFrame : lockFrames) {
             lockFrame.getContentPane().revalidate();
             lockFrame.pack();
             lockFrame.setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);

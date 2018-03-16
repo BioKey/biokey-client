@@ -27,7 +27,7 @@ def predict(payload):
 
 while True:
 	i = input()
-	command, payload = i.split(': ')
+	command, payload = i.split(': ', 1)
 	try:
 		payload = json.loads(payload)
 	except:
