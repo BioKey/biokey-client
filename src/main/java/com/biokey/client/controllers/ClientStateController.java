@@ -195,36 +195,6 @@ public class ClientStateController {
     }
 
     /**
-     *
-     * @param model The model to initialize the server with
-     * @return true if the server initialized successfully
-     */
-    public void sendInitModelServer(@NonNull String model,
-                                       @NonNull ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
-        // TODO: FIX THIS JUNK
-        int attempts = 0;
-        Timer timer = new Timer();
-        long interval = 1 * 1000;
-        while(attempts++ < 10) {
-            TimerTask task = new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        serverRequestExecutorHelper.submitPostRequest(
-                                EngineConstants.INIT_ENDPOINT,
-                                RequestBuilderHelper.emptyHeaderMap(),
-                                model,
-                                String.class,
-                                handler);
-                    }
-                    catch(ResourceAccessException e) {}
-                }
-            };
-            timer.schedule(task, interval*attempts, interval);
-        }
-    }
-
-    /**
      * Sends the server a request with the oldest analysis result not yet known to server.
      * Modifies the sync status for result sent.
      *
