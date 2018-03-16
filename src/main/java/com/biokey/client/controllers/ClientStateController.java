@@ -1,6 +1,7 @@
 package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.EngineConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.helpers.RequestBuilderHelper;
@@ -17,6 +18,8 @@ import lombok.NonNull;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.config.ScheduledTask;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.util.UriTemplate;
 
 import java.util.Deque;

@@ -11,4 +11,6 @@ public class GaussianFeaturePojo implements Serializable {
     private double mean;
     @JsonProperty("stdev")
     private double stdev;
+    @JsonProperty("i")
+    private int index;
 }
