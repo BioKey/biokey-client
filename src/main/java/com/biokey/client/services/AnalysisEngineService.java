@@ -5,10 +5,7 @@ import com.biokey.client.constants.EngineConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
-import com.biokey.client.models.pojo.AnalysisResultPojo;
-import com.biokey.client.models.pojo.ClientStatusPojo;
-import com.biokey.client.models.pojo.GaussianFeaturePojo;
-import com.biokey.client.models.pojo.KeyStrokePojo;
+import com.biokey.client.models.pojo.*;
 import com.biokey.client.views.frames.FakeAnalysisFrameView;
 import com.biokey.client.views.frames.TrayFrameView;
 import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
@@ -16,8 +13,10 @@ import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.EvictingQueue;
 
+import com.google.common.collect.Queues;
 import com.google.common.io.ByteStreams;
 
+import com.sun.xml.internal.ws.api.pipe.Engine;
 import lombok.Data;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
@@ -83,12 +82,13 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
     private class KerasModel {
         private BufferedReader in;
         private BufferedWriter out;
-        boolean initialized = false;
+        private boolean initialized = false;
+        private Process p;
 
         public KerasModel() {
             try {
                 ProcessBuilder pb = new ProcessBuilder("python", "model.py");
-                final Process p = pb.start();
+                p = pb.start();
                 in = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 out = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
 
@@ -149,6 +149,14 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             return -1;
 
         }
+
+        public void kill() {
+            if (p != null) p.destroy();
+        }
+
+        public boolean isRunning() {
+            return (p != null && p.isAlive());
+        }
     }
 
     private final ClientStateController controller;
@@ -162,9 +170,12 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
     private ArrayList<KeySequence> completedSequences;
 
     private int sizeOfEvictingQueue = 100;
-    private EvictingQueue<double []> rawQueue = EvictingQueue.create(sizeOfEvictingQueue);
-    private EvictingQueue<double []> queue40 = EvictingQueue.create(sizeOfEvictingQueue);
-    private EvictingQueue<double []> queue100 = EvictingQueue.create(sizeOfEvictingQueue);
+    private int featureSize;
+    private Queue<List<Double>> rawQueue;
+    private Queue<List<Double>> queue40;
+    private Queue<List<Double>> queue100;
+
+    private KerasModel model;
 
     // TODO: delete once the fake is no longer needed.
     private FakeAnalysisFrameView frame = new FakeAnalysisFrameView();
@@ -195,44 +206,9 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             }
         });
 
-        /*
-        state.obtainAccessToStatus();
-        int featureSize = state.getCurrentStatus().getProfile().getModel().getGaussianProfile().keySet().size();
-        state.releaseAccessToStatus();
-
-        double [] fullZeroes = new double[featureSize];
-        double [] fullPointFives = new double[featureSize];
-
-        for (int i = 0; i < featureSize; i++) {
-            fullPointFives [i] = 0.5;
-            fullZeroes [i] = 0;
-        }
-        //initialize evicting queues
-        for (int i = 0; i <sizeOfEvictingQueue ; i++) {
-
-            rawQueue.add(fullZeroes);
-            queue40.add(fullPointFives);
-            queue100.add(fullPointFives);
-        }
-        */
-
-
         frame.setContentPane(frame.fakeAnalysisPanel);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.pack();
-
-        KerasModel model = new KerasModel();
-
-        try {
-            JSONParser parser = new JSONParser();
-            JSONObject gaussian = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Downloads/ensemble.json"));
-            System.out.println(model.init(gaussian.toJSONString()));
-            System.out.println(model.predict("{\"sfdlksdj\": 23}"));
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-
 
 
     }
@@ -242,7 +218,10 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      * on the analysis model to run through the typing profile.
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
-        if (newStatus != null && newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED) start();
+        if (newStatus != null && newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED &&
+                newStatus.getProfile() != null && newStatus.getProfile().getModel() != null)  {
+            start();
+        }
         else stop();
     }
 
@@ -286,14 +265,59 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                     completedSequences.add(new KeySequence(runningSequence, duration, startKey.getSeqNumber(), lastKey.getSeqNumber(), score));
                 }
             }
+            analyze();
         }
-        analyze();
     }
 
     /**
      * Start running the analysis engine.
      */
     private void start() {
+        if (isRunning) return;
+
+        state.obtainAccessToStatus();
+        featureSize = state.getCurrentStatus().getProfile().getModel().getGaussianProfile().keySet().size();
+        EngineModelPojo modelDef = state.getCurrentStatus().getProfile().getModel();
+        state.releaseAccessToStatus();
+
+        rawQueue = Queues.synchronizedQueue(EvictingQueue.create(sizeOfEvictingQueue));
+        queue40 = Queues.synchronizedQueue(EvictingQueue.create(sizeOfEvictingQueue));
+        queue100 = Queues.synchronizedQueue(EvictingQueue.create(sizeOfEvictingQueue));
+
+
+        List<Double> zeros = new ArrayList<Double>();
+        List<Double> pointFives = new ArrayList<Double>();
+
+        for (int i = 0; i < featureSize; i++) {
+            zeros.add(0.0);
+            pointFives.add(0.5);
+        }
+        //initialize evicting queues
+        for (int i = 0; i <sizeOfEvictingQueue ; i++) {
+            rawQueue.add(zeros);
+            queue40.add(pointFives);
+            queue100.add(pointFives);
+        }
+
+        if (model != null && model.isRunning()) model.kill();
+        model = new KerasModel();
+
+        try {
+            JSONParser parser = new JSONParser();
+            JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Downloads/ensemble.json"));
+
+                /*
+            payload.put("model", modelDef.getModel());
+            payload.put("weight", modelDef.getWeights());
+            */
+            boolean initResult = model.init(payload.toJSONString());
+            System.out.println(initResult);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
         isRunning = true;
         // TODO: delete once the fake is no longer needed.
         frame.setVisible(true);
@@ -303,6 +327,10 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      * Stop running the analysis engine.
      */
     private void stop() {
+        if (model != null && model.isRunning()) {
+            model.kill();
+            model = null;
+        }
         isRunning = false;
         // TODO: delete once the fake is no longer needed.
         frame.setVisible(false);
@@ -319,20 +347,15 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         HashMap<String, GaussianFeaturePojo> gaussianProfile = state.getCurrentStatus().getProfile().getModel().getGaussianProfile();
         state.releaseAccessToStatus();
 
-        // String [] possibleSequences = (String []) gaussianProfile.keySet().toArray();
-        List<String> features = new ArrayList<String>(gaussianProfile.keySet().size());
-        features.addAll(gaussianProfile.keySet());
-        Collections.sort(features);
-        System.out.println(features.size());
+        List<Double> individualFeatureVector = new ArrayList<>();
+        List<Double> frame40FeatureVector = new ArrayList<>();
+        List<Double> frame100FeatureVector = new ArrayList<>();
 
-        double [] individualFeatureVector = new double [features.size()];
-        double [] frame40FeatureVector = new double [features.size()];
-        double [] frame100FeatureVector = new double [features.size()];
 
-        for (int i = 0; i < individualFeatureVector.length; i++) {
-            individualFeatureVector[i] = 0;
-            frame40FeatureVector [i]=0.5;
-            frame100FeatureVector[i]=0.5;
+        for (int i = 0; i < featureSize; i++) {
+            individualFeatureVector.add(0.0);
+            frame40FeatureVector.add(0.5);
+            frame100FeatureVector.add(0.5);
         }
 
         Map<String, Double> frame100 = completedSequences
@@ -354,26 +377,34 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         Map<String, Double> frameRaw = completedSequences
                 .stream()
                 .filter(s -> engineSeqNumber-1  == s.getIndexEnd())
+                .filter(s -> s.getDuration() > 0)
                 .collect(Collectors.toMap(KeySequence::getSequence, s -> Math.log(s.getDuration())));
 
-
         frameRaw.forEach((seq, score) -> {
-            individualFeatureVector[features.indexOf(seq)] = score;
+            individualFeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
         });
 
         frame40.forEach((seq,score)->{
-            frame40FeatureVector[features.indexOf(seq)]=score;
+            frame40FeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
         });
 
         frame100.forEach((seq,score)->{
-            frame100FeatureVector[features.indexOf(seq)]=score;
+            frame100FeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
         });
-
 
         rawQueue.add(individualFeatureVector);
         queue40.add(frame40FeatureVector);
         queue100.add(frame100FeatureVector);
 
+
+        JSONObject inputs = new JSONObject();
+        inputs.put("x_raw", rawQueue);
+        inputs.put("x_40", queue40);
+        inputs.put("x_100", queue100);
+
+        if (model != null) {
+            model.predict(inputs.toJSONString());
+        }
         // System.out.println(frame100);
         /*
         for (int i =0; i <individualFeatureVector.length;i++)

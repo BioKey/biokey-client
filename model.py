@@ -9,6 +9,7 @@ def send(message):
 	print(message, flush=True)
 
 def init(payload):
+	global model
 	try:
 		model = Model.from_config(payload['model'])
 		model.set_weights([np.array(w) for w in payload['weights']])
@@ -18,23 +19,29 @@ def init(payload):
 		send('INIT: Failed to load model/weights')
 
 def predict(payload):
+	global model
 	result = -1
 	if model is not None:
-		x = {i: np.array(x[i]) for i in payload}
-		result = model.predict(x).tolist()[0][0]
+		try:
+			x = {i: np.array([payload[i]]) for i in payload}
+			result = model.predict(x).tolist()[0][0]
+		except Exception as e:
+			sys.stderr.write(e)
+	else:
+		sys.stderr.write("PREDICT: Model not defined")
 	send('PREDICT: %s' % str(result))
 
 
 while True:
 	i = input()
-	command, payload = i.split(': ', 1)
 	try:
+		command, payload = i.split(': ', 1)
 		payload = json.loads(payload)
+		if command == 'init':
+			init(payload)
+		elif command == 'predict':
+			predict(payload)
 	except:
 		send(command.upper() + ': Failed to parse')
-		pass
 
-	if command == 'init':
-		init(payload)
-	elif command == 'predict':
-		predict(payload)
+	
