@@ -11,14 +11,17 @@ import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.views.frames.FakeAnalysisFrameView;
 import com.biokey.client.views.frames.TrayFrameView;
 import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.EvictingQueue;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Stack;
+import java.security.Key;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Service that runs the analysis model and reports analysis results that represent the likelihood that the user's
@@ -71,6 +74,11 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
     private HashMap<Integer, Stack<KeyDownEvent>> runningSequences;
     private ArrayList<KeySequence> completedSequences;
 
+    private int sizeOfEvictingQueue = 100;
+    private EvictingQueue<double []> rawQueue = EvictingQueue.create(sizeOfEvictingQueue);
+    private EvictingQueue<double []> queue40 = EvictingQueue.create(sizeOfEvictingQueue);
+    private EvictingQueue<double []> queue100 = EvictingQueue.create(sizeOfEvictingQueue);
+
     // TODO: delete once the fake is no longer needed.
     private FakeAnalysisFrameView frame = new FakeAnalysisFrameView();
 
@@ -99,6 +107,29 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 frame.informationLabel.setText("Invalid analysis result.");
             }
         });
+
+        /*
+        state.obtainAccessToStatus();
+        int featureSize = state.getCurrentStatus().getProfile().getModel().getGaussianProfile().keySet().size();
+        state.releaseAccessToStatus();
+
+        double [] fullZeroes = new double[featureSize];
+        double [] fullPointFives = new double[featureSize];
+
+        for (int i = 0; i < featureSize; i++) {
+            fullPointFives [i] = 0.5;
+            fullZeroes [i] = 0;
+        }
+        //initialize evicting queues
+        for (int i = 0; i <sizeOfEvictingQueue ; i++) {
+
+            rawQueue.add(fullZeroes);
+            queue40.add(fullPointFives);
+            queue100.add(fullPointFives);
+        }
+        */
+
+
         frame.setContentPane(frame.fakeAnalysisPanel);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.pack();
@@ -182,6 +213,75 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         if (!isRunning) return;
         // TODO: delete once the fake is no longer needed.
 
+        state.obtainAccessToStatus();
+        HashMap<String, GaussianFeaturePojo> gaussianProfile = state.getCurrentStatus().getProfile().getModel().getGaussianProfile();
+        state.releaseAccessToStatus();
+
+        // String [] possibleSequences = (String []) gaussianProfile.keySet().toArray();
+        List<String> features = new ArrayList<String>(gaussianProfile.keySet().size());
+        features.addAll(gaussianProfile.keySet());
+        Collections.sort(features);
+        System.out.println(features.size());
+
+        double [] individualFeatureVector = new double [features.size()];
+        double [] frame40FeatureVector = new double [features.size()];
+        double [] frame100FeatureVector = new double [features.size()];
+
+        for (int i = 0; i < individualFeatureVector.length; i++) {
+            individualFeatureVector[i] = 0;
+            frame40FeatureVector [i]=0.5;
+            frame100FeatureVector[i]=0.5;
+        }
+
+        Map<String, Double> frame100 = completedSequences
+                .stream()
+                .filter(s -> engineSeqNumber - s.getIndexEnd() <= 100)
+                .collect(
+                        Collectors.groupingBy(
+                                KeySequence::getSequence,
+                                Collectors.averagingDouble(KeySequence::getScore)));
+
+        Map<String, Double> frame40 = completedSequences
+                .stream()
+                .filter(s -> engineSeqNumber - s.getIndexEnd() <= 40)
+                .collect(
+                        Collectors.groupingBy(
+                                KeySequence::getSequence,
+                                Collectors.averagingDouble(KeySequence::getScore)));
+
+        Map<String, Double> frameRaw = completedSequences
+                .stream()
+                .filter(s -> engineSeqNumber-1  == s.getIndexEnd())
+                .collect(Collectors.toMap(KeySequence::getSequence, s -> Math.log(s.getDuration())));
+
+
+        frameRaw.forEach((seq, score) -> {
+            individualFeatureVector[features.indexOf(seq)] = score;
+        });
+
+        frame40.forEach((seq,score)->{
+            frame40FeatureVector[features.indexOf(seq)]=score;
+        });
+
+        frame100.forEach((seq,score)->{
+            frame100FeatureVector[features.indexOf(seq)]=score;
+        });
+
+
+        rawQueue.add(individualFeatureVector);
+        queue40.add(frame40FeatureVector);
+        queue100.add(frame100FeatureVector);
+
+        // System.out.println(frame100);
+        /*
+        for (int i =0; i <individualFeatureVector.length;i++)
+        {
+            String sequence = possibleSequences[i];
+            sequencesInLookback
+        }
+        */
         frame.informationLabel.setText("analyze() was called.");
+
+
     }
 }
