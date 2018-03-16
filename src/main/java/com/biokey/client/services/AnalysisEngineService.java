@@ -3,6 +3,7 @@ package com.biokey.client.services;
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.EngineConstants;
 import com.biokey.client.controllers.ClientStateController;
+import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.AnalysisResultPojo;
 import com.biokey.client.models.pojo.ClientStatusPojo;
@@ -11,23 +12,38 @@ import com.biokey.client.models.pojo.KeyStrokePojo;
 import com.biokey.client.views.frames.FakeAnalysisFrameView;
 import com.biokey.client.views.frames.TrayFrameView;
 import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
+
 import com.google.common.collect.Collections2;
 import com.google.common.collect.EvictingQueue;
+
+import com.google.common.io.ByteStreams;
+
 import lombok.Data;
+import org.apache.log4j.Logger;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
+
 import java.security.Key;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import java.io.*;
+import java.nio.Buffer;
+
+
 
 /**
  * Service that runs the analysis model and reports analysis results that represent the likelihood that the user's
  * typing matches their current profile.
  */
 public class AnalysisEngineService implements ClientStateModel.IClientStatusListener, ClientStateModel.IClientKeyListener {
+
+    private static Logger log = Logger.getLogger(AnalysisEngineService.class);
 
     @Data
     private class KeyDownEvent {
@@ -61,6 +77,77 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         public String toString() {
             return sequence + "( " + duration + "ms, " + indexStart + " - " + indexEnd + " ) | " + score;
+        }
+    }
+
+    private class KerasModel {
+        private BufferedReader in;
+        private BufferedWriter out;
+        boolean initialized = false;
+
+        public KerasModel() {
+            try {
+                ProcessBuilder pb = new ProcessBuilder("python", "model.py");
+                final Process p = pb.start();
+                in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                out = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
+
+                BufferedReader err = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+
+                Runnable logErrors = () -> {
+                    String error = null;
+                    try {
+                        while((error = err.readLine()) != null) {
+                            log.error(error);
+                        }
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                };
+                (new Thread(logErrors)).start();
+            }
+            catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        public boolean sendInit(String payload) {
+            try {
+                out.write("init: " + payload);
+                out.newLine();
+                out.flush();
+                String result = in.readLine();
+                log.debug(result);
+                initialized = result.equals("INIT: true");
+                return initialized;
+            }
+            catch(Exception e) {
+                e.printStackTrace();
+            }
+            return false;
+
+        }
+
+        public double sendPrediction(String payload) {
+            if (!initialized) {
+                log.error("Model must be initialized before predictions can be made");
+                return -1;
+            }
+            try {
+                out.write("predict: " + payload);
+                out.newLine();
+                out.flush();
+                String response = in.readLine();
+                log.debug(response);
+                double result = Double.parseDouble(response.replaceFirst("PREDICT: ", ""));
+                return result;
+            }
+            catch(Exception e) {
+                e.printStackTrace();
+            }
+            return -1;
+
         }
     }
 
@@ -133,6 +220,21 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         frame.setContentPane(frame.fakeAnalysisPanel);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.pack();
+
+        KerasModel model = new KerasModel();
+
+        try {
+            JSONParser parser = new JSONParser();
+            JSONObject gaussian = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Downloads/ensemble.json"));
+            System.out.println(model.sendInit(gaussian.toJSONString()));
+            System.out.println(model.sendPrediction("jsdflks"));
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+
+
+
     }
 
     /**

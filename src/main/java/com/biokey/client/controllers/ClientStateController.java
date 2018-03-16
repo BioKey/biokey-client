@@ -1,6 +1,7 @@
 package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
+import com.biokey.client.constants.EngineConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.helpers.RequestBuilderHelper;
@@ -17,6 +18,8 @@ import lombok.NonNull;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.config.ScheduledTask;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.util.UriTemplate;
 
 import java.util.Deque;
@@ -188,6 +191,36 @@ public class ClientStateController {
             return false;
         } finally {
             state.releaseAccessToStatus();
+        }
+    }
+
+    /**
+     *
+     * @param model The model to initialize the server with
+     * @return true if the server initialized successfully
+     */
+    public void sendInitModelServer(@NonNull String model,
+                                       @NonNull ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
+        // TODO: FIX THIS JUNK
+        int attempts = 0;
+        Timer timer = new Timer();
+        long interval = 1 * 1000;
+        while(attempts++ < 10) {
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        serverRequestExecutorHelper.submitPostRequest(
+                                EngineConstants.INIT_ENDPOINT,
+                                RequestBuilderHelper.emptyHeaderMap(),
+                                model,
+                                String.class,
+                                handler);
+                    }
+                    catch(ResourceAccessException e) {}
+                }
+            };
+            timer.schedule(task, interval*attempts, interval);
         }
     }
 
