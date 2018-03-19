@@ -56,9 +56,9 @@ public class ClientStateModelTest {
         STATUS_LISTENER_SET.add(STATUS_LISTENER);
         KEY_LISTENER_SET.add(KEY_LISTENER);
         ANALYSIS_LISTENER_SET.add(ANALYSIS_LISTENER);
-        doNothing().when(STATUS_LISTENER).statusChanged(any(), any());
-        doNothing().when(KEY_LISTENER).keystrokeQueueChanged(any());
-        doNothing().when(ANALYSIS_LISTENER).analysisResultQueueChanged(any());
+        doNothing().when(STATUS_LISTENER).statusChanged(any(), any(), any());
+        doNothing().when(KEY_LISTENER).keystrokeQueueChanged(any(), any());
+        doNothing().when(ANALYSIS_LISTENER).analysisResultQueueChanged(any(), any());
     }
 
     @Before
@@ -80,12 +80,13 @@ public class ClientStateModelTest {
         badListeners.add(underTest::getCurrentStatus);
         badListeners.add(underTest::dequeueStatus);
         badListeners.add(underTest::getOldestStatus);
-        badListeners.add(underTest::dequeueAnalysisResult);
-        badListeners.add(underTest::getOldestAnalysisResult);
+        badListeners.add(underTest::dequeueAnalysisResults);
+        badListeners.add(underTest::divideAnalysisResults);
+        badListeners.add(underTest::getOldestAnalysisResults);
         badListeners.add(underTest::divideKeyStrokes);
-        badListeners.add(underTest::dequeueSyncedKeyStrokes);
-        badListeners.add(underTest::dequeueAllKeyStrokes);
-        badListeners.add(underTest::getOldestKeyStrokes);
+        badListeners.add(underTest::dequeueOneFromUnsyncedKeyStrokes);
+        badListeners.add(underTest::dequeueOneFromAllKeyStrokes);
+        badListeners.add(underTest::getOldestUnsyncedKeyStrokes);
         badListeners.add(underTest::getKeyStrokes);
 
         // All the functions with no parameters.
@@ -162,7 +163,7 @@ public class ClientStateModelTest {
             assertTrue("Should have found added key stroke in all key strokes queue",
                     underTestPartialMock.getKeyStrokes().contains(KEY_STROKE_POJO));
             assertTrue("Should have found added key stroke in unsynced key strokes queue",
-                    underTestPartialMock.getOldestKeyStrokes().getKeyStrokes().contains(KEY_STROKE_POJO));
+                    underTestPartialMock.getOldestUnsyncedKeyStrokes().getKeyStrokes().contains(KEY_STROKE_POJO));
             //verifyPrivate(underTestPartialMock).invoke("notifyKeyQueueChange", any());
         } finally {
             underTest.releaseAccessToKeyStrokes();
@@ -177,9 +178,9 @@ public class ClientStateModelTest {
             underTest.divideKeyStrokes();
             underTest.enqueueKeyStroke(OTHER_KEY_STROKE_POJO);
             assertTrue("Should have found first key stroke in oldest keystrokes",
-                    underTest.getOldestKeyStrokes().getKeyStrokes().contains(KEY_STROKE_POJO));
+                    underTest.getOldestUnsyncedKeyStrokes().getKeyStrokes().contains(KEY_STROKE_POJO));
             assertTrue("Should have found second key stroke in newest keystrokes",
-                    underTest.getNewestKeyStrokes().getKeyStrokes().contains(OTHER_KEY_STROKE_POJO));
+                    underTest.getNewestUnsyncedKeyStrokes().getKeyStrokes().contains(OTHER_KEY_STROKE_POJO));
         } finally {
             underTest.releaseAccessToKeyStrokes();
         }
@@ -200,7 +201,7 @@ public class ClientStateModelTest {
         try {
             underTest.obtainAccessToKeyStrokes();
             assertTrue("Should have cleared no key strokes from unsynced queue",
-                    !underTest.dequeueSyncedKeyStrokes());
+                    !underTest.dequeueOneFromUnsyncedKeyStrokes());
         } finally {
             underTest.releaseAccessToKeyStrokes();
         }
@@ -211,7 +212,7 @@ public class ClientStateModelTest {
         try {
             underTest.obtainAccessToKeyStrokes();
             assertTrue("Should have cleared no key strokes from all key strokes queue",
-                    !underTest.dequeueAllKeyStrokes());
+                    !underTest.dequeueOneFromAllKeyStrokes());
         } finally {
             underTest.releaseAccessToKeyStrokes();
         }
@@ -225,11 +226,11 @@ public class ClientStateModelTest {
             underTest.enqueueKeyStroke(KEY_STROKE_POJO);
             underTest.divideKeyStrokes();
             underTest.enqueueKeyStroke(KEY_STROKE_POJO);
-            underTest.dequeueSyncedKeyStrokes();
+            underTest.dequeueOneFromUnsyncedKeyStrokes();
             assertTrue("Should have cleared oldest division of key strokes from unsynced queue",
-                    underTest.getOldestKeyStrokes().getKeyStrokes().size() == 1);
+                    underTest.getOldestUnsyncedKeyStrokes().getKeyStrokes().size() == 1);
             assertTrue("Should have cleared no key strokes from all key strokes queue",
-                    underTest.getOldestKeyStrokes().getKeyStrokes().size() == 1);
+                    underTest.getOldestUnsyncedKeyStrokes().getKeyStrokes().size() == 1);
         } finally {
             underTest.releaseAccessToKeyStrokes();
         }
@@ -243,9 +244,9 @@ public class ClientStateModelTest {
             underTest.enqueueKeyStroke(OTHER_KEY_STROKE_POJO);
             underTest.divideKeyStrokes();
             underTest.enqueueKeyStroke(OTHER_KEY_STROKE_POJO);
-            underTest.dequeueAllKeyStrokes();
+            underTest.dequeueOneFromAllKeyStrokes();
             assertTrue("Should have cleared no key strokes from unsynced queue",
-                    underTest.getOldestKeyStrokes().getKeyStrokes().size() == 2);
+                    underTest.getOldestUnsyncedKeyStrokes().getKeyStrokes().size() == 2);
             assertTrue("Should have cleared key stroke from all key strokes queue",
                     underTest.getKeyStrokes().size() == 2);
             assertTrue("Should have cleared oldest key stroke from all key strokes queue",
@@ -262,7 +263,7 @@ public class ClientStateModelTest {
             ClientStateModel underTestPartialMock = spy(underTest);
             underTestPartialMock.enqueueAnalysisResult(ANALYSIS_RESULT_POJO);
             assertTrue("Should have found added analysis result",
-                    underTestPartialMock.getOldestAnalysisResult() == ANALYSIS_RESULT_POJO);
+                    underTestPartialMock.getOldestAnalysisResults().getAnalysisResults().peek() == ANALYSIS_RESULT_POJO);
             //verifyPrivate(underTestPartialMock).invoke("notifyAnalysisResultQueueChange", any());
         } finally {
             underTest.releaseAccessToAnalysisResult();
@@ -280,24 +281,41 @@ public class ClientStateModelTest {
     }
 
     @Test
-    public void GIVEN_dequeueAnalysisResultFromEmptyQueue_WHEN_dequeueAnalysisResult_THEN_returnsFalse() {
+    public void GIVEN_dividedAnalysisResults_WHEN_enqueueAnalysisResult_THEN_orderRetrievedCorrect() {
         try {
             underTest.obtainAccessToAnalysisResult();
-            assertTrue("Should have cleared no results from queue", !underTest.dequeueAnalysisResult());
+            underTest.enqueueAnalysisResult(ANALYSIS_RESULT_POJO);
+            underTest.divideAnalysisResults();
+            underTest.enqueueAnalysisResult(OTHER_ANALYSIS_RESULT_POJO);
+            assertTrue("Should have found first analysis result in oldest results",
+                    underTest.getOldestAnalysisResults().getAnalysisResults().contains(ANALYSIS_RESULT_POJO));
+            assertTrue("First division should have only one result",
+                    underTest.getOldestAnalysisResults().getAnalysisResults().size() == 1);
         } finally {
             underTest.releaseAccessToAnalysisResult();
         }
     }
 
     @Test
-    public void GIVEN_dequeueAnalysisResult_WHEN_dequeueAnalysisResult_THEN_rightResultDequeued() {
+    public void GIVEN_dequeueAnalysisResultFromEmptyQueue_WHEN_dequeueAnalysisResults_THEN_returnsFalse() {
+        try {
+            underTest.obtainAccessToAnalysisResult();
+            assertTrue("Should have cleared no results from queue", !underTest.dequeueAnalysisResults());
+        } finally {
+            underTest.releaseAccessToAnalysisResult();
+        }
+    }
+
+    @Test
+    public void GIVEN_dequeueAnalysisResults_WHEN_dequeueAnalysisResults_THEN_rightResultDequeued() {
         try {
             underTest.obtainAccessToAnalysisResult();
             underTest.enqueueAnalysisResult(ANALYSIS_RESULT_POJO);
+            underTest.divideAnalysisResults();
             underTest.enqueueAnalysisResult(OTHER_ANALYSIS_RESULT_POJO);
-            underTest.dequeueAnalysisResult();
+            underTest.dequeueAnalysisResults();
             assertTrue("Should have cleared oldest result from queue",
-                    underTest.getOldestAnalysisResult() == OTHER_ANALYSIS_RESULT_POJO);
+                    underTest.getOldestAnalysisResults().getAnalysisResults().peek() == OTHER_ANALYSIS_RESULT_POJO);
         } finally {
             underTest.releaseAccessToAnalysisResult();
         }
@@ -386,13 +404,13 @@ public class ClientStateModelTest {
 
     @Test
     public void GIVEN_notifyQueues_WHEN_notify_THEN_lambdasCalled() {
-        underTest.notifyStatusChange(null, null);
-        underTest.notifyKeyQueueChange(null);
-        underTest.notifyAnalysisResultQueueChange(null);
+        underTest.notifyStatusChange(null, null, false);
+        underTest.notifyKeyQueueChange(null, false);
+        underTest.notifyAnalysisResultQueueChange(null, false);
         underTest.notifyModelChange();
-        verify(STATUS_LISTENER, timeout(100).times(2)).statusChanged(any(), any());
-        verify(KEY_LISTENER, timeout(100).times(1)).keystrokeQueueChanged(any());
-        verify(ANALYSIS_LISTENER, timeout(100).times(1)).analysisResultQueueChanged(any());
+        verify(STATUS_LISTENER, timeout(100).times(2)).statusChanged(any(), any(), any());
+        verify(KEY_LISTENER, timeout(100).times(1)).keystrokeQueueChanged(any(), any());
+        verify(ANALYSIS_LISTENER, timeout(100).times(1)).analysisResultQueueChanged(any(), any());
     }
 
     @Test
@@ -440,10 +458,10 @@ public class ClientStateModelTest {
             underTest.clear();
             assertTrue("Should have found no current status",underTest.getCurrentStatus() == null);
             assertTrue("Should have found no old status",underTest.getOldestStatus() == null);
-            assertTrue("Should have found no new keystrokes",underTest.getNewestKeyStrokes() == null);
-            assertTrue("Should have found no old keystrokes",underTest.getOldestKeyStrokes() == null);
+            assertTrue("Should have found no new keystrokes",underTest.getNewestUnsyncedKeyStrokes() == null);
+            assertTrue("Should have found no old keystrokes",underTest.getOldestUnsyncedKeyStrokes() == null);
             assertTrue("Should have found no keystrokes",underTest.getKeyStrokes().size() == 0);
-            assertTrue("Should have found no analysis results",underTest.getOldestAnalysisResult() == null);
+            assertTrue("Should have found no analysis results",underTest.getOldestAnalysisResults() == null);
         } finally {
             underTest.releaseAccessToModel();
         }

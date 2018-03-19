@@ -46,7 +46,8 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      * Implementation of listener to the ClientStateModel's status.
      * The status will contain a flag for whether the daemon should be running.
      */
-    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent) {
+        if (isDeleteEvent) return;
         if (newStatus != null && newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED &&
                 newStatus.getSecurityStatus() == SecurityConstants.UNLOCKED) start();
         else stop();

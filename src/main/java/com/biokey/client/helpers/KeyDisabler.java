@@ -1,3 +1,5 @@
+package com.biokey.client.helpers;
+
 import java.awt.event.KeyEvent;
 import java.awt.Robot;
 import javax.swing.*;
@@ -36,7 +38,7 @@ public class KeyDisabler implements Runnable {
                 robot.keyRelease(KeyEvent.VK_F11);
                 robot.keyRelease(KeyEvent.VK_F12);
 
-                frame.requestFocus();
+                // frame.requestFocus();
                 try { Thread.sleep(10); } catch(Exception e) {}
             }
         } catch (Exception e) { e.printStackTrace(); System.exit(-1); }

@@ -1,5 +1,7 @@
 package com.biokey.client.views.frames;
 
+import com.biokey.client.helpers.KeyDisabler;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -29,10 +31,8 @@ public class LockFrameView {
             this.lockFrames[j].setExtendedState(JFrame.MAXIMIZED_BOTH);
             this.lockFrames[j].setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
 
-            /*
-            KeyDisabler stopper = new KeyDisabler(this.lockFrames[j]);
-            new Thread(stopper, "KeyDisabler").start();
-            */
+            /*KeyDisabler stopper = new KeyDisabler(this.lockFrames[j]);
+            new Thread(stopper, "KeyDisabler").start();*/
         }
     }
 

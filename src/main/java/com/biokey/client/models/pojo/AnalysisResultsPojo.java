@@ -11,10 +11,10 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 @Data
 @JsonIgnoreProperties(value = { "syncedWithServer" })
-public class KeyStrokesPojo implements Serializable {
+public class AnalysisResultsPojo implements Serializable {
 
-    private static final long serialVersionUID = 270;
+    private static final long serialVersionUID = 210;
 
-    @NonNull private Deque<KeyStrokePojo> keyStrokes = new LinkedBlockingDeque<>();
+    @NonNull private Deque<AnalysisResultPojo> analysisResults = new LinkedBlockingDeque<>();
     @NonNull private SyncStatusConstants syncedWithServer = SyncStatusConstants.UNSYNCED;
 }

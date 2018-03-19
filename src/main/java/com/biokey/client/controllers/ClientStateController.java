@@ -1,16 +1,12 @@
 package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
-import com.biokey.client.constants.EngineConstants;
 import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.helpers.RequestBuilderHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
-import com.biokey.client.models.pojo.AnalysisResultPojo;
-import com.biokey.client.models.pojo.ClientStatusPojo;
-import com.biokey.client.models.pojo.KeyStrokePojo;
-import com.biokey.client.models.pojo.KeyStrokesPojo;
+import com.biokey.client.models.pojo.*;
 import com.biokey.client.models.response.LoginResponse;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,8 +14,6 @@ import lombok.NonNull;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.config.ScheduledTask;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.util.UriTemplate;
 
 import java.util.Deque;
@@ -101,9 +95,10 @@ public class ClientStateController {
         state.obtainAccessToModel();
         try {
             // Change the state of keystrokes to SYNCING.
-            KeyStrokesPojo keysToSend = state.getOldestKeyStrokes();
+            KeyStrokesPojo keysToSend = state.getOldestUnsyncedKeyStrokes();
             ClientStatusPojo currentStatus = state.getCurrentStatus();
-            if (currentStatus == null || keysToSend == null ||
+            if (currentStatus == null || keysToSend == null || keysToSend == state.getNewestUnsyncedKeyStrokes() ||
+                    keysToSend.getKeyStrokes().size() == 0 ||
                     !(keysToSend.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
             keysToSend.setSyncedWithServer(SyncStatusConstants.SYNCING);
 
@@ -126,7 +121,8 @@ public class ClientStateController {
                             }
 
                             // If it was good then update the model.
-                            state.dequeueSyncedKeyStrokes();
+                            state.dequeueOneFromUnsyncedKeyStrokes();
+                            state.notifyKeyQueueChange(null, true);
                             log.debug("KeyStrokes successfully synced with server and received response: " + response);
                         } finally {
                             state.releaseAccessToModel();
@@ -179,6 +175,7 @@ public class ClientStateController {
 
                             // If it was good then update the model.
                             state.dequeueStatus();
+                            state.notifyStatusChange(null, null, true);
                             log.debug("Client Status successfully synced with server and received response: " + response);
                         } finally {
                             state.releaseAccessToModel();
@@ -208,18 +205,19 @@ public class ClientStateController {
         // First, make sure to get the lock.
         state.obtainAccessToModel();
         try {
-            // Change the state of status to SYNCING.
-            AnalysisResultPojo analysisResult = state.getOldestAnalysisResult();
+            // Change the state of results to SYNCING.
+            AnalysisResultsPojo analysisResults = state.getOldestAnalysisResults();
             ClientStatusPojo currentStatus = state.getCurrentStatus();
-            if (currentStatus == null || analysisResult == null ||
-                    !(analysisResult.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
-            analysisResult.setSyncedWithServer(SyncStatusConstants.SYNCING);
+            if (currentStatus == null || analysisResults == null || analysisResults.getAnalysisResults().size() == 0 ||
+                    !(analysisResults.getSyncedWithServer() == SyncStatusConstants.UNSYNCED)) return false;
+            analysisResults.setSyncedWithServer(SyncStatusConstants.SYNCING);
+            state.divideAnalysisResults();
 
             // Make the request.
             serverRequestExecutorHelper.submitPostRequest(
                     SERVER_NAME + ANALYSIS_RESULT_POST_API_ENDPOINT,
                     RequestBuilderHelper.headerMapWithToken(currentStatus.getAccessToken()),
-                    RequestBuilderHelper.requestBodyToPostAnalysisResult(analysisResult, currentStatus.getProfile().getId()),
+                    RequestBuilderHelper.requestBodyToPostAnalysisResults(analysisResults, currentStatus.getProfile().getId()),
                     String.class,
                     (ResponseEntity<String> response) -> {
                         // First, make sure to get the lock.
@@ -229,12 +227,13 @@ public class ClientStateController {
                             // Check if the response was good.
                             if (response == null || !response.getStatusCode().is2xxSuccessful()) {
                                 log.debug("Analysis result failed to sync with server and received response: " + response);
-                                analysisResult.setSyncedWithServer(SyncStatusConstants.UNSYNCED);
+                                analysisResults.setSyncedWithServer(SyncStatusConstants.UNSYNCED);
                                 return;
                             }
 
                             // If it was good then update the model.
-                            state.dequeueAnalysisResult();
+                            state.dequeueAnalysisResults();
+                            state.notifyAnalysisResultQueueChange(null, true);
                             log.debug("Analysis result successfully synced with server and received response: " + response);
                         } finally {
                             state.releaseAccessToModel();
@@ -336,8 +335,8 @@ public class ClientStateController {
         state.obtainAccessToKeyStrokes();
         try {
             // If the oldest window of keystrokes is too long (by keys or by time) then create a new window.
-            if (state.getNewestKeyStrokes() != null) {
-                Deque<KeyStrokePojo> newestKeyStrokes = state.getNewestKeyStrokes().getKeyStrokes();
+            if (state.getNewestUnsyncedKeyStrokes() != null) {
+                Deque<KeyStrokePojo> newestKeyStrokes = state.getNewestUnsyncedKeyStrokes().getKeyStrokes();
                 if (newestKeyStrokes.size() >= KEYSTROKE_WINDOW_SIZE_PER_REQUEST ||
                         keyStroke.getTimeStamp() - newestKeyStrokes.peekLast().getTimeStamp() > KEYSTROKE_TIME_INTERVAL_PER_WINDOW) {
                     state.divideKeyStrokes();
@@ -345,7 +344,7 @@ public class ClientStateController {
             }
 
             state.enqueueKeyStroke(keyStroke);
-            state.notifyKeyQueueChange(keyStroke);
+            state.notifyKeyQueueChange(keyStroke, false);
         } finally {
             state.releaseAccessToKeyStrokes();
         }
@@ -361,7 +360,7 @@ public class ClientStateController {
         state.obtainAccessToAnalysisResult();
         try {
             state.enqueueAnalysisResult(analysisResult);
-            state.notifyAnalysisResultQueueChange(analysisResult);
+            state.notifyAnalysisResultQueueChange(analysisResult, false);
         } finally {
             state.releaseAccessToAnalysisResult();
         }
@@ -378,7 +377,7 @@ public class ClientStateController {
         try {
             ClientStatusPojo oldStatus = state.getCurrentStatus();
             state.enqueueStatus(status);
-            state.notifyStatusChange(oldStatus, status);
+            state.notifyStatusChange(oldStatus, status, false);
         } finally {
             state.releaseAccessToStatus();
         }

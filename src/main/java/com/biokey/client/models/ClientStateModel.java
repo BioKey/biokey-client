@@ -1,9 +1,6 @@
 package com.biokey.client.models;
 
-import com.biokey.client.models.pojo.AnalysisResultPojo;
-import com.biokey.client.models.pojo.ClientStatusPojo;
-import com.biokey.client.models.pojo.KeyStrokePojo;
-import com.biokey.client.models.pojo.KeyStrokesPojo;
+import com.biokey.client.models.pojo.*;
 import lombok.NonNull;
 import lombok.Setter;
 
@@ -27,7 +24,7 @@ public class ClientStateModel implements Serializable {
      * Listeners will be notified when a new status has been added.
      */
     public interface IClientStatusListener {
-        void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus);
+        void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent);
     }
 
     /**
@@ -35,7 +32,7 @@ public class ClientStateModel implements Serializable {
      * Listeners will be notified when the queues are modified.
      */
     public interface IClientKeyListener {
-        void keystrokeQueueChanged(KeyStrokePojo newKey);
+        void keystrokeQueueChanged(KeyStrokePojo newKey, boolean isDeleteEvent);
     }
 
     /**
@@ -43,14 +40,14 @@ public class ClientStateModel implements Serializable {
      * Listeners will be notified when the queue is modified.
      */
     public interface IClientAnalysisListener {
-        void analysisResultQueueChanged(AnalysisResultPojo newResult);
+        void analysisResultQueueChanged(AnalysisResultPojo newResult, boolean isDeleteEvent);
     }
 
     private static final long serialVersionUID = 100;
 
     private ClientStatusPojo currentStatus;
     private Deque<ClientStatusPojo> unsyncedStatuses = new LinkedBlockingDeque<>();
-    private Deque<AnalysisResultPojo> unsyncedAnalysisResults = new LinkedBlockingDeque<>();
+    private Deque<AnalysisResultsPojo> unsyncedAnalysisResults = new LinkedBlockingDeque<>();
     private Deque<KeyStrokesPojo> unsyncedKeyStrokes = new LinkedBlockingDeque<>();
     private Deque<KeyStrokePojo> allKeyStrokes = new LinkedBlockingDeque<>(); // need a record of all keyStrokes for the analysis engine
 
@@ -248,17 +245,18 @@ public class ClientStateModel implements Serializable {
      */
     public void enqueueAnalysisResult(@NonNull AnalysisResultPojo result) {
         if (!analysisResultLock.isHeldByCurrentThread()) throw new AccessControlException("analysisResultLock needs to be acquired by the thread");
-        unsyncedAnalysisResults.add(result);
+        if (unsyncedAnalysisResults.isEmpty()) unsyncedAnalysisResults.add(new AnalysisResultsPojo());
+        unsyncedAnalysisResults.getLast().getAnalysisResults().add(result);
         // notifyAnalysisResultQueueChange(result);
     }
 
     /**
-     * Dequeue the oldest analysis result from the unsynced queue.
+     * Dequeue the oldest analysis results from the unsynced queue.
      *
      * @throws AccessControlException if analysisResultLock is not held by the current thread
-     * @return true if the oldest analysis result in the queue has been removed
+     * @return true if the oldest analysis results in the queue has been removed
      */
-    public boolean dequeueAnalysisResult() {
+    public boolean dequeueAnalysisResults() {
         if (!analysisResultLock.isHeldByCurrentThread()) throw new AccessControlException("analysisResultLock needs to be acquired by the thread");
         if (unsyncedAnalysisResults.isEmpty()) return false;
         unsyncedAnalysisResults.remove();
@@ -266,11 +264,20 @@ public class ClientStateModel implements Serializable {
     }
 
     /**
-     * Peek at the oldest analysis result from the unsynced queue.
-     *
-     * @return the oldest analysis result
+     * Divides the unsynced analysis results queue and bundles all the analysis results since last division together.
+     * dequeueAnalysisResults() will dequeue the last bundle.
      */
-    public AnalysisResultPojo getOldestAnalysisResult() {
+    public void divideAnalysisResults() {
+        if (!analysisResultLock.isHeldByCurrentThread()) throw new AccessControlException("analysisResultLock needs to be acquired by the thread");
+        unsyncedAnalysisResults.add(new AnalysisResultsPojo());
+    }
+
+    /**
+     * Peek at the oldest analysis results from the unsynced queue.
+     *
+     * @return the oldest analysis results
+     */
+    public AnalysisResultsPojo getOldestAnalysisResults() {
         if (!analysisResultLock.isHeldByCurrentThread()) throw new AccessControlException("analysisResultLock needs to be acquired by the thread");
         return unsyncedAnalysisResults.peek();
     }
@@ -290,7 +297,7 @@ public class ClientStateModel implements Serializable {
 
     /**
      * Divides the unsynced key strokes queue and bundles all the key strokes since last division together.
-     * dequeueSyncedKeyStrokes() will dequeue the last bundle.
+     * dequeueOneFromUnsyncedKeyStrokes() will dequeue the last bundle.
      */
     public void divideKeyStrokes() {
         if (!keyStrokesLock.isHeldByCurrentThread()) throw new AccessControlException("keyStrokesLock needs to be acquired by the thread");
@@ -302,7 +309,7 @@ public class ClientStateModel implements Serializable {
      *
      * @return true if the oldest key strokes in the queue has been removed
      */
-    public boolean dequeueSyncedKeyStrokes() {
+    public boolean dequeueOneFromUnsyncedKeyStrokes() {
         if (!keyStrokesLock.isHeldByCurrentThread()) throw new AccessControlException("keyStrokesLock needs to be acquired by the thread");
         if (unsyncedKeyStrokes.isEmpty()) return false;
         unsyncedKeyStrokes.remove();
@@ -314,7 +321,7 @@ public class ClientStateModel implements Serializable {
      *
      * @return true if the oldest key stroke in the queue has been removed
      */
-    public boolean dequeueAllKeyStrokes() {
+    public boolean dequeueOneFromAllKeyStrokes() {
         if (!keyStrokesLock.isHeldByCurrentThread()) throw new AccessControlException("keyStrokesLock needs to be acquired by the thread");
         if (allKeyStrokes.isEmpty()) return false;
         allKeyStrokes.remove();
@@ -326,7 +333,7 @@ public class ClientStateModel implements Serializable {
      *
      * @return the oldest key strokes
      */
-    public KeyStrokesPojo getOldestKeyStrokes() {
+    public KeyStrokesPojo getOldestUnsyncedKeyStrokes() {
         if (!keyStrokesLock.isHeldByCurrentThread()) throw new AccessControlException("keyStrokesLock needs to be acquired by the thread");
         return unsyncedKeyStrokes.peek();
     }
@@ -336,7 +343,7 @@ public class ClientStateModel implements Serializable {
      *
      * @return the oldest key strokes
      */
-    public KeyStrokesPojo getNewestKeyStrokes() {
+    public KeyStrokesPojo getNewestUnsyncedKeyStrokes() {
         if (!keyStrokesLock.isHeldByCurrentThread()) throw new AccessControlException("keyStrokesLock needs to be acquired by the thread");
         return unsyncedKeyStrokes.peekLast();
     }
@@ -357,9 +364,9 @@ public class ClientStateModel implements Serializable {
      * @param oldStatus the status that was replaced
      * @param newStatus the new current status
      */
-    public void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+    public void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent) {
         for (IClientStatusListener listener : statusListeners) {
-             executor.execute(() -> listener.statusChanged(oldStatus, newStatus));
+             executor.execute(() -> listener.statusChanged(oldStatus, newStatus, isDeleteEvent));
         }
     }
 
@@ -368,9 +375,9 @@ public class ClientStateModel implements Serializable {
      *
      * @param newKey the newest keystroke
      */
-    public void notifyKeyQueueChange(KeyStrokePojo newKey) {
+    public void notifyKeyQueueChange(KeyStrokePojo newKey, boolean isDeleteEvent) {
         for (IClientKeyListener listener : keyQueueListeners) {
-            executor.execute(() -> listener.keystrokeQueueChanged(newKey));
+            executor.execute(() -> listener.keystrokeQueueChanged(newKey, isDeleteEvent));
         }
     }
 
@@ -379,9 +386,9 @@ public class ClientStateModel implements Serializable {
      *
      * @param newResult the newest analysis result
      */
-    public void notifyAnalysisResultQueueChange(AnalysisResultPojo newResult) {
+    public void notifyAnalysisResultQueueChange(AnalysisResultPojo newResult, boolean isDeleteEvent) {
         for (IClientAnalysisListener listener : analysisResultQueueListeners) {
-            executor.execute(() -> listener.analysisResultQueueChanged(newResult));
+            executor.execute(() -> listener.analysisResultQueueChanged(newResult, isDeleteEvent));
         }
     }
 
@@ -389,7 +396,7 @@ public class ClientStateModel implements Serializable {
      * Notifies all the listeners of all the queues that the model has changed.
      */
     public void notifyModelChange() {
-        notifyStatusChange(null, currentStatus);
+        notifyStatusChange(null, currentStatus, false);
         // notifyKeyQueueChange(allKeyStrokes.peekLast());
         // notifyAnalysisResultQueueChange(unsyncedAnalysisResults.peekLast());
     }

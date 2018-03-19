@@ -24,9 +24,7 @@ import java.util.*;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
-import static com.biokey.client.constants.AppConstants.CLIENT_STATE_PREFERENCES_ID;
-import static com.biokey.client.constants.AppConstants.KEYSTROKE_WINDOW_SIZE_PER_SAVE;
-import static com.biokey.client.constants.AppConstants.TIME_BETWEEN_HEARTBEATS;
+import static com.biokey.client.constants.AppConstants.*;
 
 /**
  * Service that retrieves the client state from the disk and OS and ensures that it has not been corrupted.
@@ -47,6 +45,7 @@ public class ClientInitService implements
 
     private static Preferences prefs = Preferences.userRoot().node(ClientInitService.class.getName());
     private int newKeyCount = 0;
+    private int newResultCount = 0;
 
     private Timer heartbeatTimer = new Timer(true);
     private Timer loginTimer = new Timer(true);
@@ -60,6 +59,8 @@ public class ClientInitService implements
         this.lockFrameView = lockFrameView;
         this.loginPanelView = loginPanelView;
         this.trayFrameView = trayFrameView;
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> saveClientState()));
 
         // Add action to login loginPanelView on submit.
         loginPanelView.addSubmitAction((ActionEvent e) -> {
@@ -93,10 +94,12 @@ public class ClientInitService implements
     /**
      * Implementation of listener to the ClientStateModel's status. The service will save the client state periodically.
      */
-    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent) {
         log.debug("Status Changed!");
         // First, run a save.
         saveClientState();
+
+        if (isDeleteEvent) return;
 
         AuthConstants oldAuthStatus = (oldStatus == null) ? null : oldStatus.getAuthStatus();
         AuthConstants newAuthStatus = (newStatus == null) ? null : newStatus.getAuthStatus();
@@ -136,8 +139,8 @@ public class ClientInitService implements
      * Implementation of listener to the ClientStateModel's keystroke queues.
      * The service will save the client state periodically.
      */
-    public void keystrokeQueueChanged(KeyStrokePojo newKey) {
-        if (++newKeyCount >= KEYSTROKE_WINDOW_SIZE_PER_SAVE) {
+    public void keystrokeQueueChanged(KeyStrokePojo newKey, boolean isDeleteEvent) {
+        if (isDeleteEvent || ++newKeyCount >= KEYSTROKE_WINDOW_SIZE_PER_SAVE) {
             newKeyCount = 0;
             saveClientState();
         }
@@ -147,8 +150,12 @@ public class ClientInitService implements
      * Implementation of listener to the ClientStateModel's analysis results queue.
      * The service will save the client state periodically.
      */
-    public void analysisResultQueueChanged(AnalysisResultPojo newResult) {
-        saveClientState();
+    public void analysisResultQueueChanged(AnalysisResultPojo newResult, boolean isDeleteEvent) {
+        if (isDeleteEvent || ++newResultCount >= ANALYSIS_RESULT_WINDOW_SIZE_PER_SAVE) {
+            newResultCount = 0;
+            saveClientState();
+        }
+
     }
 
     /**

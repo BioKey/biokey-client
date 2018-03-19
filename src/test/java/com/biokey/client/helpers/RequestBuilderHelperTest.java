@@ -28,17 +28,21 @@ public class RequestBuilderHelperTest {
     private static final KeyStrokePojo OTHER_KEY_STROKE_POJO = new KeyStrokePojo('b', false, 2);
     private static final KeyStrokesPojo KEY_STROKES_POJO = new KeyStrokesPojo();
     private static final AnalysisResultPojo ANALYSIS_RESULT_POJO = new AnalysisResultPojo(1, 0.1f);
+    private static final AnalysisResultPojo OTHER_ANALYSIS_RESULT_POJO = new AnalysisResultPojo(2, 0.2f);
+    private static final AnalysisResultsPojo ANALYSIS_RESULTS_POJO = new AnalysisResultsPojo();
 
     // TODO: not urgent but will need to update these expected
-    private static final String EXPECTED_KEY_STROKE_JSON = "{\"keystrokes\": [{\"character\":\"t\",\"keyDown\":true,\"timestamp\":1,\"typingProfile\":\"TYPING_PROFILE_ID\"},{\"character\":\"b\",\"keyDown\":false,\"timestamp\":2,\"typingProfile\":\"TYPING_PROFILE_ID\"}]}";
+    private static final String EXPECTED_KEY_STROKE_JSON = "{\"keystrokes\": [{\"character\":116,\"keyDown\":true,\"timestamp\":1,\"typingProfile\":\"TYPING_PROFILE_ID\"},{\"character\":98,\"keyDown\":false,\"timestamp\":2,\"typingProfile\":\"TYPING_PROFILE_ID\"}]}";
     private static final String EXPECTED_LOGIN_JSON = "{\"email\": \"EMAIL\", \"password\": \"PASSWORD\"}";
-    private static final String EXPECTED_CLIENT_STATUS_JSON = "{\"typingProfile\":{\"_id\":\"1\",\"user\":\"3\",\"machine\":\"2\",\"isLocked\":false,\"tensorFlowModel\":\"4\",\"endpoint\":\"5\",\"challengeStrategies\":[],\"threshold\":[],\"locked\":false},\"phoneNumber\":\"7\",\"googleAuthKey\":\"8\",\"timeStamp\":9}";
-    private static final String EXPECTED_ANALYSIS_RESULT_JSON = "{\"timeStamp\":1,\"probability\":0.1,\"typingProfile\":\"TYPING_PROFILE_ID\"}";
+    private static final String EXPECTED_CLIENT_STATUS_JSON = "{\"typingProfile\":{\"_id\":\"1\",\"user\":\"3\",\"machine\":\"2\",\"isLocked\":false,\"tensorFlowModel\":{\"gaussianProfile\":{}},\"endpoint\":\"5\",\"challengeStrategies\":[],\"locked\":false},\"phoneNumber\":\"7\",\"googleAuthKey\":\"8\",\"timeStamp\":9}";
+    private static final String EXPECTED_ANALYSIS_RESULTS_JSON = "{\"analysisResults\": [{\"timestamp\":1,\"probability\":0.1,\"typingProfile\":\"TYPING_PROFILE_ID\"},{\"timestamp\":2,\"probability\":0.2,\"typingProfile\":\"TYPING_PROFILE_ID\"}]}";
 
     @BeforeClass
     public static void loadData() {
         KEY_STROKES_POJO.getKeyStrokes().add(KEY_STROKE_POJO);
         KEY_STROKES_POJO.getKeyStrokes().add(OTHER_KEY_STROKE_POJO);
+        ANALYSIS_RESULTS_POJO.getAnalysisResults().add(ANALYSIS_RESULT_POJO);
+        ANALYSIS_RESULTS_POJO.getAnalysisResults().add(OTHER_ANALYSIS_RESULT_POJO);
     }
 
     @Test
@@ -54,6 +58,7 @@ public class RequestBuilderHelperTest {
 
     @Test
     public void GIVEN_input_WHEN_requestBodyToPostKeystrokes_THEN_expectedResult() throws JsonProcessingException {
+        System.out.println(RequestBuilderHelper.requestBodyToPostKeystrokes(KEY_STROKES_POJO, TYPING_PROFILE_ID));
         assertTrue("generated JSON does not match expected JSON",
                 RequestBuilderHelper.requestBodyToPostKeystrokes(KEY_STROKES_POJO, TYPING_PROFILE_ID).equals(EXPECTED_KEY_STROKE_JSON));
     }
@@ -66,14 +71,16 @@ public class RequestBuilderHelperTest {
 
     @Test
     public void GIVEN_input_WHEN_requestBodyToPostClientStatus_THEN_expectedResult() throws JsonProcessingException {
+        System.out.println(RequestBuilderHelper.requestBodyToPostClientStatus(CLIENT_STATUS_POJO));
         assertTrue("generated JSON does not match expected JSON",
                 RequestBuilderHelper.requestBodyToPostClientStatus(CLIENT_STATUS_POJO).equals(EXPECTED_CLIENT_STATUS_JSON));
     }
 
     @Test
     public void GIVEN_input_WHEN_requestBodyToPostAnalysisResult_THEN_expectedResult() throws JsonProcessingException {
+        System.out.println(RequestBuilderHelper.requestBodyToPostAnalysisResults(ANALYSIS_RESULTS_POJO, TYPING_PROFILE_ID));
         assertTrue("generated JSON does not match expected JSON",
-                RequestBuilderHelper.requestBodyToPostAnalysisResult(ANALYSIS_RESULT_POJO, TYPING_PROFILE_ID).equals(EXPECTED_ANALYSIS_RESULT_JSON));
+                RequestBuilderHelper.requestBodyToPostAnalysisResults(ANALYSIS_RESULTS_POJO, TYPING_PROFILE_ID).equals(EXPECTED_ANALYSIS_RESULTS_JSON));
     }
 
 }
