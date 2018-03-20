@@ -15,6 +15,8 @@ import org.jnativehook.keyboard.NativeKeyListener;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.swing.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.logging.Level;
 
 /**
@@ -58,6 +60,38 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      */
     private void start() {
         if (isRunning) return;
+
+        String csvFile = "/Users/connorgiles/Downloads/train_strokes.csv";
+        BufferedReader br = null;
+        String line = "";
+        String cvsSplitBy = ",";
+
+        try {
+
+            Thread.sleep(10000);
+            br = new BufferedReader(new FileReader(csvFile));
+            br.readLine();
+            while ((line = br.readLine()) != null) {
+                Thread.sleep(50);
+                // use comma as separator
+                String[] keystroke = line.split(cvsSplitBy);
+                boolean isDown = keystroke[5].charAt(0) == 'd';
+                controller.enqueueKeyStroke(new KeyStrokePojo(Integer.parseInt(keystroke[3]),isDown, Long.parseLong(keystroke[2])));
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        /*
         try {
             GlobalScreen.registerNativeHook();
             GlobalScreen.addNativeKeyListener(this);
@@ -69,6 +103,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
         } catch (Exception e) {
             log.error("There was an unknown exception when registering the native hook.", e);
         }
+        */
     }
 
     /**
@@ -76,6 +111,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      */
     private void stop() {
         if (!isRunning) return;
+        /*
         try {
             GlobalScreen.removeNativeKeyListener(this);
             GlobalScreen.unregisterNativeHook();
@@ -83,6 +119,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
         } catch (NativeHookException e) {
             log.error("There was an exception deregistering the native hook.", e);
         }
+        */
     }
 
     /**
