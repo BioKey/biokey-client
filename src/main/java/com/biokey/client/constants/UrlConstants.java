@@ -12,5 +12,5 @@ public class UrlConstants {
     public static final String TYPING_PROFILE_POST_API_ENDPOINT = "/api/typingProfiles/machine/{id}";
     public static final String HEARTBEAT_POST_API_ENDPOINT = "/api/typingProfiles/{id}/heartbeat";
     public static final String CLIENT_STATUS_PUT_API_ENDPOINT = "/api/typingProfiles/{id}";
-    public static final String ANALYSIS_RESULT_POST_API_ENDPOINT = "/api/typingProfiles/.."; // This endpoint has not been written in server.
+    public static final String ANALYSIS_RESULT_POST_API_ENDPOINT = "/api/analysisResults";
 }

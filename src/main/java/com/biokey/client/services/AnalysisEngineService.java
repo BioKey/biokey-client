@@ -222,7 +222,8 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      * Implementation of listener to the ClientStateModel's status. The status will contain the details
      * on the analysis model to run through the typing profile.
      */
-    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent) {
+        if (isDeleteEvent) return;
         if (newStatus != null && newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED &&
                 newStatus.getProfile() != null && newStatus.getProfile().getModel() != null)  {
             start();
@@ -233,7 +234,8 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
     /**
      * Implementation of listener to the ClientStateModel's keystroke queues. New keys need to be fed into the model.
      */
-    public void keystrokeQueueChanged(KeyStrokePojo e) {
+    public void keystrokeQueueChanged(KeyStrokePojo e, boolean isDeleteEvent) {
+        if (isDeleteEvent) return;
         if (e.isKeyDown()) {
             KeyDownEvent lastKey = (currentSequence.isEmpty() ? null : currentSequence.peek());
             KeyDownEvent newKey = new KeyDownEvent(e.getKey(), e.getTimeStamp());

@@ -1,13 +1,18 @@
 package com.biokey.client.views.frames;
 
+import com.biokey.client.helpers.LockerHelper;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Defines the view for the lock screen and provides functionality to lock/unlock and swap panels into the lock screen.
  */
 public class LockFrameView {
     private JFrame[] lockFrames;
+    private Map<JFrame, LockerHelper> lockerHelpers = new HashMap<>();
 
     /**
      * Constructor sets up the vie3e3ew for the locked UX.
@@ -21,27 +26,24 @@ public class LockFrameView {
             GraphicsDevice gd = gs[j];
             this.lockFrames[j] = new JFrame(gd.getDefaultConfiguration());
 
-//            this.lockFrames[j].setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+            this.lockFrames[j].setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
             this.lockFrames[j].setUndecorated(true);
             this.lockFrames[j].pack();
-//            this.lockFrames[j].setAlwaysOnTop(true);
+            this.lockFrames[j].setAlwaysOnTop(true);
             this.lockFrames[j].setResizable(false);
             this.lockFrames[j].setExtendedState(JFrame.MAXIMIZED_BOTH);
             this.lockFrames[j].setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
 
-            /*
-            KeyDisabler stopper = new KeyDisabler(this.lockFrames[j]);
-            new Thread(stopper, "KeyDisabler").start();
-            */
+            lockerHelpers.put(this.lockFrames[j], new LockerHelper(this.lockFrames[j]));
         }
     }
 
-    /**
-     * Tell this view to go into locked UX.
+    /*** Tell this xxgo into locked UX.
      */
     public void lock() {
         for (JFrame lockFrame : lockFrames) {
             lockFrame.setVisible(true);
+            lockerHelpers.get(lockFrame).start();
         }
     }
 
@@ -51,6 +53,7 @@ public class LockFrameView {
     public void unlock() {
         for (JFrame lockFrame : lockFrames) {
             lockFrame.setVisible(false);
+            lockerHelpers.get(lockFrame).stop();
         }
     }
 

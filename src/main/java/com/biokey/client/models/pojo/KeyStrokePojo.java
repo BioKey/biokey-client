@@ -12,7 +12,7 @@ import java.io.Serializable;
 })
 public class KeyStrokePojo implements Serializable {
 
-    private static final long serialVersionUID = 400;
+    private static final long serialVersionUID = 260;
 
     @JsonProperty("character")
     private final int key;

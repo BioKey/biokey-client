@@ -13,7 +13,7 @@ import java.io.Serializable;
 @JsonIgnoreProperties(value = { "syncedWithServer" })
 public class ClientStatusPojo implements Serializable {
 
-    private static final long serialVersionUID = 200;
+    private static final long serialVersionUID = 230;
 
     @NonNull private final TypingProfilePojo profile;
     @NonNull private final AuthConstants authStatus;

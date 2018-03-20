@@ -106,7 +106,8 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
      * Implementation of listener to the ClientStateModel's status. The status will contain the accepted strategies
      * to challenge the user and a flag for whether the locker should lock or unlock.
      */
-    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus) {
+    public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent) {
+        if (isDeleteEvent) return;
         SecurityConstants oldLockedStatus = (oldStatus == null) ? null : oldStatus.getSecurityStatus();
         SecurityConstants newLockedStatus = (newStatus == null) ? null : newStatus.getSecurityStatus();
 
@@ -136,7 +137,8 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
      * Implementation of listener to the ClientStateModel's analysis results queue. The queue contains updates to the
      * client's authentication, and the locker will decide whether a state change is necessary.
      */
-    public void analysisResultQueueChanged(AnalysisResultPojo newResult) {
+    public void analysisResultQueueChanged(AnalysisResultPojo newResult, boolean isDeleteEvent) {
+        if (isDeleteEvent) return;
         state.obtainAccessToStatus();
         try {
             // Check first if the result and model is present.

@@ -7,6 +7,9 @@ import java.io.Serializable;
 
 @Data
 public class GaussianFeaturePojo implements Serializable {
+
+    private static final long serialVersionUID = 250;
+
     @JsonProperty("mean")
     private double mean;
     @JsonProperty("stdev")

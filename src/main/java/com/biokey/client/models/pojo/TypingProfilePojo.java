@@ -8,7 +8,7 @@ import java.io.Serializable;
 @Data
 public class TypingProfilePojo implements Serializable {
 
-    private static final long serialVersionUID = 600;
+    private static final long serialVersionUID = 280;
 
     @NonNull private final String id;
     @NonNull private final String machineId;

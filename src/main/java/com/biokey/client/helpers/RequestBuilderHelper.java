@@ -2,10 +2,7 @@ package com.biokey.client.helpers;
 
 import com.biokey.client.constants.AppConstants;
 import com.biokey.client.constants.SecurityConstants;
-import com.biokey.client.models.pojo.AnalysisResultPojo;
-import com.biokey.client.models.pojo.ClientStatusPojo;
-import com.biokey.client.models.pojo.KeyStrokesPojo;
-import com.biokey.client.models.pojo.TypingProfilePojo;
+import com.biokey.client.models.pojo.*;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
 import com.biokey.client.models.response.TypingProfileResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -90,16 +87,16 @@ public class RequestBuilderHelper {
     }
 
     /**
-     * Create request body for POST analysis result.
+     * Create request body for POST analysis results.
      *
-     * @param analysisResult the analysis result to serialize
+     * @param analysisResults the analysis results to serialize
      * @param typingProfileId the typing profile id to attach to serialized result
      * @return string representing the request body for POST result
      * @throws JsonProcessingException if serialization of result to JSON has failed
      */
-    public static String requestBodyToPostAnalysisResult(AnalysisResultPojo analysisResult, String typingProfileId) throws JsonProcessingException {
-        ObjectWriter writer = new ObjectMapper().writerFor(Object.class).withAttribute("typingProfile", typingProfileId);
-        return writer.writeValueAsString(analysisResult);
+    public static String requestBodyToPostAnalysisResults(AnalysisResultsPojo analysisResults, String typingProfileId) throws JsonProcessingException {
+        ObjectWriter writer = new ObjectMapper().writerFor(Queue.class).withAttribute("typingProfile", typingProfileId);
+        return "{\"analysisResults\": " + writer.writeValueAsString(analysisResults.getAnalysisResults()) + "}";
     }
 }
 

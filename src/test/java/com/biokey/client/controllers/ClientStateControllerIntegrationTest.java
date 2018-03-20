@@ -2,12 +2,10 @@ package com.biokey.client.controllers;
 
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.SecurityConstants;
-import com.biokey.client.constants.SyncStatusConstants;
 import com.biokey.client.helpers.PojoHelper;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.*;
-import com.biokey.client.models.response.LoginResponse;
 import com.biokey.client.models.response.TypingProfileContainerResponse;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -38,9 +36,9 @@ public class ClientStateControllerIntegrationTest {
     private CountDownLatch testCompleteFlag;
     private final int TEST_TIMEOUT = 2000;
 
-    private static final ClientStateModel.IClientStatusListener STATUS_LISTENER = (ClientStatusPojo oldStatus, ClientStatusPojo newStatus) -> {};
-    private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey) -> {};
-    private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult) -> {};
+    private static final ClientStateModel.IClientStatusListener STATUS_LISTENER = (ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent) -> {};
+    private static final ClientStateModel.IClientKeyListener KEY_LISTENER = (KeyStrokePojo newKey, boolean isDeleteEvent) -> {};
+    private static final ClientStateModel.IClientAnalysisListener ANALYSIS_LISTENER = (AnalysisResultPojo newResult, boolean isDeleteEvent) -> {};
 
     // TODO: generate the access token and other valid results BeforeClass instead of hardcoding.
     private static final String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1YTk1YWExYWExYzE1ZDE3YzBjZGZkOTciLCJpYXQiOjE1MTk3NTgwNjIwNDF9.iFo7oEqpbj4z_OEd8shjdl5CfaEuTe6MnNJzB3NrSYM";
@@ -113,19 +111,18 @@ public class ClientStateControllerIntegrationTest {
         }
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void GIVEN_realCallToServer_WHEN_sendKeyStrokes_THEN_success() {
-        underTest.sendKeyStrokes();
-        /*
         state.obtainAccessToModel();
+        state.enqueueKeyStroke(KEY_STROKE_POJO);
+        state.divideKeyStrokes();
         state.enqueueKeyStroke(KEY_STROKE_POJO);
         state.releaseAccessToModel();
 
         underTest.sendKeyStrokes();
         verify(serverRequestExecutorHelper).submitPostRequest(any(), any(), any(), any(), any());
         verify(state, timeout(TEST_TIMEOUT).times(2)).releaseAccessToModel();
-        verify(state, timeout(TEST_TIMEOUT).times(1)).dequeueSyncedKeyStrokes();
-        */
+        verify(state, timeout(TEST_TIMEOUT).times(1)).dequeueOneFromUnsyncedKeyStrokes();
     }
 
     @Test
@@ -155,10 +152,8 @@ public class ClientStateControllerIntegrationTest {
         verify(state, timeout(TEST_TIMEOUT).times(1)).dequeueStatus();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void GIVEN_realCallToServer_WHEN_sendAnalysisResult_THEN_success() {
-        underTest.sendAnalysisResult();
-        /*
         state.obtainAccessToModel();
         state.enqueueAnalysisResult(ANALYSIS_RESULT_POJO);
         state.releaseAccessToModel();
@@ -166,8 +161,7 @@ public class ClientStateControllerIntegrationTest {
         underTest.sendAnalysisResult();
         verify(serverRequestExecutorHelper).submitPostRequest(any(), any(), any(), any(), any());
         verify(state, timeout(TEST_TIMEOUT).times(2)).releaseAccessToModel();
-        verify(state, timeout(TEST_TIMEOUT).times(1)).dequeueAnalysisResult();
-        */
+        verify(state, timeout(TEST_TIMEOUT).times(1)).dequeueAnalysisResults();
     }
 
     @Test
@@ -240,8 +234,8 @@ public class ClientStateControllerIntegrationTest {
         try {
             state.obtainAccessToKeyStrokes();
             assertTrue("newest division of keystrokes should only have one keystroke",
-                    state.getNewestKeyStrokes().getKeyStrokes().size() == 1);
-            verify(state, times(numEnqueues)).notifyKeyQueueChange(KEY_STROKE_POJO);
+                    state.getNewestUnsyncedKeyStrokes().getKeyStrokes().size() == 1);
+            verify(state, times(numEnqueues)).notifyKeyQueueChange(KEY_STROKE_POJO, false);
             verify(state, times(numEnqueues)).releaseAccessToKeyStrokes();
         } finally {
             state.releaseAccessToKeyStrokes();
@@ -257,8 +251,8 @@ public class ClientStateControllerIntegrationTest {
         try {
             state.obtainAccessToKeyStrokes();
             assertTrue("newest division of keystrokes should only have two keystrokes",
-                    state.getNewestKeyStrokes().getKeyStrokes().size() == 2);
-            verify(state, times(3)).notifyKeyQueueChange(any());
+                    state.getNewestUnsyncedKeyStrokes().getKeyStrokes().size() == 2);
+            verify(state, times(3)).notifyKeyQueueChange(any(), any());
             verify(state, times(3)).releaseAccessToKeyStrokes();
         } finally {
             state.releaseAccessToKeyStrokes();
@@ -273,7 +267,7 @@ public class ClientStateControllerIntegrationTest {
             state.obtainAccessToStatus();
             assertTrue("current status should now be unauthenticated",
                     state.getCurrentStatus().getAuthStatus().equals(AuthConstants.UNAUTHENTICATED));
-            verify(state, times(1)).notifyStatusChange(eq(CLIENT_STATUS_POJO), any());
+            verify(state, times(1)).notifyStatusChange(eq(CLIENT_STATUS_POJO), any(), any());
             verify(state, times(1)).releaseAccessToStatus();
         } finally {
             state.releaseAccessToStatus();

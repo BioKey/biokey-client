@@ -1,10 +1,9 @@
 package com.biokey.client.models.pojo;
 
-import com.biokey.client.constants.SyncStatusConstants;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonAppend;
 import lombok.Data;
-import lombok.NonNull;
 
 import java.io.Serializable;
 
@@ -15,10 +14,10 @@ import java.io.Serializable;
 @JsonIgnoreProperties(value = { "syncedWithServer" })
 public class AnalysisResultPojo implements Serializable {
 
-    private static final long serialVersionUID = 300;
+    private static final long serialVersionUID = 200;
 
+    @JsonProperty("timestamp")
     private final long timeStamp;
+    @JsonProperty("probability")
     private final float probability;
-    @NonNull private SyncStatusConstants syncedWithServer = SyncStatusConstants.UNSYNCED;
-
 }
