@@ -28,6 +28,8 @@ import java.awt.event.ActionEvent;
 
 import java.security.Key;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -71,7 +73,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             this.indexStart = indexStart;
             this.indexEnd = indexEnd;
             this.score = score;
-            System.out.println(this);
+            // System.out.println(this);
         }
 
         public String toString() {
@@ -177,6 +179,9 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
     private KerasModel model;
 
+    private JSONObject loggedInputs = new JSONObject();
+    private final Lock lock = new ReentrantLock(true);
+
     // TODO: delete once the fake is no longer needed.
     private FakeAnalysisFrameView frame = new FakeAnalysisFrameView();
 
@@ -252,6 +257,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             if (lastKey == null) return;
             while(!sequencesToFinish.isEmpty()) {
                 KeyDownEvent startKey = sequencesToFinish.pop();
+
                 runningSequence = startKey.getKey() + (runningSequence.length() == 0 ? "" : "-" + runningSequence);
                 long duration = finishTime - startKey.getDownTime();
 
@@ -304,7 +310,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         try {
             JSONParser parser = new JSONParser();
-            JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Downloads/ensemble.json"));
+            JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Downloads/ensemble-c-2.json"));
 
                 /*
             payload.put("model", modelDef.getModel());
@@ -342,77 +348,90 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
     private void analyze() {
         if (!isRunning) return;
         // TODO: delete once the fake is no longer needed.
+        try {
+            lock.lock();
+            state.obtainAccessToStatus();
+            HashMap<String, GaussianFeaturePojo> gaussianProfile = state.getCurrentStatus().getProfile().getModel().getGaussianProfile();
+            state.releaseAccessToStatus();
 
-        state.obtainAccessToStatus();
-        HashMap<String, GaussianFeaturePojo> gaussianProfile = state.getCurrentStatus().getProfile().getModel().getGaussianProfile();
-        state.releaseAccessToStatus();
-
-        List<Double> individualFeatureVector = new ArrayList<>();
-        List<Double> frame40FeatureVector = new ArrayList<>();
-        List<Double> frame100FeatureVector = new ArrayList<>();
+            List<Double> individualFeatureVector = new ArrayList<>();
+            List<Double> frame40FeatureVector = new ArrayList<>();
+            List<Double> frame100FeatureVector = new ArrayList<>();
 
 
-        for (int i = 0; i < featureSize; i++) {
-            individualFeatureVector.add(0.0);
-            frame40FeatureVector.add(0.5);
-            frame100FeatureVector.add(0.5);
+            for (int i = 0; i < featureSize; i++) {
+                individualFeatureVector.add(0.0);
+                frame40FeatureVector.add(0.5);
+                frame100FeatureVector.add(0.5);
+            }
+
+            Map<String, Double> frame100 = completedSequences
+                    .stream()
+                    .filter(s -> engineSeqNumber - s.getIndexStart() <= 100)
+                    .collect(
+                            Collectors.groupingBy(
+                                    KeySequence::getSequence,
+                                    Collectors.averagingDouble(KeySequence::getScore)));
+
+            Map<String, Double> frame40 = completedSequences
+                    .stream()
+                    .filter(s -> engineSeqNumber - s.getIndexStart() <= 40)
+                    .collect(
+                            Collectors.groupingBy(
+                                    KeySequence::getSequence,
+                                    Collectors.averagingDouble(KeySequence::getScore)));
+
+            Map<String, Double> frameRaw = completedSequences
+                    .stream()
+                    .filter(s -> engineSeqNumber-1  == s.getIndexEnd())
+                    .filter(s -> s.getDuration() > 0)
+                    .collect(Collectors.toMap(KeySequence::getSequence, s -> Math.log(s.getDuration())));
+
+            frameRaw.forEach((seq, score) -> {
+                individualFeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
+            });
+
+            frame40.forEach((seq,score)->{
+                frame40FeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
+            });
+
+            frame100.forEach((seq,score)->{
+                frame100FeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
+            });
+
+
+            rawQueue.add(individualFeatureVector);
+            queue40.add(frame40FeatureVector);
+            queue100.add(frame100FeatureVector);
+
+
+            JSONObject inputs = new JSONObject();
+            inputs.put("x_raw", rawQueue);
+            inputs.put("x_40", queue40);
+            inputs.put("x_100", queue100);
+
+
+            if (model != null) {
+
+                if (engineSeqNumber == 300) {
+                    double pred = model.predict(inputs.toJSONString());
+                    /*
+                    try {
+                        BufferedWriter bw = new BufferedWriter(new FileWriter("/Users/connorgiles/Desktop/test_frame.json"));
+                        bw.write(inputs.toJSONString());
+                        bw.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    */
+                }
+
+            }
+
         }
-
-        Map<String, Double> frame100 = completedSequences
-                .stream()
-                .filter(s -> engineSeqNumber - s.getIndexEnd() <= 100)
-                .collect(
-                        Collectors.groupingBy(
-                                KeySequence::getSequence,
-                                Collectors.averagingDouble(KeySequence::getScore)));
-
-        Map<String, Double> frame40 = completedSequences
-                .stream()
-                .filter(s -> engineSeqNumber - s.getIndexEnd() <= 40)
-                .collect(
-                        Collectors.groupingBy(
-                                KeySequence::getSequence,
-                                Collectors.averagingDouble(KeySequence::getScore)));
-
-        Map<String, Double> frameRaw = completedSequences
-                .stream()
-                .filter(s -> engineSeqNumber-1  == s.getIndexEnd())
-                .filter(s -> s.getDuration() > 0)
-                .collect(Collectors.toMap(KeySequence::getSequence, s -> Math.log(s.getDuration())));
-
-        frameRaw.forEach((seq, score) -> {
-            individualFeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
-        });
-
-        frame40.forEach((seq,score)->{
-            frame40FeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
-        });
-
-        frame100.forEach((seq,score)->{
-            frame100FeatureVector.set(gaussianProfile.get(seq).getIndex(), score);
-        });
-
-        rawQueue.add(individualFeatureVector);
-        queue40.add(frame40FeatureVector);
-        queue100.add(frame100FeatureVector);
-
-
-        JSONObject inputs = new JSONObject();
-        inputs.put("x_raw", rawQueue);
-        inputs.put("x_40", queue40);
-        inputs.put("x_100", queue100);
-
-        if (model != null) {
-            model.predict(inputs.toJSONString());
+        finally {
+            lock.unlock();
         }
-        // System.out.println(frame100);
-        /*
-        for (int i =0; i <individualFeatureVector.length;i++)
-        {
-            String sequence = possibleSequences[i];
-            sequencesInLookback
-        }
-        */
         frame.informationLabel.setText("analyze() was called.");
 
 
