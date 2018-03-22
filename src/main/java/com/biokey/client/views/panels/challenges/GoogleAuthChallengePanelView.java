@@ -31,7 +31,7 @@ public class GoogleAuthChallengePanelView implements ChallengePanelView {
             public void keyReleased(KeyEvent e) {}
         };
         fields = new JTextField[6];
-        textArray.setLayout(new GridLayout(1,fields.length));
+        textArray.setLayout(new GridLayout(1,fields.length,5,5));
         for (int i = 0; i < fields.length; i++) {
             final int index = i;
             fields[index] = new JTextField(1);
@@ -64,7 +64,6 @@ public class GoogleAuthChallengePanelView implements ChallengePanelView {
                     }
                 });
             }
-            System.out.println("Test "+textArray);
             textArray.add(fields[index]);
 
         }

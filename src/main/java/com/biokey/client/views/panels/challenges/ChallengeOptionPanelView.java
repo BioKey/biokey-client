@@ -24,6 +24,7 @@ public class ChallengeOptionPanelView {
         JButton newOption = new JButton(label);
         newOption.addActionListener(l);
         newOption.setPreferredSize(new Dimension(374, 46));
+        newOption.setContentAreaFilled(false);
         optionPanel.add(newOption);
     }
 
