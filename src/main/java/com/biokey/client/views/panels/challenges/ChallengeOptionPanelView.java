@@ -9,10 +9,10 @@ import java.awt.event.ActionListener;
 public class ChallengeOptionPanelView {
 
     @Getter private JPanel challengeOptionPanel;
+    private JPanel optionPanel;
 
     public ChallengeOptionPanelView() {
-        challengeOptionPanel.setLayout(new GridLayout(0, 1, 5, 5));
-        challengeOptionPanel.add(new JLabel("Choose how you want to authenticate:"));
+        optionPanel.setLayout(new GridLayout(0, 1, 5, 5));
     }
     /**
      * Add another option with the specified label and action when clicked.
@@ -23,14 +23,14 @@ public class ChallengeOptionPanelView {
     public void addOption(String label, ActionListener l) {
         JButton newOption = new JButton(label);
         newOption.addActionListener(l);
-        challengeOptionPanel.add(newOption);
+        newOption.setPreferredSize(new Dimension(374, 46));
+        optionPanel.add(newOption);
     }
 
     /**
      * Clear all options.
      */
     public void clearOptions() {
-        challengeOptionPanel.removeAll();
-        challengeOptionPanel.add(new JLabel("Choose how you want to authenticate:"));
+        optionPanel.removeAll();
     }
 }

@@ -64,8 +64,8 @@ public class LockFrameView {
     public void addPanel(JPanel panel) {
         for (JFrame lockFrame : lockFrames) {
             lockFrame.getContentPane().add(panel);
-            revalidateContentPane();
         }
+        revalidateContentPane();
     }
 
     /**
@@ -75,8 +75,8 @@ public class LockFrameView {
     public void removePanel(JPanel panel) {
         for (JFrame lockFrame : lockFrames) {
             lockFrame.getContentPane().remove(panel);
-            revalidateContentPane();
         }
+        revalidateContentPane();
     }
 
     /**
@@ -85,8 +85,8 @@ public class LockFrameView {
     public void removeAllPanels() {
         for (JFrame lockFrame : lockFrames) {
             lockFrame.getContentPane().removeAll();
-            revalidateContentPane();
         }
+        revalidateContentPane();
     }
 
     /**

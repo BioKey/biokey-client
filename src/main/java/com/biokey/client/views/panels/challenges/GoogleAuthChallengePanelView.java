@@ -3,6 +3,7 @@ package com.biokey.client.views.panels.challenges;
 import lombok.Getter;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -10,16 +11,16 @@ import java.awt.event.KeyListener;
 
 public class GoogleAuthChallengePanelView implements ChallengePanelView {
 
-    private JTextField code;
-    private JButton submitButton;
     private JButton altButton;
     private JLabel informationLabel;
+    private JPanel textArray;
+    private JTextField[] fields;
 
     @Getter private JPanel challengePanel;
 
     public GoogleAuthChallengePanelView() {
         super();
-        code.addKeyListener(new KeyListener() {
+        KeyListener onlyNumbers = new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
                 char c = e.getKeyChar();
@@ -28,11 +29,54 @@ public class GoogleAuthChallengePanelView implements ChallengePanelView {
             }
             public void keyPressed(KeyEvent e) {}
             public void keyReleased(KeyEvent e) {}
-        });
+        };
+        fields = new JTextField[6];
+        textArray.setLayout(new GridLayout(1,fields.length));
+        for (int i = 0; i < fields.length; i++) {
+            final int index = i;
+            fields[index] = new JTextField(1);
+            fields[index].setHorizontalAlignment(JTextField.CENTER);
+            fields[index].addKeyListener(onlyNumbers);
+            if (i > 0) {
+                fields[index].setEnabled(false);
+                fields[index-1].addKeyListener(new KeyListener() {
+                    public void keyTyped(KeyEvent e) {}
+                    public void keyPressed(KeyEvent e) {}
+                    public void keyReleased(KeyEvent e) {
+                        if (fields[index-1].getText().length() > 0) {
+                            fields[index-1].setEnabled(false);
+                            fields[index].setEnabled(true);
+                            fields[index].requestFocusInWindow();
+                        }
+
+                    }
+                });
+                fields[index].addKeyListener(new KeyListener() {
+                    public void keyTyped(KeyEvent e) {}
+                    public void keyPressed(KeyEvent e) {}
+                    public void keyReleased(KeyEvent e) {
+                        if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                            fields[index-1].setEnabled(true);
+                            fields[index].setEnabled(false);
+                            fields[index-1].requestFocusInWindow();
+                        }
+
+                    }
+                });
+            }
+            System.out.println("Test "+textArray);
+            textArray.add(fields[index]);
+
+        }
     }
 
     public String getCode() {
-        return code.getText();
+        // return code.getText();
+        String code  = "";
+        for (int i = 0; i < fields.length; i++) {
+            code += fields[i].getText();
+        }
+        return code;
     }
 
     public void addSendAction(ActionListener l) {
@@ -40,19 +84,28 @@ public class GoogleAuthChallengePanelView implements ChallengePanelView {
     }
 
     public void addSubmitAction(ActionListener l) {
-        submitButton.addActionListener(l);
-        code.addActionListener(l);
+        // Do Nothing
     }
 
     public void addResendAction(ActionListener l) {
         // Do nothing.
     }
 
-    public void addKeyAction(ActionListener l) { code.addKeyListener(new KeyListener() {
-        public void keyTyped(KeyEvent e) {}
-        public void keyPressed(KeyEvent e) {}
-        public void keyReleased(KeyEvent e) { l.actionPerformed(new ActionEvent(this, e.getID(), code.getText())); }
-    }); }
+    public void addKeyAction(ActionListener l) {
+        for (int i = 0; i < fields.length; i++) {
+            fields[i].addKeyListener(new KeyListener() {
+                public void keyTyped(KeyEvent e) {
+                }
+
+                public void keyPressed(KeyEvent e) {
+                }
+
+                public void keyReleased(KeyEvent e) {
+                    l.actionPerformed(new ActionEvent(this, e.getID(), getCode()));
+                }
+            });
+        }
+    }
 
     public void addAltAction(ActionListener l) {
         altButton.addActionListener(l);
@@ -63,7 +116,7 @@ public class GoogleAuthChallengePanelView implements ChallengePanelView {
     }
 
     public void setEnableSubmit(boolean enable) {
-        submitButton.setEnabled(enable);
+        // Do nothing
     }
 
     public void setEnableResend(boolean enable) {
@@ -79,10 +132,16 @@ public class GoogleAuthChallengePanelView implements ChallengePanelView {
     }
 
     public void drawFocus() {
-        code.requestFocusInWindow();
+        fields[0].setEnabled(true);
+        fields[0].requestFocusInWindow();
     }
 
     public void clearCode() {
-        code.setText("");
+        for (int i = 0; i < fields.length; i++) {
+            fields[i].setText("");
+            fields[i].setEnabled(false);
+        }
+        fields[0].setEnabled(true);
+        fields[0].requestFocusInWindow();
     }
 }

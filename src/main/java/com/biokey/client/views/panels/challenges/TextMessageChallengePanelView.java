@@ -13,7 +13,6 @@ public class TextMessageChallengePanelView implements ChallengePanelView {
 
     private JTextField code;
     private JButton sendButton;
-    // private JButton submitButton;
     private JButton resendButton;
     private JButton altButton;
     private JLabel informationLabel;
@@ -118,10 +117,8 @@ public class TextMessageChallengePanelView implements ChallengePanelView {
 
 
     public void setEnableSend(boolean enable) {
-
         sendButton.setEnabled(enable);
         sendButton.setVisible(enable);
-
     }
 
     public void setEnableSubmit(boolean enable) {

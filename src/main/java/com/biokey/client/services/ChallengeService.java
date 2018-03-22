@@ -80,40 +80,11 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
                 if (remainingAttempts <= 0) return;
                 strategy.issueChallenge();
             });
-            /*
-            view.addSubmitAction((ActionEvent aE) -> {
-                state.obtainAccessToStatus();
-                try {
-                    ClientStatusPojo currentStatus = state.getCurrentStatus();
-                    if (currentStatus == null) {
-                        // If for some reason it is null, there is a big problem, let another service handle it.
-                        log.error("No model detected in the middle of challenge.");
-                        return;
-                    }
-
-                    // Clear code and decrement attempts.
-                    remainingAttempts--;
-
-                    // Check if attempt was good.
-                    if (strategy.checkChallenge(view.getCode())) {
-                        // Passed, enqueue UNLOCKED status.
-                        controller.enqueueStatus(PojoHelper.createStatus(currentStatus, SecurityConstants.UNLOCKED));
-                    } else if (remainingAttempts <= 0) {
-                        // Failed too many times, enqueue LOCKED status.
-                        controller.enqueueStatus(PojoHelper.createStatus(currentStatus, SecurityConstants.LOCKED));
-                    } else {
-                        // Failed, so let the user know.
-                        view.setInformationText("Hmmm... not what we were expecting. You have " + remainingAttempts + " attempts left.");
-                    }
-                } finally {
-                    view.clearCode();
-                    state.releaseAccessToStatus();
-                }
-            });
-            */
             view.addAltAction((ActionEvent aE) -> {
-                lockFrameView.removeAllPanels();
+                // lockFrameView.removeAllPanels();
                 lockFrameView.addPanel(optionView.getChallengeOptionPanel());
+                lockFrameView.removePanel(view.getChallengePanel());
+
             });
             view.addKeyAction((ActionEvent aE) -> {
                 boolean isValid = strategy.validateChallenge(view.getCode());
@@ -262,8 +233,8 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
                     // Add each strategy as an option to the option view.
                     optionView.addOption(strategy.getServerRepresentation(), (ActionEvent aE) -> {
                         // If the strategy was clicked, then hide the option view and show the strategy specific view.
-                        lockFrame.removePanel(optionView.getChallengeOptionPanel());
                         lockFrame.addPanel(strategyViewPairs.get(strategy).getChallengePanel());
+                        lockFrame.removePanel(optionView.getChallengeOptionPanel());
                         ChallengePanelView view = strategyViewPairs.get(strategy);
                         view.drawFocus();
                     });
