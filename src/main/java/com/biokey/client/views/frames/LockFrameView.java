@@ -6,13 +6,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Defines the view for the lock screen and provides functionality to lock/unlock and swap panels into the lock screen.
  */
 public class LockFrameView {
     private JFrame[] lockFrames;
-    private Map<JFrame, LockerHelper> lockerHelpers = new HashMap<>();
+    private LockerHelper lockerHelper;
 
     /**
      * Constructor sets up the vie3e3ew for the locked UX.
@@ -33,27 +34,26 @@ public class LockFrameView {
             this.lockFrames[j].setResizable(false);
             this.lockFrames[j].setExtendedState(JFrame.MAXIMIZED_BOTH);
             this.lockFrames[j].setSize(Toolkit.getDefaultToolkit().getScreenSize().width, Toolkit.getDefaultToolkit().getScreenSize().height);
-
-            lockerHelpers.put(this.lockFrames[j], new LockerHelper(this.lockFrames[j]));
         }
+        lockerHelper = new LockerHelper(lockFrames);
     }
 
-    /*** Tell this xxgo into locked UX.
+    /*** Tell this to go into locked UX.
      */
     public void lock() {
         for (JFrame lockFrame : lockFrames) {
             lockFrame.setVisible(true);
-            lockerHelpers.get(lockFrame).start();
         }
+        lockerHelper.start();
     }
 
     /**
      * Tell this view to exist locked UX.
      */
     public void unlock() {
+        lockerHelper.stop();
         for (JFrame lockFrame : lockFrames) {
             lockFrame.setVisible(false);
-            lockerHelpers.get(lockFrame).stop();
         }
     }
 

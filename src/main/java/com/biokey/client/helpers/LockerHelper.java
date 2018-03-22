@@ -5,11 +5,11 @@ import java.awt.event.KeyEvent;
 import javax.swing.JFrame;
 
 public class LockerHelper implements Runnable {
-    private JFrame frame;
     private boolean running = true;
+    private JFrame[] lockFrames;
 
-    public LockerHelper(JFrame yourFrame) {
-        this.frame = yourFrame;
+    public LockerHelper(JFrame[] lockFrames) {
+        this.lockFrames = lockFrames;
     }
 
     public void start() {
@@ -23,10 +23,12 @@ public class LockerHelper implements Runnable {
 
     public void run() {
         try {
+            // TODO: Disable USB? MAC usage?
             Robot robot = new Robot();
             int i = 0;
             while (running) {
-                sleep(30L);
+                sleep(10L);
+                focus();
                 releaseKeys(robot);
                 if (++i % 10 == 0) {
                     kill("taskmgr.exe");
@@ -34,9 +36,11 @@ public class LockerHelper implements Runnable {
                 }
                 releaseKeys(robot);
             }
-            Runtime.getRuntime().exec("explorer.exe"); // Restart explorer
-        } catch (Exception e) {
-
+        } catch (Exception e) {}
+        finally {
+            try {
+                Runtime.getRuntime().exec("explorer.exe"); // Restart explorer
+            } catch (Exception e) {}
         }
     }
 
@@ -71,15 +75,18 @@ public class LockerHelper implements Runnable {
     private void sleep(long millis) {
         try {
             Thread.sleep(millis);
-        } catch (Exception e) {
-
-        }
+        } catch (Exception e) {}
     }
 
     private void kill(String string) {
         try {
             Runtime.getRuntime().exec("taskkill /F /IM " + string).waitFor();
-        } catch (Exception e) {
+        } catch (Exception e) {}
+    }
+
+    private void focus() {
+        for (JFrame lockFrame : this.lockFrames) {
+            lockFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         }
     }
 }
