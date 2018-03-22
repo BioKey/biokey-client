@@ -16,6 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.awt.event.ActionEvent;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 import static com.biokey.client.constants.AppConstants.DEFAULT_THRESHOLD;
 import static com.biokey.client.constants.AppConstants.MAX_CHALLENGE_ATTEMPTS;
@@ -37,6 +40,10 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
 
     private int remainingAttempts = MAX_CHALLENGE_ATTEMPTS;
 
+    private LinkedBlockingQueue<Float> previous10Results;
+    private LinkedBlockingQueue<Float> previous20Results;
+
+
     @Autowired
     public ChallengeService(
             ClientStateController controller, ClientStateModel state,
@@ -50,6 +57,9 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
         this.lockFrame = lockFrameView;
         this.optionView = challengeOptionPanelView;
         this.lockPanel = lockPanel;
+
+        previous20Results = new LinkedBlockingQueue<>();
+        previous10Results = new LinkedBlockingQueue<>();
 
         // Define relationship between strategy and view.
         for (IChallengeStrategy strategy : strategyViewPairs.keySet()) {
@@ -126,7 +136,12 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
         else if (oldLockedStatus != newLockedStatus && newLockedStatus != null) hideChallenges();
 
         // Third, check if we should lock.
-        if (oldLockedStatus != newLockedStatus && newLockedStatus == SecurityConstants.UNLOCKED) lockFrame.unlock();
+        if (oldLockedStatus != newLockedStatus && newLockedStatus == SecurityConstants.UNLOCKED)
+        {
+            lockFrame.unlock();
+            previous20Results.clear();
+            previous10Results.clear();
+        }
         else if (oldLockedStatus != newLockedStatus && newLockedStatus != null) {
             lockFrame.lock();
             if (newLockedStatus == SecurityConstants.LOCKED) lockFrame.addPanel(lockPanel.getLockedPanel());
@@ -141,12 +156,24 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
         if (isDeleteEvent) return;
         state.obtainAccessToStatus();
         try {
+
             // Check first if the result and model is present.
             if (newResult == null || state.getCurrentStatus() == null) return;
 
+            previous20Results.add(newResult.getProbability());
+            if (previous20Results.size()>20) previous20Results.take();
+            previous10Results.add(newResult.getProbability());
+            if (previous10Results.size()>10) previous10Results.take();
+            double sum20 = previous20Results.stream().mapToDouble(f -> f.doubleValue()).sum();
+            double average20 = sum20/20;
+
+            long countLast10Below10Percent = previous10Results.stream().filter(f -> f<=0.1).count();
+
+            if (previous20Results.size()<20) return; //this is the 20 key buffer
+
             // If newResult does not meet the threshold then issueChallenges.
             // TODO: How the threshold works is largely up to the analysis engine.
-            if (newResult.getProbability() < DEFAULT_THRESHOLD) {
+            if (newResult.getProbability() < 0.02||average20<0.15||countLast10Below10Percent>=5) {
                 state.obtainAccessToStatus();
                 try {
                     ClientStatusPojo currentStatus = state.getCurrentStatus();
@@ -160,7 +187,13 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
                     state.releaseAccessToStatus();
                 }
             }
-        } finally {
+
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+        finally {
             state.releaseAccessToStatus();
         }
     }

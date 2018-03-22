@@ -331,7 +331,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         try {
             JSONParser parser = new JSONParser();
-            JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Documents/Programming/BioKey/biokey-backend/ensemble-c-2.json"));
+            JSONObject payload = (JSONObject)parser.parse(new FileReader("C:\\Users\\Joshua\\Desktop\\biokey-backend\\ensemble-c-2.json"));
 
                 /*
             payload.put("model", modelDef.getModel());
@@ -434,6 +434,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
             if (model != null) {
                 double pred = model.predict(inputs.toJSONString());
+                controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), (float)pred));
                 try {
                     BufferedWriter predictionLog = new BufferedWriter(new FileWriter("predictions-sim.csv", true));
                     predictionLog.write(engineSeqNumber + "," + pred + "\n");
@@ -443,7 +444,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                     error.printStackTrace();
                 }
 
-            }
+            }   
 
         }
         finally {
