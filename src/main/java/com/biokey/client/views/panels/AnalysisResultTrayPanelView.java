@@ -42,6 +42,8 @@ public class AnalysisResultTrayPanelView {
 
     public AnalysisResultTrayPanelView() {
         graph = new GPanel();
+        Color current = analysisResultTrayPanel.getBackground();
+        analysisResultTrayPanel.setBackground(new Color(current.getRed(), current.getGreen(), current.getBlue(), current.getAlpha()/2));
         graphPanel.setLayout(new GridLayout());
         graphPanel.add(graph);
     }
