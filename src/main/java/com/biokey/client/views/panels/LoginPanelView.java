@@ -5,7 +5,10 @@ import lombok.Getter;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 public class LoginPanelView {
 
@@ -21,6 +24,12 @@ public class LoginPanelView {
         submitButton.setEnabled(false);
         emailInput.getDocument().addDocumentListener(new UpdateTextFieldListener());
         passwordInput.getDocument().addDocumentListener(new UpdateTextFieldListener());
+        emailInput.addActionListener((ActionEvent e) -> {
+            passwordInput.requestFocusInWindow();
+        });
+        passwordInput.addActionListener((ActionEvent e) -> {
+            submitButton.doClick();
+        });
     }
 
     /**
@@ -66,6 +75,7 @@ public class LoginPanelView {
      */
     public void addSubmitAction(ActionListener l) {
         submitButton.addActionListener(l);
+        // passwordInput.addActionListener(l);
     }
 
     /**

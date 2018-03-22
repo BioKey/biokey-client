@@ -100,6 +100,10 @@ public class GoogleAuthStrategy implements IChallengeStrategy, Serializable {
         }
     }
 
+    public boolean validateChallenge(String attempt) {
+        return attempt.length() == 6;
+    }
+
     public String getServerRepresentation() {
         return "GoogleAuth";
     }

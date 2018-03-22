@@ -46,6 +46,7 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
                 log.error("In challenge while current status does not exist.");
                 return false;
             }
+
             // Send password to the user's phone number.
             Message.creator(new PhoneNumber(state.getCurrentStatus().getPhoneNumber()), new PhoneNumber(Credentials.TWILIO_FROM_PHONE_NUMBER), challenge).create();
         } catch(Exception e) {
@@ -61,8 +62,12 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
     public boolean checkChallenge(String attempt) {
         if (!initialized) return false;
         boolean passed = (challenge != null) && challenge.equals(attempt);
-        challenge = null;
         return passed;
+    }
+
+    public boolean validateChallenge(String attempt) {
+        if (!initialized) return false;
+        return (challenge != null) && (challenge.length() == attempt.length());
     }
 
     public String getServerRepresentation() {
@@ -74,7 +79,7 @@ public class TextMessageStrategy implements IChallengeStrategy, Serializable {
         try {
             if (state.getCurrentStatus() == null)  return "No Phone Number on record.";
             else return "Phone Number on record is: " + state.getCurrentStatus().getPhoneNumber() +
-                        ". If this is incorrect please contact your administrator.";
+                        ".\nIf this is incorrect please contact your administrator.";
         } finally {
             state.releaseAccessToStatus();
         }

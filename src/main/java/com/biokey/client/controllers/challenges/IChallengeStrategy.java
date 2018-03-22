@@ -40,6 +40,13 @@ public interface IChallengeStrategy extends Serializable {
     boolean checkChallenge(String attempt);
 
     /**
+     * Ask the challenge strategy to check whether the challenge is valid.
+     *
+     * @return true if the attempt is valid
+     */
+    boolean validateChallenge(String attempt);
+
+    /**
      * @return the string representation that is consistent with the server.
      */
     String getServerRepresentation();

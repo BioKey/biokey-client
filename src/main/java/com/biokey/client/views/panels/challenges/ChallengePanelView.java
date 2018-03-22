@@ -2,6 +2,7 @@ package com.biokey.client.views.panels.challenges;
 
 import javax.swing.JPanel;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyListener;
 
 public interface ChallengePanelView {
 
@@ -43,6 +44,12 @@ public interface ChallengePanelView {
     void addAltAction(ActionListener l);
 
     /**
+     * Setter method to add a new action listener to the code text field.
+     * @param l the key listener added to the code text field
+     */
+    void addKeyAction(ActionListener l);
+
+    /**
      * Setter method to change the enabled status of the send button.
      * @param enable true if the button should be enabled
      */
@@ -71,6 +78,8 @@ public interface ChallengePanelView {
      * @param newInfo the new text to display
      */
     void setInformationText(String newInfo);
+
+    void drawFocus();
 
     /**
      * Clears the code.

@@ -60,7 +60,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      */
     private void start() {
         if (isRunning) return;
-
+        /*
         String csvFile = "simulated-imposters-small.csv";
         BufferedReader br = null;
         String line = "";
@@ -91,7 +91,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
                 }
             }
         }
-        /*
+        */
         try {
             GlobalScreen.registerNativeHook();
             GlobalScreen.addNativeKeyListener(this);
@@ -103,7 +103,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
         } catch (Exception e) {
             log.error("There was an unknown exception when registering the native hook.", e);
         }
-        */
+
 
     }
 
@@ -112,7 +112,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
      */
     private void stop() {
         if (!isRunning) return;
-        /*
+
         try {
             GlobalScreen.removeNativeKeyListener(this);
             GlobalScreen.unregisterNativeHook();
@@ -120,7 +120,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
         } catch (NativeHookException e) {
             log.error("There was an exception deregistering the native hook.", e);
         }
-        */
+
 
     }
 

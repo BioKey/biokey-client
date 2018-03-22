@@ -433,7 +433,11 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
 
             if (model != null) {
-                double pred = model.predict(inputs.toJSONString());
+                float pred = (float)model.predict(inputs.toJSONString());
+                // controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), pred));
+                analysisResultTrayPanelView.setAnalysisResultText(pred);
+
+                /*
                 try {
                     BufferedWriter predictionLog = new BufferedWriter(new FileWriter("predictions-sim.csv", true));
                     predictionLog.write(engineSeqNumber + "," + pred + "\n");
@@ -442,6 +446,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 catch (Exception error) {
                     error.printStackTrace();
                 }
+                */
 
             }
 
