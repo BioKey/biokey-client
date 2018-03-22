@@ -141,7 +141,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 out.newLine();
                 out.flush();
                 String response = in.readLine();
-                log.debug(response);
+                log.debug(response + " ("+engineSeqNumber+")");
                 double result = Double.parseDouble(response.replaceFirst("PREDICT: ", ""));
                 return result;
             }
@@ -236,6 +236,18 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      */
     public void keystrokeQueueChanged(KeyStrokePojo e, boolean isDeleteEvent) {
         if (isDeleteEvent) return;
+
+        /*
+        try {
+            BufferedWriter keyLog = new BufferedWriter(new FileWriter("keystrokes.csv", true));
+            keyLog.write(engineSeqNumber + "," + e.getTimeStamp() + ","+e.getKey()+","+e.isKeyDown()+"\n");
+            keyLog.flush();
+        }
+        catch (Exception error) {
+            error.printStackTrace();
+        }
+        */
+
         if (e.isKeyDown()) {
             KeyDownEvent lastKey = (currentSequence.isEmpty() ? null : currentSequence.peek());
             KeyDownEvent newKey = new KeyDownEvent(e.getKey(), e.getTimeStamp());
@@ -270,7 +282,14 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                     double mean = stats.getMean();
                     double stdev = stats.getStdev();
                     double score = Math.exp(-Math.pow(Math.log(duration)-mean, 2)/(2*Math.pow(stdev, 2)));
-                    completedSequences.add(new KeySequence(runningSequence, duration, startKey.getSeqNumber(), lastKey.getSeqNumber(), score));
+                    try{
+                        KeySequence newSequence = new KeySequence(runningSequence, duration, startKey.getSeqNumber(), lastKey.getSeqNumber(), score);
+                        // lock.lock();
+                        completedSequences.add(newSequence);
+                    }
+                    finally {
+                        // lock.unlock();
+                    }
                 }
             }
             analyze();
@@ -312,7 +331,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         try {
             JSONParser parser = new JSONParser();
-            JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Downloads/ensemble-c-2.json"));
+            JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Documents/Programming/BioKey/biokey-backend/ensemble-c-2.json"));
 
                 /*
             payload.put("model", modelDef.getModel());
@@ -414,18 +433,14 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
 
             if (model != null) {
-
-                if (engineSeqNumber == 300) {
-                    double pred = model.predict(inputs.toJSONString());
-                    /*
-                    try {
-                        BufferedWriter bw = new BufferedWriter(new FileWriter("/Users/connorgiles/Desktop/test_frame.json"));
-                        bw.write(inputs.toJSONString());
-                        bw.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    */
+                double pred = model.predict(inputs.toJSONString());
+                try {
+                    BufferedWriter predictionLog = new BufferedWriter(new FileWriter("predictions-sim.csv", true));
+                    predictionLog.write(engineSeqNumber + "," + pred + "\n");
+                    predictionLog.flush();
+                }
+                catch (Exception error) {
+                    error.printStackTrace();
                 }
 
             }

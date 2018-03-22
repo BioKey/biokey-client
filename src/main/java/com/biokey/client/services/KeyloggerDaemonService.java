@@ -61,7 +61,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
     private void start() {
         if (isRunning) return;
 
-        String csvFile = "/Users/connorgiles/Downloads/train_strokes.csv";
+        String csvFile = "simulated-imposters-small.csv";
         BufferedReader br = null;
         String line = "";
         String cvsSplitBy = ",";
@@ -72,10 +72,10 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
             br = new BufferedReader(new FileReader(csvFile));
             br.readLine();
             while ((line = br.readLine()) != null) {
-                Thread.sleep(50);
+                Thread.sleep(10);
                 // use comma as separator
                 String[] keystroke = line.split(cvsSplitBy);
-                boolean isDown = keystroke[5].charAt(0) == 'd';
+                boolean isDown = keystroke[4].charAt(0) == 'd';
                 controller.enqueueKeyStroke(new KeyStrokePojo(Integer.parseInt(keystroke[3]),isDown, Long.parseLong(keystroke[2])));
 
             }
@@ -104,6 +104,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
             log.error("There was an unknown exception when registering the native hook.", e);
         }
         */
+
     }
 
     /**
@@ -120,6 +121,7 @@ public class KeyloggerDaemonService implements ClientStateModel.IClientStatusLis
             log.error("There was an exception deregistering the native hook.", e);
         }
         */
+
     }
 
     /**
