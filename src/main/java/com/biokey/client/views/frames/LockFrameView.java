@@ -44,14 +44,14 @@ public class LockFrameView {
         for (JFrame lockFrame : lockFrames) {
             lockFrame.setVisible(true);
         }
-        // lockerHelper.start();
+        lockerHelper.start();
     }
 
     /**
      * Tell this view to exist locked UX.
      */
     public void unlock() {
-        // lockerHelper.stop();
+        lockerHelper.stop();
         for (JFrame lockFrame : lockFrames) {
             lockFrame.setVisible(false);
         }

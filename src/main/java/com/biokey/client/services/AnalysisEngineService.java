@@ -179,7 +179,6 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
     private KerasModel model;
 
-    private JSONObject loggedInputs = new JSONObject();
     private final Lock lock = new ReentrantLock(true);
 
     // TODO: delete once the fake is no longer needed.
@@ -331,7 +330,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         try {
             JSONParser parser = new JSONParser();
-            JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Documents/Programming/BioKey/biokey-backend/ensemble-c-2.json"));
+            JSONObject payload = (JSONObject)parser.parse(new FileReader("C:\\Users\\tony_\\Desktop\\ensemble-c-2.json"));
 
 /*
             JSONObject payload = new JSONObject();
