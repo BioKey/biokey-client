@@ -67,7 +67,6 @@ public class TextMessageChallengePanelView implements ChallengePanelView {
                     }
                 });
             }
-            System.out.println("Test "+textArray);
             textArray.add(fields[index]);
 
         }

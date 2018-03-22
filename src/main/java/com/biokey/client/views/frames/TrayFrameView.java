@@ -22,6 +22,8 @@ public class TrayFrameView {
     private Image lockedImage;
     private Image unlockedImage;
 
+    private boolean displayFrame = false;
+
     /**
      * Initializes the tray icon with the unlocked image.
      */
@@ -43,6 +45,8 @@ public class TrayFrameView {
         }
 
         // Define the frame.
+        trayFrame.setUndecorated(true);
+        trayFrame.setBackground(new Color(0,0,0,0));
         trayFrame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
         trayFrame.pack();
         trayFrame.setResizable(false);
@@ -53,7 +57,8 @@ public class TrayFrameView {
         icon.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
-                trayFrame.setVisible(true);
+                displayFrame = !displayFrame;
+                trayFrame.setVisible(displayFrame);
             }
         });
 
