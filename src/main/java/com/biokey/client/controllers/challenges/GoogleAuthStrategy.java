@@ -67,7 +67,7 @@ public class GoogleAuthStrategy implements IChallengeStrategy, Serializable {
                         initialized = SyncStatusConstants.INSYNC;
                         qrFrameView.displayImage(
                                 (response == null) ? null : response.getBody(),
-                                "Could not generate QR Code. Use following code in 2FA app: " + gKey.getKey());
+                                "Could not generate QR Code. Use following code in 2FA app: " + gKey.getKey(), this);
                         controller.setGoogleAuthKey(gKey.getKey());
                     });
         } catch (UnsupportedEncodingException e) {

@@ -54,7 +54,7 @@ public class GoogleAuthStrategyIntegrationTest {
         state = new ClientStateModel(Executors.newCachedThreadPool());
         controller = spy(new ClientStateController(state, helper));
         underTest = new GoogleAuthStrategy(state, controller, helper, view);
-        doNothing().when(view).displayImage(any(byte[].class), any());
+        doNothing().when(view).displayImage(any(byte[].class), any(), underTest);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class GoogleAuthStrategyIntegrationTest {
         underTest.init();
 
         verify(controller, timeout(TIMEOUT).times(1)).setGoogleAuthKey(any());
-        verify(view, timeout(TIMEOUT).times(1)).displayImage(any(byte[].class), any());
+        verify(view, timeout(TIMEOUT).times(1)).displayImage(any(byte[].class), any(), underTest);
         assertTrue("strategy should be initialized", underTest.isInitialized());
     }
 
