@@ -13,9 +13,9 @@ public class EngineModelPojo implements Serializable {
 
     private static final long serialVersionUID = 240;
 
-    @JsonProperty("model")
+    @JsonProperty(value = "model")
     private String model;
-    @JsonProperty("weights")
+    @JsonProperty(value = "weights")
     private String weights;
     @JsonProperty("gaussianProfile")
     private HashMap<String, GaussianFeaturePojo> gaussianProfile = new HashMap<>();

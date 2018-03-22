@@ -395,7 +395,7 @@ public class ClientInitService implements
                     return;
                 }
 
-                log.debug("Successfully retrieved typing profile: " + response);
+                // log.debug("Successfully retrieved typing profile: " + response);
                 // If this succeeded, we can remove the frame.
                 lockFrameView.unlock();
                 lockFrameView.removePanel(loginPanelView.getLoginPanel());

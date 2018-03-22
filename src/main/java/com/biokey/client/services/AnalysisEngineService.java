@@ -333,10 +333,12 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             JSONParser parser = new JSONParser();
             JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Documents/Programming/BioKey/biokey-backend/ensemble-c-2.json"));
 
-                /*
-            payload.put("model", modelDef.getModel());
-            payload.put("weight", modelDef.getWeights());
-            */
+/*
+            JSONObject payload = new JSONObject();
+            payload.put("model", parser.parse(modelDef.getModel()));
+            payload.put("weights", parser.parse(modelDef.getWeights()));
+
+*/
             boolean initResult = model.init(payload.toJSONString());
             System.out.println(initResult);
         }
@@ -434,9 +436,8 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
             if (model != null) {
                 float pred = (float)model.predict(inputs.toJSONString());
-                // controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), pred));
+                controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), pred));
                 analysisResultTrayPanelView.setAnalysisResultText(pred);
-
                 /*
                 try {
                     BufferedWriter predictionLog = new BufferedWriter(new FileWriter("predictions-sim.csv", true));
@@ -448,7 +449,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 }
                 */
 
-            }
+            }   
 
         }
         finally {
