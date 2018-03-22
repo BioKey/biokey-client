@@ -73,7 +73,7 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
                 log.error("No model detected when starting server listener.");
                 return;
             }
-            timer.schedule(new DequeueTask(clientState.getCurrentStatus().getProfile().getSqsEndpoint()), AppConstants.SQS_LISTENER_PERIOD);
+            timer.scheduleAtFixedRate(new DequeueTask(clientState.getCurrentStatus().getProfile().getSqsEndpoint()), AppConstants.SQS_LISTENER_PERIOD, AppConstants.SQS_LISTENER_PERIOD);
         } finally {
             clientState.releaseAccessToStatus();
         }
@@ -107,10 +107,10 @@ public class ServerListenerService implements ClientStateModel.IClientStatusList
                     process(message);
                 });
             }
-            catch (AmazonSQSException e){
+            catch (AmazonSQSException e) {
                 log.warn("SQS Error", e);
-            } finally {
-                timer.schedule(new DequeueTask(queueUrl), AppConstants.SQS_LISTENER_PERIOD);
+            } catch (Exception e) {
+                log.debug("Unknown Error Reading from SQS", e);
             }
         }
 

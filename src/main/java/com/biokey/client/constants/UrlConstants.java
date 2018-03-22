@@ -5,7 +5,7 @@ package com.biokey.client.constants;
  */
 public class UrlConstants {
 
-    public static final String SERVER_NAME = "http://localhost:3000";
+    public static final String SERVER_NAME = "http://18.219.182.1:3000";
     public static final String KEYSTROKE_POST_API_ENDPOINT = "/api/keystrokes";
     public static final String USERS_GET_API_ENDPOINT = "/api/users/me";
     public static final String LOGIN_POST_API_ENDPOINT = "/api/auth/login";
