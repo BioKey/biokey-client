@@ -11,7 +11,6 @@ import java.awt.event.KeyListener;
 
 public class TextMessageChallengePanelView implements ChallengePanelView {
 
-    private JTextField code;
     private JButton sendButton;
     private JButton resendButton;
     private JButton altButton;
@@ -34,7 +33,7 @@ public class TextMessageChallengePanelView implements ChallengePanelView {
             public void keyReleased(KeyEvent e) {}
         };
         fields = new JTextField[6];
-        textArray.setLayout(new GridLayout(1,fields.length));
+        textArray.setLayout(new GridLayout(1,fields.length,5,5));
         for (int i = 0; i < fields.length; i++) {
             final int index = i;
             fields[index] = new JTextField(1);
@@ -47,11 +46,10 @@ public class TextMessageChallengePanelView implements ChallengePanelView {
                     public void keyPressed(KeyEvent e) {}
                     public void keyReleased(KeyEvent e) {
                         if (fields[index-1].getText().length() > 0) {
-                            fields[index-1].setEnabled(false);
                             fields[index].setEnabled(true);
                             fields[index].requestFocusInWindow();
+                            fields[index-1].setEnabled(false);
                         }
-
                     }
                 });
                 fields[index].addKeyListener(new KeyListener() {
@@ -60,10 +58,9 @@ public class TextMessageChallengePanelView implements ChallengePanelView {
                     public void keyReleased(KeyEvent e) {
                         if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
                             fields[index-1].setEnabled(true);
-                            fields[index].setEnabled(false);
                             fields[index-1].requestFocusInWindow();
+                            fields[index].setEnabled(false);
                         }
-
                     }
                 });
             }
