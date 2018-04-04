@@ -1,1 +1,14 @@
 com.biokey.client
+com.biokey.client.constants
+com.biokey.client.controllers
+com.biokey.client.controllers.challenges
+com.biokey.client.helpers
+com.biokey.client.manual
+com.biokey.client.models
+com.biokey.client.models.pojo
+com.biokey.client.models.response
+com.biokey.client.providers
+com.biokey.client.services
+com.biokey.client.views.frames
+com.biokey.client.views.panels
+com.biokey.client.views.panels.challenges
