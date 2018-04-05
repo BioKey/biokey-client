@@ -29,7 +29,7 @@ public class AnalysisResultTrayPanelView {
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
             int parentWidth =  getParent().getWidth();
-            g.setColor(new Color(1, 0, 0,(1-graphPercent)*2.f/3.f+0.3f));
+            g.setColor(new Color(1-graphPercent, graphPercent, 0));
             int width = (int)(graphPercent*parentWidth);
             g.fillRect(parentWidth-width ,0, width, 20);
         }
