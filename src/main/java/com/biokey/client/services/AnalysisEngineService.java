@@ -184,7 +184,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
     private final Lock lock = new ReentrantLock(true);
 
     // TODO: delete once the fake is no longer needed.
-    private FakeAnalysisFrameView frame = new FakeAnalysisFrameView();
+    // private FakeAnalysisFrameView frame = new FakeAnalysisFrameView();
 
     private boolean isRunning = false;
 
@@ -201,6 +201,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         trayFrameView.addPanel(analysisResultTrayPanelView.getAnalysisResultTrayPanel());
 
+        /*
         // TODO: delete once the fake is no longer needed.
         frame.enqueueButton.addActionListener((ActionEvent aE) -> {
             try {
@@ -215,7 +216,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         frame.setContentPane(frame.fakeAnalysisPanel);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.pack();
-
+        */
 
     }
 
@@ -367,7 +368,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         isRunning = true;
         // TODO: delete once the fake is no longer needed.
-        frame.setVisible(true);
+        // frame.setVisible(true);
     }
 
     /**
@@ -380,7 +381,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         }
         isRunning = false;
         // TODO: delete once the fake is no longer needed.
-        frame.setVisible(false);
+        // frame.setVisible(false);
     }
 
     /**
@@ -462,7 +463,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         finally {
             lock.unlock();
         }
-        frame.informationLabel.setText("analyze() was called.");
+        // frame.informationLabel.setText("analyze() was called.");
 
 
     }
