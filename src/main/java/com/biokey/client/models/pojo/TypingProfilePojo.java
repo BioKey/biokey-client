@@ -1,5 +1,6 @@
 package com.biokey.client.models.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NonNull;
@@ -14,7 +15,7 @@ public class TypingProfilePojo implements Serializable {
     @NonNull private final String id;
     @NonNull private final String machineId;
     @NonNull private final String userId;
-    @NonNull private final EngineModelPojo model;
+    @NonNull private EngineModelPojo model;
     @NonNull private String[] acceptedChallengeStrategies;
     @NonNull private final String sqsEndpoint;
 

@@ -176,13 +176,13 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
             double sum20 = previous20Results.stream().mapToDouble(f -> f.doubleValue()).sum();
             double average20 = sum20/20;
 
-            long countLast10Below10Percent = previous10Results.stream().filter(f -> f<=0.1).count();
+            long countLast10Below20Percent = previous10Results.stream().filter(f -> f<=0.2).count();
 
             if (previous20Results.size()<20) return; //this is the 20 key buffer
 
             // If newResult does not meet the threshold then issueChallenges.
             // TODO: How the threshold works is largely up to the analysis engine.
-            if (newResult.getProbability() < 0.05 || average20 < 0.25 || countLast10Below10Percent >= 3) {
+            if (newResult.getProbability() < 0.1 || average20 < 0.30 || countLast10Below20Percent >= 5) {
                 state.obtainAccessToStatus();
                 try {
                     ClientStatusPojo currentStatus = state.getCurrentStatus();

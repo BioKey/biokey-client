@@ -24,6 +24,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ResourceUtils;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -338,10 +339,11 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         try {
             // Read in model
             JSONParser parser = new JSONParser();
-            JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Documents/Programming/BioKey/biokey-backend/ensemble-c-2.json"));
+            JSONObject payload = (JSONObject)parser.parse(new FileReader(ResourceUtils.getFile("src/main/resources/ensemble-c-2.json")));
+
 
             // Read in reset frames
-            JSONObject resetFrames = (JSONObject)parser.parse(new FileReader("reset-frames.json"));
+            JSONObject resetFrames = (JSONObject)parser.parse(new FileReader(ResourceUtils.getFile("src/main/resources/reset-frames.json")));
             ((JSONArray)resetFrames.get("x_raw")).forEach((raw) -> {
                 rawQueue.add((List<Double>)raw);
             });

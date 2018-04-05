@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 
 @Data
-@JsonIgnoreProperties(value = {"model", "weights"})
+@JsonIgnoreProperties(value = {"model", "weights", "reset"})
 public class EngineModelPojo implements Serializable {
 
     private static final long serialVersionUID = 240;
@@ -17,6 +17,8 @@ public class EngineModelPojo implements Serializable {
     private String model;
     @JsonProperty(value = "weights")
     private String weights;
-    @JsonProperty("gaussianProfile")
+    @JsonProperty(value = "reset")
+    private String resetWeights;
+    @JsonProperty(value = "gaussianProfile")
     private HashMap<String, GaussianFeaturePojo> gaussianProfile = new HashMap<>();
 }
