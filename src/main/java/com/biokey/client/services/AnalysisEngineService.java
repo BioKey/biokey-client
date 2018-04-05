@@ -2,6 +2,7 @@ package com.biokey.client.services;
 
 import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.EngineConstants;
+import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
 import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
@@ -19,6 +20,7 @@ import com.google.common.io.ByteStreams;
 import com.sun.xml.internal.ws.api.pipe.Engine;
 import lombok.Data;
 import org.apache.log4j.Logger;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -223,7 +225,9 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
      */
     public void statusChanged(ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent) {
         if (isDeleteEvent) return;
-        if (newStatus != null && newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED &&
+        if (newStatus != null &&
+                newStatus.getAuthStatus() == AuthConstants.AUTHENTICATED &&
+                newStatus.getSecurityStatus() == SecurityConstants.UNLOCKED &&
                 newStatus.getProfile() != null && newStatus.getProfile().getModel() != null)  {
             start();
         }
@@ -282,7 +286,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                     double stdev = stats.getStdev();
                     double score = Math.exp(-Math.pow(Math.log(duration)-mean, 2)/(2*Math.pow(stdev, 2)));
                     try{
-                        KeySequence newSequence = new KeySequence(runningSequence, duration, startKey.getSeqNumber(), lastKey.getSeqNumber(), score);
+                        KeySequence newSequence = new KeySequence(runningSequence, duration, startKey.getSeqNumber(), engineSeqNumber, score);
                         // lock.lock();
                         completedSequences.add(newSequence);
                     }
@@ -311,6 +315,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         queue100 = Queues.synchronizedQueue(EvictingQueue.create(sizeOfEvictingQueue));
 
 
+        /*
         List<Double> zeros = new ArrayList<Double>();
         List<Double> pointFives = new ArrayList<Double>();
 
@@ -324,13 +329,27 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             queue40.add(pointFives);
             queue100.add(pointFives);
         }
+        */
 
         if (model != null && model.isRunning()) model.kill();
         model = new KerasModel();
 
         try {
+            // Read in model
             JSONParser parser = new JSONParser();
             JSONObject payload = (JSONObject)parser.parse(new FileReader("/Users/connorgiles/Documents/Programming/BioKey/biokey-backend/ensemble-c-2.json"));
+
+            // Read in reset frames
+            JSONObject resetFrames = (JSONObject)parser.parse(new FileReader("reset-frames.json"));
+            ((JSONArray)resetFrames.get("x_raw")).forEach((raw) -> {
+                rawQueue.add((List<Double>)raw);
+            });
+            ((JSONArray)resetFrames.get("x_40")).forEach((raw) -> {
+                queue40.add((List<Double>)raw);
+            });
+            ((JSONArray)resetFrames.get("x_100")).forEach((raw) -> {
+                queue100.add((List<Double>)raw);
+            });
 
 /*
             JSONObject payload = new JSONObject();
@@ -437,17 +456,6 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 float pred = (float)model.predict(inputs.toJSONString());
                 controller.enqueueAnalysisResult(new AnalysisResultPojo(System.currentTimeMillis(), pred));
                 analysisResultTrayPanelView.setAnalysisResultText(pred);
-                /*
-                try {
-                    BufferedWriter predictionLog = new BufferedWriter(new FileWriter("predictions-sim.csv", true));
-                    predictionLog.write(engineSeqNumber + "," + pred + "\n");
-                    predictionLog.flush();
-                }
-                catch (Exception error) {
-                    error.printStackTrace();
-                }
-                */
-
             }   
 
         }

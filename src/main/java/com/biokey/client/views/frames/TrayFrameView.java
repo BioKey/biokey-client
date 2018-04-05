@@ -46,6 +46,7 @@ public class TrayFrameView {
 
         // Define the frame.
         trayFrame.setUndecorated(true);
+        trayFrame.setAlwaysOnTop(true);
         trayFrame.setBackground(new Color(0,0,0,0));
         trayFrame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
         trayFrame.pack();
