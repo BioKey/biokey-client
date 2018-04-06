@@ -94,8 +94,8 @@ public class PojoHelper {
     }
 
     /**
-     * Method for get MAc of Linux Machine
-     * @param name
+     * Method for get MAC of Linux Machine
+     * @param name the name of the network interface
      * @return string representation of MAC
      */
     private static String getMAC4Linux(String name){
