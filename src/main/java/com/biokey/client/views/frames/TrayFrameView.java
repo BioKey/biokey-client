@@ -36,13 +36,8 @@ public class TrayFrameView {
         } else tray = SystemTray.getSystemTray();
 
         // Load the images.
-        try {
-            lockedImage = Toolkit.getDefaultToolkit().getImage(ResourceUtils.getURL("src/main/resources/locked.png"));
-            unlockedImage = Toolkit.getDefaultToolkit().getImage(ResourceUtils.getURL("src/main/resources/unlocked.png"));
-        } catch (FileNotFoundException e) {
-            log.error("Tray icon image could not be found.");
-            return;
-        }
+        lockedImage = Toolkit.getDefaultToolkit().getImage(TrayFrameView.class.getResource("locked.png"));
+        unlockedImage = Toolkit.getDefaultToolkit().getImage(TrayFrameView.class.getResource("unlocked.png"));
 
         // Define the frame.
         trayFrame.setUndecorated(true);
@@ -50,18 +45,31 @@ public class TrayFrameView {
         trayFrame.setBackground(new Color(0,0,0,0));
         trayFrame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
         trayFrame.pack();
-        trayFrame.setResizable(false);
+        trayFrame.setResizable(displayFrame);
 
         // Create the tray icon.
         icon = new TrayIcon(unlockedImage);
         icon.setImageAutoSize(true);
-        icon.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                displayFrame = !displayFrame;
-                trayFrame.setVisible(displayFrame);
-            }
+
+        final PopupMenu popup = new PopupMenu();
+        // Create a pop-up menu components
+        MenuItem debugItem = new MenuItem("Toggle Debug");
+        MenuItem exitItem = new MenuItem("Exit");
+
+        debugItem.addActionListener(e -> {
+            displayFrame = !displayFrame;
+            trayFrame.setVisible(displayFrame);
         });
+
+        exitItem.addActionListener(e -> {
+            System.exit(0);
+        });
+
+        //Add components to pop-up menu
+        popup.add(debugItem);
+        popup.add(exitItem);
+
+        icon.setPopupMenu(popup);
 
         // Add icon to the tray.
         try {

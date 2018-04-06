@@ -21,6 +21,7 @@ public class AnalysisResultTrayPanelView {
         }
 
         public void setResult(float graphPercent) {
+            if (graphPercent < 0 || graphPercent > 1) graphPercent = 0;
             this.graphPercent = graphPercent;
             this.repaint();
         }

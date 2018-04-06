@@ -182,7 +182,7 @@ public class ChallengeService implements ClientStateModel.IClientStatusListener,
 
             // If newResult does not meet the threshold then issueChallenges.
             // TODO: How the threshold works is largely up to the analysis engine.
-            if (newResult.getProbability() < 0.1 || average20 < 0.30 || countLast10Below20Percent >= 5) {
+            if (newResult.getProbability() < 0 || average20 < 0.30 || countLast10Below20Percent >= 5) {
                 state.obtainAccessToStatus();
                 try {
                     ClientStatusPojo currentStatus = state.getCurrentStatus();

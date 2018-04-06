@@ -100,3 +100,4 @@ nbdist/
 **/Credentials.java
 
 logs/
+out/

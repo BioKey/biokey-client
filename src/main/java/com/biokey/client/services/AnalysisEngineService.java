@@ -4,42 +4,27 @@ import com.biokey.client.constants.AuthConstants;
 import com.biokey.client.constants.EngineConstants;
 import com.biokey.client.constants.SecurityConstants;
 import com.biokey.client.controllers.ClientStateController;
-import com.biokey.client.helpers.ServerRequestExecutorHelper;
 import com.biokey.client.models.ClientStateModel;
 import com.biokey.client.models.pojo.*;
-import com.biokey.client.views.frames.FakeAnalysisFrameView;
 import com.biokey.client.views.frames.TrayFrameView;
 import com.biokey.client.views.panels.AnalysisResultTrayPanelView;
 
-import com.google.common.collect.Collections2;
 import com.google.common.collect.EvictingQueue;
 
 import com.google.common.collect.Queues;
-import com.google.common.io.ByteStreams;
-
-import com.sun.xml.internal.ws.api.pipe.Engine;
 import lombok.Data;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.ResourceUtils;
 
-import javax.swing.*;
-import java.awt.event.ActionEvent;
-
-import java.security.Key;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import java.io.*;
-import java.nio.Buffer;
-
-
 
 /**
  * Service that runs the analysis model and reports analysis results that represent the likelihood that the user's
@@ -76,7 +61,6 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
             this.indexStart = indexStart;
             this.indexEnd = indexEnd;
             this.score = score;
-            // System.out.println(this);
         }
 
         public String toString() {
@@ -92,7 +76,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
         public KerasModel() {
             try {
-                ProcessBuilder pb = new ProcessBuilder("python", "model.py");
+                ProcessBuilder pb = new ProcessBuilder("python", "D:\\Documents\\GitHub\\biokey-client\\src\\main\\resources\\com\\biokey\\client\\services\\model.py");
                 p = pb.start();
                 in = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 out = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
@@ -100,20 +84,19 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 BufferedReader err = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 
                 Runnable logErrors = () -> {
-                    String error = null;
+                    String error;
                     try {
                         while((error = err.readLine()) != null) {
                             log.error(error);
                         }
                     }
                     catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("Keras error", e);
                     }
                 };
                 (new Thread(logErrors)).start();
-            }
-            catch(Exception e) {
-                e.printStackTrace();
+            } catch(Exception e) {
+                log.error("Keras error", e);
             }
         }
 
@@ -128,7 +111,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 return initialized;
             }
             catch(Exception e) {
-                e.printStackTrace();
+                log.error("Could not init.", e);
             }
             return false;
 
@@ -149,7 +132,7 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                 return result;
             }
             catch(Exception e) {
-                e.printStackTrace();
+                log.error("Could not predict.", e);
             }
             return -1;
 
@@ -287,14 +270,8 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
                     double mean = stats.getMean();
                     double stdev = stats.getStdev();
                     double score = Math.exp(-Math.pow(Math.log(duration)-mean, 2)/(2*Math.pow(stdev, 2)));
-                    try{
-                        KeySequence newSequence = new KeySequence(runningSequence, duration, startKey.getSeqNumber(), engineSeqNumber, score);
-                        // lock.lock();
-                        completedSequences.add(newSequence);
-                    }
-                    finally {
-                        // lock.unlock();
-                    }
+                    KeySequence newSequence = new KeySequence(runningSequence, duration, startKey.getSeqNumber(), engineSeqNumber, score);
+                    completedSequences.add(newSequence);
                 }
             }
             analyze();
@@ -339,11 +316,10 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
         try {
             // Read in model
             JSONParser parser = new JSONParser();
-            JSONObject payload = (JSONObject)parser.parse(new FileReader(ResourceUtils.getFile("src/main/resources/ensemble-c-2.json")));
-
+            JSONObject payload = (JSONObject) parser.parse(new FileReader("D:\\Documents\\GitHub\\biokey-client\\src\\main\\resources\\com\\biokey\\client\\services\\ensemble-c-2.json"));
 
             // Read in reset frames
-            JSONObject resetFrames = (JSONObject)parser.parse(new FileReader(ResourceUtils.getFile("src/main/resources/reset-frames.json")));
+            JSONObject resetFrames = (JSONObject) parser.parse(new FileReader("D:\\Documents\\GitHub\\biokey-client\\src\\main\\resources\\com\\biokey\\client\\services\\reset-frames.json"));
             ((JSONArray)resetFrames.get("x_raw")).forEach((raw) -> {
                 rawQueue.add((List<Double>)raw);
             });
@@ -361,10 +337,10 @@ public class AnalysisEngineService implements ClientStateModel.IClientStatusList
 
 */
             boolean initResult = model.init(payload.toJSONString());
-            System.out.println(initResult);
+            log.debug("Initialized Python Server: " + initResult);
         }
         catch (Exception e) {
-            e.printStackTrace();
+            log.error("Could not parse model or frames.", e);
         }
 
 

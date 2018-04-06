@@ -14,19 +14,12 @@ public class LockedPanelView {
     private JPanel imagePanel;
 
     public LockedPanelView() {
-        //Get the URL
-        URL img;
+        // Make it to a Icon.
+        Icon icon = new ImageIcon(LockedPanelView.class.getResource("wait.gif"));
 
-        try {
-            img = ResourceUtils.getURL("src/main/resources/wait.gif");
-            //Make it to a Icon
-            Icon icon = new ImageIcon(img);
-            //Make a new JLabel that shows "icon"
-            JLabel Gif = new JLabel(icon);
-            this.imagePanel.setLayout(new FlowLayout());
-            this.imagePanel.add(Gif);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
+        // Make a new JLabel that shows icon.
+        JLabel Gif = new JLabel(icon);
+        this.imagePanel.setLayout(new FlowLayout());
+        this.imagePanel.add(Gif);
     }
 }
