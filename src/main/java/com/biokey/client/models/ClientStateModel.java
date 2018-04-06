@@ -162,6 +162,7 @@ public class ClientStateModel implements Serializable {
     /**
      * Checks if the client state model read from memory is valid.
      *
+     * @param fromMemory the client state model read from memory
      * @return true if the client state model read from memory is valid
      */
     public boolean checkStateModel(@NonNull ClientStateModel fromMemory) {
@@ -363,6 +364,7 @@ public class ClientStateModel implements Serializable {
      *
      * @param oldStatus the status that was replaced
      * @param newStatus the new current status
+     * @param isDeleteEvent if the queue change was a result of a delete event instead of an enqueue event
      */
     public void notifyStatusChange(ClientStatusPojo oldStatus, ClientStatusPojo newStatus, boolean isDeleteEvent) {
         for (IClientStatusListener listener : statusListeners) {
@@ -374,6 +376,7 @@ public class ClientStateModel implements Serializable {
      * Notifies all the listeners of a key queue change.
      *
      * @param newKey the newest keystroke
+     * @param isDeleteEvent if the queue change was a result of a delete event instead of an enqueue event
      */
     public void notifyKeyQueueChange(KeyStrokePojo newKey, boolean isDeleteEvent) {
         for (IClientKeyListener listener : keyQueueListeners) {
@@ -385,6 +388,7 @@ public class ClientStateModel implements Serializable {
      * Notifies all the listeners of an analysis result queue change.
      *
      * @param newResult the newest analysis result
+     * @param isDeleteEvent if the queue change was a result of a delete event instead of an enqueue event
      */
     public void notifyAnalysisResultQueueChange(AnalysisResultPojo newResult, boolean isDeleteEvent) {
         for (IClientAnalysisListener listener : analysisResultQueueListeners) {

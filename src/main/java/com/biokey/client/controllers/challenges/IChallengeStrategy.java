@@ -35,6 +35,7 @@ public interface IChallengeStrategy extends Serializable {
     /**
      * Ask the challenge strategy to check whether the challenge passed.
      *
+     * @param attempt the user's attempt to pass the challenge
      * @return true if the attempt matched the challenge
      */
     boolean checkChallenge(String attempt);
@@ -42,6 +43,7 @@ public interface IChallengeStrategy extends Serializable {
     /**
      * Ask the challenge strategy to check whether the challenge is valid.
      *
+     * @param attempt the user's attempt to pass the challenge
      * @return true if the attempt is valid
      */
     boolean validateChallenge(String attempt);

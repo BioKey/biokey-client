@@ -40,6 +40,7 @@ public class ServerRequestExecutorHelper {
      * Allow caller to provide a lambda to execute on the response.
      *
      * @param url url to send request to
+     * @param headers the http headers to use in the request
      * @param responseTemplate the expected template that the response should be cast to
      * @param handler the lambda that will be passed the server response
      * @param <T> the type of the responseTemplate
@@ -76,6 +77,7 @@ public class ServerRequestExecutorHelper {
      * Allow caller to provide a lambda to execute on the response.
      *
      * @param url url to send request to
+     * @param headers the http headers to use in the request
      * @param requestBody the key-value pairs to be attached to the request body
      * @param responseTemplate the expected template that the response should be cast to
      * @param handler the lambda that will be passed the server response
@@ -114,6 +116,7 @@ public class ServerRequestExecutorHelper {
      * Allow caller to provide a lambda to execute on the response.
      *
      * @param url url to send request to
+     * @param headers the http headers to use in the request
      * @param requestBody the key-value pairs to be attached to the request body
      * @param responseTemplate the expected template that the response should be cast to
      * @param handler the lambda that will be passed the server response

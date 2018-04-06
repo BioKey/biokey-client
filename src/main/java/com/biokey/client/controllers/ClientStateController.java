@@ -59,6 +59,9 @@ public class ClientStateController {
 
     /**
      * Sends the server a message at fixed time intervals to let it know when the client is alive.
+     *
+     * @param id the id of the typing profile to post heartbeat to
+     * @param handler the code to call when the server returns a response
      */
     public void sendHeartbeat(@NonNull String id, @NonNull ServerRequestExecutorHelper.ServerResponseHandler<String> handler) {
         state.obtainAccessToStatus();
@@ -411,6 +414,7 @@ public class ClientStateController {
     /**
      * Checks if the client state model read from memory is valid.
      *
+     * @param fromMemory the client state model read from memory
      * @return true if the client state model read from memory is valid
      */
     public boolean checkStateModel(@NonNull ClientStateModel fromMemory) {

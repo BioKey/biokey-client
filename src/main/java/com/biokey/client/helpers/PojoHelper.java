@@ -24,6 +24,7 @@ public class PojoHelper {
      * Cast the response from the server to a new client status.
      *
      * @param responseContainer response from the server
+     * @param currentStatus the current status of the client that is needed as response doesn't contain all the information
      * @param token the access token used to call the server
      * @return new client status based on response
      */
@@ -37,6 +38,7 @@ public class PojoHelper {
      * Cast the response from the server to a new client status.
      *
      * @param responseContainer response from the server
+     * @param currentStatus the current status of the client that is needed as response doesn't contain all the information
      * @param token the access token used to call the server
      * @param authStatus the new auth status
      * @return new client status based on response
@@ -94,7 +96,7 @@ public class PojoHelper {
     /**
      * Method for get MAc of Linux Machine
      * @param name
-     * @return
+     * @return string representation of MAC
      */
     private static String getMAC4Linux(String name){
         try {
@@ -113,7 +115,7 @@ public class PojoHelper {
 
     /**
      * Method for first MAC address
-     * @return
+     * @return string representation of MAC
      */
     private static String getFirstMAC(){
         try {
@@ -133,7 +135,7 @@ public class PojoHelper {
     /**
      * Method for get Mac Address of Windows Machine
      *
-     * @return
+     * @return string representation of MAC
      */
     private static String getMAC4Windows() {
         try {
@@ -157,6 +159,7 @@ public class PojoHelper {
     /**
      * Casts the string representations of challenge strategies from the server to the correct IChallengeStrategy impl.
      *
+     * @param strategies map of string representations of challenge strategies to the IChallengeStrategy impl
      * @param challengeStrategies array of string representations of challenge strategies from the server
      * @return array of accepted IChallengeStrategy impl
      */
@@ -176,6 +179,7 @@ public class PojoHelper {
     /**
      * Casts the string representations of challenge strategies from the server to the correct IChallengeStrategy impl.
      *
+     * @param strategies map of string representations of challenge strategies to the IChallengeStrategy impl
      * @param challengeStrategies comma delimited string representation of challenge strategies from the server
      * @return array of accepted IChallengeStrategy impl
      */
@@ -208,8 +212,9 @@ public class PojoHelper {
     /**
      * Returns a new status with the authStatus set to the new authStatus.
      *
-     * @param currentStatus the current status
+     * @param currentStatus the current status that is used as a base
      * @param newAuth the new authStatus
+     * @return the created status with the parameters
      */
     public static ClientStatusPojo createStatus(@NonNull ClientStatusPojo currentStatus, @NonNull AuthConstants newAuth) {
         return new ClientStatusPojo(currentStatus.getProfile(), newAuth, currentStatus.getSecurityStatus(),
@@ -220,8 +225,9 @@ public class PojoHelper {
     /**
      * Returns a new status with the securityStatus set to the new securityStatus.
      *
-     * @param currentStatus the current status
+     * @param currentStatus the current status that is used as a base
      * @param newSecurity the new securityStatus
+     * @return the created status with the parameters
      */
     public static ClientStatusPojo createStatus(@NonNull ClientStatusPojo currentStatus, @NonNull SecurityConstants newSecurity) {
         return new ClientStatusPojo(currentStatus.getProfile(), currentStatus.getAuthStatus(), newSecurity,
@@ -232,9 +238,10 @@ public class PojoHelper {
     /**
      * Returns a new status with new phone number and google authentication key.
      *
-     * @param currentStatus the current status
+     * @param currentStatus the current status that is used as a base
      * @param phoneNumber the new phone number
      * @param googleAuthKey the new Google authentication key
+     * @return the created status with the parameters
      */
     public static ClientStatusPojo createStatus(@NonNull ClientStatusPojo currentStatus, String phoneNumber, String googleAuthKey) {
         String notNullPhoneNumber = (phoneNumber == null) ? "" : phoneNumber;
